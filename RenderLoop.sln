@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34316.72
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RenderLoop", "RenderLoop\RenderLoop.csproj", "{0FE0E2F1-1D7C-468D-83DC-A4F7A0DFB44F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0FE0E2F1-1D7C-468D-83DC-A4F7A0DFB44F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FE0E2F1-1D7C-468D-83DC-A4F7A0DFB44F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FE0E2F1-1D7C-468D-83DC-A4F7A0DFB44F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FE0E2F1-1D7C-468D-83DC-A4F7A0DFB44F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E6DC7BC-61C1-4208-B360-1956199F11FF}
+	EndGlobalSection
+EndGlobal
