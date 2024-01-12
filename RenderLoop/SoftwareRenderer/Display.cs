@@ -257,7 +257,8 @@ namespace RenderLoop.SofwareRenderer
             this.height = Math.Max(size.Height, 1);
             this.buffer = new Bitmap(this.width, this.height);
             this.depthBuffer = new float[this.height, this.width];
-            this.camera.AspectRatio = (float)this.width / this.height;
+            this.camera.Width = this.width;
+            this.camera.Height = this.height;
         }
     }
 }

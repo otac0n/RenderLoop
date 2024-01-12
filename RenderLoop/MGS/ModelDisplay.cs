@@ -209,14 +209,7 @@
 
             var texture = this.texturesUsed.FirstOrDefault();
 
-            var transformed = Array.ConvertAll(this.points, p =>
-            {
-                p = this.Camera.Transform(p);
-                p.X = (p.X + 1) * 0.5f * width;
-                p.Y = (1 - p.Y) * 0.5f * height;
-                return p;
-            });
-
+            var transformed = Array.ConvertAll(this.points, this.Camera.Transform);
             foreach (var shape in this.shapes)
             {
                 DrawShape(shape, s => transformed[s.index], (v, vertices) =>

@@ -9,7 +9,8 @@
         private Vector3 direction = Vector3.UnitX;
         private Vector3 up = Vector3.UnitZ;
         private float fieldOfView = (float)(Math.Tau / 5);
-        private float aspectRatio = 1.0f;
+        private float width = 1.0f;
+        private float height = 1.0f;
         private float nearPlane = 0.1f;
         private float farPlane = 10.0f;
         private Matrix4x4? matrix;
@@ -67,18 +68,33 @@
             }
         }
 
-        public float AspectRatio
+        public float Width
         {
-            get => this.aspectRatio;
+            get => this.width;
             set
             {
-                if (this.aspectRatio != value)
+                if (this.width != value)
                 {
-                    this.aspectRatio = value;
+                    this.width = value;
                     this.matrix = null;
                 }
             }
         }
+
+        public float Height
+        {
+            get => this.height;
+            set
+            {
+                if (this.height != value)
+                {
+                    this.height = value;
+                    this.matrix = null;
+                }
+            }
+        }
+
+        public float AspectRatio => this.width / this.height;
 
         public float NearPlane
         {
@@ -121,8 +137,10 @@
 
         public Vector3 Transform(Vector3 position)
         {
-            var vp = Vector4.Transform(position, this.Matrix);
-            return new Vector3(vp.X, vp.Y, vp.Z) / Math.Abs(vp.W);
+            var t = Vector4.Transform(position, this.Matrix);
+            t.X = (t.X / t.W + 1) * 0.5f * this.Width * t.W;
+            t.Y = (1 - t.Y / t.W) * 0.5f * this.Height * t.W;
+            return new Vector3(t.X, t.Y, t.Z) / t.W;
         }
 
         private void ComputeMatrix()
