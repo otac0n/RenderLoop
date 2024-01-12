@@ -30,6 +30,10 @@
 
         private void Run(CancellationToken cancel)
         {
+            using var display = this.serviceProvider.GetRequiredService<ModelDisplay>();
+
+            cancel.Register(() => display.InvokeIfRequired(display.Close));
+            Application.Run(display);
             this.lifetime.StopApplication();
         }
     }

@@ -30,6 +30,7 @@
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(options);
+                ServiceRegistration.Register(services, options);
 
                 services.AddHostedService<RenderLoopApplication>();
             });
@@ -41,6 +42,19 @@
 
         internal class Options
         {
+            [Option("file", Required = true, HelpText = "The path of the alldata.bin file.")]
+            public required string File { get; set; }
+
+            [Option("key", Required = true, HelpText = "The key to the alldata.bin file.")]
+            public required string Key { get; set; }
+
+            public static void PopulateDefaults(Options options)
+            {
+                if (options.File == null)
+                {
+                    // TODO: Get default path.
+                }
+            }
         }
     }
 }
