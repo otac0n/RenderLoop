@@ -88,9 +88,9 @@
             return (c.X - a.X) * (b.Y - a.Y) - (c.Y - a.Y) * (b.X - a.X);
         }
 
-        public static void DrawWireFrame(Graphics g, Vector3[] vertices)
+        public static void DrawWireFrame(Graphics g, Vector4[] vertices)
         {
-            var p = Array.ConvertAll(vertices, v => new PointF(v.X, v.Y));
+            var p = Array.ConvertAll(vertices, v => new PointF(v.X / v.W, v.Y / v.W));
             g.DrawLine(Pens.White, p[0], p[1]);
             g.DrawLine(Pens.White, p[2], p[1]);
             g.DrawLine(Pens.White, p[2], p[0]);
@@ -99,21 +99,23 @@
         public static Vector3 MapCoordinates(Vector3 barycenter, Vector3[] coordinates) =>
             barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2];
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Color color) =>
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Color color) =>
             FillTriangle(bitmap, depthBuffer, vertices, culling, (_, _) => color);
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], Color> getColor) =>
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, float[], Color> getColor) =>
             FillTriangle(bitmap, depthBuffer, vertices, culling, (b, z) => getColor(b, z).ToArgb());
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], int> getArgb)
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, float[], int> getArgb)
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
             var black = Color.Black.ToArgb();
 
-            var v0 = vertices[0];
-            var v1 = vertices[1];
-            var v2 = vertices[2];
+            static Vector3 Scale(Vector4 v) => new Vector3(v.X, v.Y, v.Z) / Math.Abs(v.W);
+
+            var v0 = Scale(vertices[0]);
+            var v1 = Scale(vertices[1]);
+            var v2 = Scale(vertices[2]);
             var min = Vector3.Min(Vector3.Min(v0, v1), v2);
             var max = Vector3.Max(Vector3.Max(v0, v1), v2);
 

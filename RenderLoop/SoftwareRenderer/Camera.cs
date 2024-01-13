@@ -135,12 +135,12 @@
             }
         }
 
-        public Vector3 Transform(Vector3 position)
+        public Vector4 Transform(Vector3 position)
         {
             var t = Vector4.Transform(position, this.Matrix);
             t.X = (t.X / t.W + 1) * 0.5f * this.Width * t.W;
             t.Y = (1 - t.Y / t.W) * 0.5f * this.Height * t.W;
-            return new Vector3(t.X, t.Y, t.Z) / t.W;
+            return t;
         }
 
         private void ComputeMatrix()
