@@ -171,7 +171,7 @@
 
                     var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
                     DrawShape(indices, s => transformed[s.index], (v, vertices) =>
-                        FillTriangle(buffer, depthBuffer, vertices, (barycenter, z) =>
+                        FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, (barycenter, z) =>
                         {
                             if (barycenter == Vector3.Zero)
                             {

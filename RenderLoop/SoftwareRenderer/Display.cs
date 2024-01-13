@@ -100,13 +100,13 @@
         public static Vector3 MapCoordinates(Vector3 barycenter, Vector3[] coordinates) =>
             barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2];
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, Color color) =>
-            FillTriangle(bitmap, depthBuffer, vertices, (_, _) => color);
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Color color) =>
+            FillTriangle(bitmap, depthBuffer, vertices, culling, (_, _) => color);
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, Func<Vector3, float[], Color> getColor) =>
-            FillTriangle(bitmap, depthBuffer, vertices, (b, z) => getColor(b, z).ToArgb());
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], Color> getColor) =>
+            FillTriangle(bitmap, depthBuffer, vertices, culling, (b, z) => getColor(b, z).ToArgb());
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, Func<Vector3, float[], int> getArgb)
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], int> getArgb)
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
@@ -124,7 +124,7 @@
             }
 
             var area = EdgeFunction(v0, v1, v2);
-            if (area <= 0)
+            if (culling == BackfaceCulling.Cull && area <= 0)
             {
                 return;
             }
@@ -152,10 +152,12 @@
                 {
                     p.X = x + initX + 0.5f;
 
-                    float w0, w1, w2;
-                    if ((w0 = EdgeFunction(v1, v2, p)) >= 0 &&
-                        (w1 = EdgeFunction(v2, v0, p)) >= 0 &&
-                        (w2 = EdgeFunction(v0, v1, p)) >= 0)
+                    var w0 = EdgeFunction(v1, v2, p);
+                    var w1 = EdgeFunction(v2, v0, p);
+                    var w2 = EdgeFunction(v0, v1, p);
+
+                    if ((w0 >= 0) && (w1 >= 0) && (w2 >= 0) ||
+                        (w0 <= 0) && (w1 <= 0) && (w2 <= 0))
                     {
                         if (startX < 0)
                         {
@@ -163,10 +165,9 @@
                             Marshal.Copy(scan + sizeof(int) * startX, colorData, startX, boundX - startX);
                         }
 
-                        var z = w0 * v0.Z + w1 * v1.Z + w2 * v2.Z;
+                        var z = (w0 * v0.Z + w1 * v1.Z + w2 * v2.Z) / area;
                         if (z > 0)
                         {
-                            z /= area;
                             if (z < depthBuffer[y + initY, x + initX])
                             {
                                 depthBuffer[y + initY, x + initX] = z;
