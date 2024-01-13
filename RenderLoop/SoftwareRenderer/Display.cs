@@ -15,7 +15,6 @@
         private int height;
         private Bitmap buffer;
         private float[,] depthBuffer;
-        private Camera camera = new Camera();
         private long timestamp;
 
         public Display()
@@ -25,7 +24,7 @@
             this.timestamp = Stopwatch.GetTimestamp();
         }
 
-        protected Camera Camera => this.camera;
+        protected Camera Camera { get; } = new();
 
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -240,8 +239,8 @@
             this.height = Math.Max(size.Height, 1);
             this.buffer = new Bitmap(this.width, this.height);
             this.depthBuffer = new float[this.height, this.width];
-            this.camera.Width = this.width;
-            this.camera.Height = this.height;
+            this.Camera.Width = this.width;
+            this.Camera.Height = this.height;
         }
     }
 }
