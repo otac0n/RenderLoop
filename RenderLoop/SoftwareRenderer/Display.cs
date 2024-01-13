@@ -119,7 +119,13 @@
             var min = Vector3.Min(Vector3.Min(v0, v1), v2);
             var max = Vector3.Max(Vector3.Max(v0, v1), v2);
 
-            if (float.IsNaN(min.X) || float.IsNaN(min.Y) || max.Z < 0)
+            if (float.IsNaN(min.X) ||
+                float.IsNaN(min.Y) ||
+                max.Z < 0 ||
+                min.X > width ||
+                min.Y > height ||
+                max.X < 0 ||
+                max.Y < 0)
             {
                 return;
             }
@@ -179,11 +185,6 @@
                                 }
                             }
                         }
-                        //else
-                        //{
-                        //    colorData[x] = black;
-                        //    depthBuffer[y + initY, x + initX] = 0;
-                        //}
                     }
                     else if (startX >= 0)
                     {
