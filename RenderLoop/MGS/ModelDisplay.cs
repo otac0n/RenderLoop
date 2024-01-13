@@ -14,10 +14,11 @@
 
     public class ModelDisplay : Display
     {
-        private int frame = 0;
+        private static readonly double ModelDisplaySeconds = 10.0;
+        private int frame;
         private int frames = 90;
-        private double nextModel = 10.0;
-        private int activeModel = 0;
+        private double nextModel = ModelDisplaySeconds;
+        private int activeModel;
         private Vector3 center;
         private float size;
 
@@ -127,7 +128,7 @@
 
             if (updated)
             {
-                this.nextModel = 10.0;
+                this.nextModel = ModelDisplaySeconds;
                 this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
                 this.UpdateModel();
             }
@@ -142,7 +143,7 @@
             this.nextModel -= elapsed.TotalSeconds;
             if (this.nextModel <= 0 && false)
             {
-                this.nextModel = 10.0;
+                this.nextModel = ModelDisplaySeconds;
                 this.activeModel = (this.activeModel + 1) % this.models.Count;
                 this.UpdateModel();
             }
