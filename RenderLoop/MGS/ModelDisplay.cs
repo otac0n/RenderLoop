@@ -16,8 +16,6 @@
     {
         private int frame = 0;
         private int frames = 90;
-        private Vector3[] points;
-        private (int index, Vector2 textureCoords)[][] shapes;
         private double nextModel = 10.0;
         private int activeModel = 0;
         private Vector3 center;
@@ -26,19 +24,18 @@
         private readonly StageDirVirtualFileSystem stageDir;
 
         private readonly IList<(string[] path, Model model)> models;
-        private readonly Dictionary<string, Bitmap?> textures = new();
-        private readonly List<Bitmap> texturesUsed = new();
+        private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
+        private readonly Dictionary<ushort, Bitmap?> textureLookup = [];
 
         public ModelDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
-            var models = Model.UnpackModels(this.stageDir).Select(m => (new[] { options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
+            this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
 
             this.KeyPreview = true;
-            this.models = models;
             this.BackColor = Color.Gray;
-            this.ReadMesh();
+            this.UpdateModel();
         }
 
         private static readonly Color[] Palette = [
@@ -50,91 +47,47 @@
             Color.HotPink,
         ];
 
-        private void ReadMesh()
+        private void UpdateModel()
         {
             var (path, model) = this.models[this.activeModel];
-            this.texturesUsed.Clear();
 
-            var file = path[path.Length - 1];
+            var file = path[^1];
             var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
             foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
             {
-                var bmp = this.EnsureTexture(tx);
-                if (bmp != null)
-                {
-                    this.texturesUsed.Add(bmp);
-                    break;
-                }
+                var (id, texture) = this.EnsureTexture(tx);
+                this.textureLookup[id] = texture;
             }
-
-            var points = new List<Vector3>();
-            var shapes = new List<(int indices, Vector2 textureCoords)[]>();
 
             var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
             var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
 
-            var fakeUV = new[]
-            {
-                new Vector2(0, 0),
-                new Vector2(1, 0),
-                new Vector2(1, 1),
-                new Vector2(0, 1),
-            };
-
             foreach (var mesh in model.Meshes)
             {
-                var start = points.Count;
-                for (var i = 0; i < mesh.Vertices.Length; i++)
+                foreach (var v in mesh.Vertices)
                 {
-                    var v = mesh.Vertices[i];
                     var p = new Vector3(v.x, v.z, v.y);
-                    points.Add(p);
                     min = Vector3.Min(min, p);
                     max = Vector3.Max(max, p);
-                }
-
-                foreach (var shape in mesh.Faces)
-                {
-                    var indices = shape.VertexIndices.Select((i, j) => (i + start, fakeUV[j])).ToArray();
-                    (indices[2], indices[3]) = (indices[3], indices[2]);
-                    Color color;
-                    //if (mesh.Normals.Length > shape.NormalIndices[0])
-                    //{
-                    //    var normal = mesh.Normals[shape.NormalIndices[0]];
-                    //    normal = normal * (1 / normal.Length());
-                    //    color = Color.FromArgb(
-                    //        (int)Math.Clamp(normal.X * 128 + 128, 0, 255),
-                    //        (int)Math.Clamp(normal.Y * 128 + 128, 0, 255),
-                    //        (int)Math.Clamp(normal.Z * 128 + 128, 0, 255));
-                    //}
-                    //else
-                    {
-                        color = Palette[shape.TextureId % Palette.Length];
-
-                        if (shape.TextureId != 0)
-                        {
-                            //var texture = file[..(file.IndexOf('/') + 1)] + $"texture/{shape.TextureId:x4}.pcx";
-                        }
-                    }
-                    shapes.Add(indices);
                 }
             }
 
             var size = max - min;
             this.center = min + size / 2;
             this.size = Math.Max(size.X, Math.Max(size.Y, size.Z));
-            this.points = points.ToArray();
-            this.shapes = shapes.ToArray();
         }
 
-        private Bitmap? EnsureTexture(string file)
+        private (ushort id, Bitmap? texture) EnsureTexture(string file)
         {
             if (!this.textures.TryGetValue(file, out var texture))
             {
                 if (this.stageDir.File.Exists(file))
                 {
+                    var buffer = new byte[2];
                     using var textureFile = this.stageDir.File.OpenRead(file);
-                    texture = ReadMgsPcx(textureFile);
+                    textureFile.ReadExactly(buffer, 2);
+                    texture.id = BitConverter.ToUInt16(buffer, 0);
+                    texture.texture = ReadMgsPcx(textureFile);
                 }
 
                 this.textures[file] = texture;
@@ -174,8 +127,9 @@
 
             if (updated)
             {
+                this.nextModel = 10.0;
                 this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
-                this.ReadMesh();
+                this.UpdateModel();
             }
 
             base.OnPreviewKeyDown(e);
@@ -190,10 +144,10 @@
             {
                 this.nextModel = 10.0;
                 this.activeModel = (this.activeModel + 1) % this.models.Count;
-                this.ReadMesh();
+                this.UpdateModel();
             }
 
-            var a = (Math.Tau * this.frame) / this.frames;
+            var a = Math.Tau * this.frame / this.frames;
             var (x, y) = Math.SinCos(a);
             var p = new Vector3((float)(this.size * x), (float)(this.size * y), 0);
             this.Camera.Position = this.center + p;
@@ -207,44 +161,46 @@
             var width = buffer.Width;
             var height = buffer.Height;
 
-            var texture = this.texturesUsed.FirstOrDefault();
-
-            var transformed = Array.ConvertAll(this.points, this.Camera.Transform);
-            foreach (var shape in this.shapes)
+            var (_, model) = this.models[this.activeModel];
+            foreach (var mesh in model.Meshes)
             {
-                DrawShape(shape, s => transformed[s.index], (v, vertices) =>
+                var transformed = Array.ConvertAll(mesh.Vertices, v => this.Camera.Transform(new Vector3(v.x, v.z, v.y)));
+                foreach (var face in mesh.Faces)
                 {
-                    FillTriangle(buffer, depthBuffer, vertices, (barycenter, z) =>
-                    {
-                        if (barycenter == Vector3.Zero)
-                        {
-                            return Color.Magenta;
-                        }
+                    this.textureLookup.TryGetValue(face.TextureId, out var texture);
 
-                        var uv = MapCoordinates(
-                            barycenter,
-                            [
-                                new Vector3(v[0].textureCoords.X / z[0], v[0].textureCoords.Y / z[0], 1 / z[0]),
-                                new Vector3(v[1].textureCoords.X / z[1], v[1].textureCoords.Y / z[1], 1 / z[1]),
-                                new Vector3(v[2].textureCoords.X / z[2], v[2].textureCoords.Y / z[2], 1 / z[2]),
-                            ]);
-                        uv *= z[3];
-                        if (texture != null)
+                    var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
+                    DrawShape(indices, s => transformed[s.index], (v, vertices) =>
+                        FillTriangle(buffer, depthBuffer, vertices, (barycenter, z) =>
                         {
-                            return texture.GetPixel(
-                                (int)(uv.X % 1.0 * texture.Width),
-                                (int)(uv.Y % 1.0 * texture.Height));
-                        }
-                        else
-                        {
-                            return Color.FromArgb(
-                                (int)(uv.X % 1.0 * 255),
-                                (int)(uv.Y % 1.0 * 255),
-                                0);
-                        }
-                    });
-                    DrawWireFrame(g, vertices);
-                });
+                            if (barycenter == Vector3.Zero)
+                            {
+                                return Color.Magenta;
+                            }
+
+                            var uv = MapCoordinates(
+                                barycenter,
+                                [
+                                    new Vector3(v[0].textureCoords.X / z[0], v[0].textureCoords.Y / z[0], 1 / z[0]),
+                                    new Vector3(v[1].textureCoords.X / z[1], v[1].textureCoords.Y / z[1], 1 / z[1]),
+                                    new Vector3(v[2].textureCoords.X / z[2], v[2].textureCoords.Y / z[2], 1 / z[2]),
+                                ]);
+                            uv *= z[3];
+                            if (texture != null)
+                            {
+                                return texture.GetPixel(
+                                    (int)(uv.X % 1.0 * texture.Width),
+                                    (int)(uv.Y % 1.0 * texture.Height));
+                            }
+                            else
+                            {
+                                return Color.FromArgb(
+                                    (int)(uv.X % 1.0 * 255),
+                                    (int)(uv.Y % 1.0 * 255),
+                                    0);
+                            }
+                        }));
+                }
             }
 
             using var textBrush = new SolidBrush(this.ForeColor);

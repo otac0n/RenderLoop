@@ -5,7 +5,6 @@
     using System.IO;
     using System.Linq;
     using System.Numerics;
-    using Microsoft.Extensions.Logging;
     using Point = (int x, int y, int z);
     using Vertex = (int x, int y, int z, int w);
 
@@ -50,7 +49,7 @@
             {
                 stream.ReadExactly(buffer, 88);
 
-                var unknown = BitConverter.ToUInt32(buffer, 0);
+                var flags = BitConverter.ToUInt32(buffer, 0);
                 var faceCount = BitConverter.ToUInt32(buffer, 4);
                 var bounds = (
                     start: (
@@ -72,8 +71,8 @@
                 var normalCount = BitConverter.ToUInt32(buffer, 64);
                 var normalAddress = BitConverter.ToUInt32(buffer, 68);
                 var normalIndexAddress = BitConverter.ToUInt32(buffer, 72);
-                var texCoordAddress = BitConverter.ToUInt32(buffer, 68);
-                var textureAddress = BitConverter.ToUInt32(buffer, 68);
+                var texCoordAddress = BitConverter.ToUInt32(buffer, 76);
+                var textureAddress = BitConverter.ToUInt32(buffer, 80);
 
                 if (baseCoord != -1 && !(baseCoord == 0 && offsets.Count == 0))
                 {
@@ -96,7 +95,7 @@
                         x: BitConverter.ToInt16(buffer, 0) + relativePoint.x,
                         y: BitConverter.ToInt16(buffer, 2) + relativePoint.y,
                         z: BitConverter.ToInt16(buffer, 4) + relativePoint.z,
-                        w: (int)BitConverter.ToInt16(buffer, 6));
+                        w: BitConverter.ToInt16(buffer, 6));
                 }
 
                 var normals = new Vector3[normalCount];
@@ -110,8 +109,8 @@
                         BitConverter.ToInt16(buffer, 4) / -(float)short.MinValue);
                 }
 
-                stream.Seek(texCoordAddress, SeekOrigin.Begin);
                 var texCoords = new Vector2[(textureAddress - texCoordAddress) / 2];
+                stream.Seek(texCoordAddress, SeekOrigin.Begin);
                 for (var t = 0; t < texCoords.Length; t++)
                 {
                     stream.ReadExactly(buffer, 2);
@@ -127,6 +126,7 @@
                 {
                     var indices = new byte[4];
                     stream.ReadExactly(indices, 4);
+                    (indices[2], indices[3]) = (indices[3], indices[2]);
                     faces[v].VertexIndices = Array.ConvertAll(indices, i => (int)i);
                 }
 
@@ -136,6 +136,7 @@
                 {
                     var indices = new byte[4];
                     stream.ReadExactly(indices, 4);
+                    (indices[2], indices[3]) = (indices[3], indices[2]);
                     faces[v].NormalIndices = Array.ConvertAll(indices, i => (int)i);
                 }
 
@@ -145,6 +146,18 @@
                 {
                     stream.ReadExactly(buffer, 2);
                     faces[v].TextureId = BitConverter.ToUInt16(buffer, 0);
+                }
+
+                for (var v = 0; v < faceCount; v++)
+                {
+                    int[] indices = [
+                        4 * v + 0,
+                        4 * v + 1,
+                        4 * v + 2,
+                        4 * v + 3
+                    ];
+                    (indices[2], indices[3]) = (indices[3], indices[2]);
+                    faces[v].TextureIndices = indices;
                 }
 
                 meshes[m] = new Mesh(
