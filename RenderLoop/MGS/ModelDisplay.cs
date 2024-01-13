@@ -66,7 +66,7 @@
             {
                 foreach (var v in mesh.Vertices)
                 {
-                    var p = new Vector3(v.x, v.z, v.y);
+                    var p = new Vector3(v.x, v.y, v.z);
                     min = Vector3.Min(min, p);
                     max = Vector3.Max(max, p);
                 }
@@ -148,8 +148,10 @@
             }
 
             var a = Math.Tau * this.frame / this.frames;
-            var (x, y) = Math.SinCos(a);
-            var p = new Vector3((float)(this.size * x), (float)(this.size * y), 0);
+            var (x, z) = Math.SinCos(a);
+            var t = Math.Sin(a / 3);
+            var p = new Vector3((float)(this.size * x), (float)(this.size / 10 * t), (float)(this.size * z));
+            this.Camera.Up = new Vector3(0, 1, 0);
             this.Camera.Position = this.center + p;
             this.Camera.Direction = -p;
 
@@ -164,7 +166,7 @@
             var (_, model) = this.models[this.activeModel];
             foreach (var mesh in model.Meshes)
             {
-                var transformed = Array.ConvertAll(mesh.Vertices, v => this.Camera.Transform(new Vector3(v.x, v.z, v.y)));
+                var transformed = Array.ConvertAll(mesh.Vertices, v => this.Camera.Transform(new Vector3(v.x, v.y, v.z)));
                 foreach (var face in mesh.Faces)
                 {
                     this.textureLookup.TryGetValue(face.TextureId, out var texture);
@@ -183,10 +185,14 @@
                             uv *= z[3];
                             if (texture != null)
                             {
+                                // MGS textures use the last pixel as buffer
+                                var tw = texture.Width - 1;
+                                var th = texture.Height - 1;
                                 var color = texture.GetPixel(
-                                    (int)(uv.X % 1.0 * texture.Width),
-                                    (int)(uv.Y % 1.0 * texture.Height)).ToArgb();
-                                var masked = color & 0xFFFFFF;  // MGS treats pure black as transparent.
+                                    (int)(((uv.X % 1.0) + 1) % 1.0 * tw),
+                                    (int)(((uv.Y % 1.0) + 1) % 1.0 * th)).ToArgb();
+                                // MGS treats pure black as transparent.
+                                var masked = color & 0xFFFFFF;
                                 return masked == 0x000000 ? masked : color;
                             }
                             else
