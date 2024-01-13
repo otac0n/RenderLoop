@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.SofwareRenderer
+﻿namespace RenderLoop.SoftwareRenderer
 {
     using System;
     using System.Numerics;

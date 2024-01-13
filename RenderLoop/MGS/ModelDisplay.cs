@@ -10,7 +10,7 @@
     using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Archives;
-    using RenderLoop.SofwareRenderer;
+    using RenderLoop.SoftwareRenderer;
 
     public class ModelDisplay : Display
     {
