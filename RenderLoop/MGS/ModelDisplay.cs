@@ -173,11 +173,6 @@
                     DrawShape(indices, s => transformed[s.index], (v, vertices) =>
                         FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, (barycenter, z) =>
                         {
-                            if (barycenter == Vector3.Zero)
-                            {
-                                return Color.Magenta;
-                            }
-
                             var uv = MapCoordinates(
                                 barycenter,
                                 [

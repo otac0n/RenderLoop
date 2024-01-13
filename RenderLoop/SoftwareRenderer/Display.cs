@@ -202,38 +202,16 @@
             var w = p - v0;
 
             var vw = Vector3.Cross(v, w);
-            var vu = Vector3.Cross(v, u);
-
-            var q0 = Vector3.Dot(vw, vu);
-            if (q0 < 0)
-            {
-                return Vector3.Zero;
-            }
-
             var uw = Vector3.Cross(u, w);
             var uv = Vector3.Cross(u, v);
-
-            var q1 = Vector3.Dot(uw, uv);
-            if (q1 < 0)
-            {
-                return Vector3.Zero;
-            }
 
             var l = uv.Length();
             var b1 = vw.Length() / l;
             var b2 = uw.Length() / l;
-            if ((b1 > 1) || (b2 > 1))
-            {
-                return Vector3.Zero;
-            }
 
             var rem = b1 + b2;
-            if (rem > 1)
-            {
-                return Vector3.Zero;
-            }
 
-            return new Vector3((1 - rem), b1, b2);
+            return new Vector3(1 - rem, b1, b2);
         }
 
         private void FrameTimer_Tick(object sender, EventArgs e)
