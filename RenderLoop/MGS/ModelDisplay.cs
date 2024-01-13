@@ -183,16 +183,18 @@
                             uv *= z[3];
                             if (texture != null)
                             {
-                                return texture.GetPixel(
+                                var color = texture.GetPixel(
                                     (int)(uv.X % 1.0 * texture.Width),
-                                    (int)(uv.Y % 1.0 * texture.Height));
+                                    (int)(uv.Y % 1.0 * texture.Height)).ToArgb();
+                                var masked = color & 0xFFFFFF;  // MGS treats pure black as transparent.
+                                return masked == 0x000000 ? masked : color;
                             }
                             else
                             {
                                 return Color.FromArgb(
                                     (int)(uv.X % 1.0 * 255),
                                     (int)(uv.Y % 1.0 * 255),
-                                    0);
+                                    0).ToArgb();
                             }
                         }));
                 }

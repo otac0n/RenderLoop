@@ -170,8 +170,12 @@
                         {
                             if (z < depthBuffer[y + initY, x + initX])
                             {
-                                depthBuffer[y + initY, x + initX] = z;
-                                colorData[x] = getArgb(GetBarycentricCoordinates(v0, v1, v2, p with { Z = z }), [v0.Z, v1.Z, v2.Z, z]);
+                                var color = getArgb(GetBarycentricCoordinates(v0, v1, v2, p with { Z = z }), [v0.Z, v1.Z, v2.Z, z]);
+                                if ((color & 0xFF000000) == 0xFF000000)
+                                {
+                                    depthBuffer[y + initY, x + initX] = z;
+                                    colorData[x] = color;
+                                }
                             }
                         }
                         //else
