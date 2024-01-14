@@ -1,6 +1,7 @@
 ﻿namespace RenderLoop.SoftwareRenderer
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
     using System.Drawing.Imaging;
@@ -16,15 +17,30 @@
         private Bitmap buffer;
         private float[,] depthBuffer;
         private long timestamp;
+        private readonly Dictionary<Keys, bool> keyDown = [];
 
         public Display()
         {
             this.InitializeComponent();
             this.UpdateSize();
             this.timestamp = Stopwatch.GetTimestamp();
+            this.KeyDown += this.Display_KeyDown;
+            this.KeyUp += this.Display_KeyUp;
+        }
+
+        private void Display_KeyDown(object? sender, KeyEventArgs e)
+        {
+            this.keyDown[e.KeyCode] = true;
+        }
+
+        private void Display_KeyUp(object? sender, KeyEventArgs e)
+        {
+            this.keyDown[e.KeyCode] = false;
         }
 
         protected Camera Camera { get; } = new();
+
+        public bool this[Keys key] => this.keyDown.TryGetValue(key, out var pressed) && pressed;
 
         protected override void OnPaint(PaintEventArgs e)
         {
