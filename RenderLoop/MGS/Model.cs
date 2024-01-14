@@ -6,7 +6,6 @@
     using System.Linq;
     using System.Numerics;
     using Point = (int x, int y, int z);
-    using Vertex = (int x, int y, int z, int w);
 
     public class Model
     {
@@ -86,16 +85,16 @@
 
                 var baseOffset = stream.Position;
 
-                var vertices = new Vertex[vertexCount];
+                var vertices = new Vector3[vertexCount];
                 stream.Seek(vertexAddress, SeekOrigin.Begin);
                 for (var v = 0; v < vertexCount; v++)
                 {
                     stream.ReadExactly(buffer, 8);
-                    vertices[v] = (
-                        x: BitConverter.ToInt16(buffer, 0) + relativePoint.x,
-                        y: BitConverter.ToInt16(buffer, 2) + relativePoint.y,
-                        z: BitConverter.ToInt16(buffer, 4) + relativePoint.z,
-                        w: BitConverter.ToInt16(buffer, 6));
+                    // Not using W.
+                    vertices[v] = new Vector3(
+                        BitConverter.ToInt16(buffer, 0) + relativePoint.x,
+                        BitConverter.ToInt16(buffer, 2) + relativePoint.y,
+                        BitConverter.ToInt16(buffer, 4) + relativePoint.z);
                 }
 
                 var normals = new Vector3[normalCount];

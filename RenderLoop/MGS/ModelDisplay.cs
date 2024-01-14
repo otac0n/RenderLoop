@@ -58,16 +58,15 @@
                 this.textureLookup[id] = texture;
             }
 
-            var min = new Vector3(float.PositiveInfinity, float.PositiveInfinity, float.PositiveInfinity);
-            var max = new Vector3(float.NegativeInfinity, float.NegativeInfinity, float.NegativeInfinity);
+            var min = new Vector3(float.PositiveInfinity);
+            var max = new Vector3(float.NegativeInfinity);
 
             foreach (var mesh in model.Meshes)
             {
                 foreach (var v in mesh.Vertices)
                 {
-                    var p = new Vector3(v.x, v.y, v.z);
-                    min = Vector3.Min(min, p);
-                    max = Vector3.Max(max, p);
+                    min = Vector3.Min(min, v);
+                    max = Vector3.Max(max, v);
                 }
             }
 
@@ -214,7 +213,7 @@
             var (_, model) = this.models[this.activeModel];
             foreach (var mesh in model.Meshes)
             {
-                var transformed = Array.ConvertAll(mesh.Vertices, v => this.Camera.Transform(new Vector3(v.x, v.y, v.z)));
+                var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.Transform);
                 foreach (var face in mesh.Faces)
                 {
                     this.textureLookup.TryGetValue(face.TextureId, out var texture);
