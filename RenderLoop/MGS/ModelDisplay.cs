@@ -34,6 +34,8 @@
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
             this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
 
+            this.Camera.Up = new Vector3(0, 1, 0);
+
             this.KeyPreview = true;
             this.BackColor = Color.Gray;
             this.UpdateModel();
@@ -143,7 +145,6 @@
             var (x, z) = Math.SinCos(a);
             var t = Math.Sin(a / 3);
             var p = new Vector3((float)(this.size * x), (float)(this.size / 10 * t), (float)(this.size * z));
-            this.Camera.Up = new Vector3(0, 1, 0);
             this.Camera.Position = this.center + p;
             this.Camera.Direction = -p;
 
