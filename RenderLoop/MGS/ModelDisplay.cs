@@ -43,6 +43,9 @@
 
         private void UpdateModel()
         {
+            this.nextModel = ModelDisplaySeconds;
+            this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
+
             var (path, model) = this.models[this.activeModel];
 
             var file = path[^1];
@@ -121,8 +124,6 @@
 
             if (updated)
             {
-                this.nextModel = ModelDisplaySeconds;
-                this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
                 this.UpdateModel();
             }
 
@@ -136,8 +137,7 @@
             this.nextModel -= elapsed.TotalSeconds;
             if (this.nextModel <= 0 && false)
             {
-                this.nextModel = ModelDisplaySeconds;
-                this.activeModel = (this.activeModel + 1) % this.models.Count;
+                this.activeModel++;
                 this.UpdateModel();
             }
 
