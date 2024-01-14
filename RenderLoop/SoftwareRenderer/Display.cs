@@ -188,15 +188,15 @@
                             Marshal.Copy(scan + sizeof(int) * startX, colorData, startX, boundX - startX);
                         }
 
-                        var z = (w0 * v0.Z + w1 * v1.Z + w2 * v2.Z) / area;
-                        if (z > 0)
+                        p.Z = (w0 * v0.Z + w1 * v1.Z + w2 * v2.Z) / area;
+                        if (p.Z > 0)
                         {
-                            if (z < depthBuffer[y + initY, x + initX])
+                            if (p.Z < depthBuffer[y + initY, x + initX])
                             {
-                                var color = getArgb(GetBarycentricCoordinates(v0, v1, v2, p with { Z = z }), [v0.Z, v1.Z, v2.Z, z]);
+                                var color = getArgb(GetBarycentricCoordinates(v0, v1, v2, p), [v0.Z, v1.Z, v2.Z, p.Z]);
                                 if ((color & 0xFF000000) == 0xFF000000)
                                 {
-                                    depthBuffer[y + initY, x + initX] = z;
+                                    depthBuffer[y + initY, x + initX] = p.Z;
                                     colorData[x] = color;
                                 }
                             }
