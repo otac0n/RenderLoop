@@ -39,15 +39,6 @@
             this.UpdateModel();
         }
 
-        private static readonly Color[] Palette = [
-            Color.Red,
-            Color.ForestGreen,
-            Color.CornflowerBlue,
-            Color.Goldenrod,
-            Color.PaleTurquoise,
-            Color.HotPink,
-        ];
-
         private void UpdateModel()
         {
             var (path, model) = this.models[this.activeModel];
