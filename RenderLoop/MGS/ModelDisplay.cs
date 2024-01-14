@@ -19,6 +19,7 @@
         private int frames = 90;
         private double nextModel = ModelDisplaySeconds;
         private int activeModel;
+        private bool flying;
         private Vector3 center;
         private float size;
 
@@ -45,6 +46,7 @@
         {
             this.nextModel = ModelDisplaySeconds;
             this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
+            this.flying = false;
 
             var (path, model) = this.models[this.activeModel];
 
@@ -111,6 +113,10 @@
             var updated = false;
             switch (e.KeyCode)
             {
+                case Keys.Escape:
+                    this.flying = false;
+                    break;
+
                 case Keys.Left:
                     this.activeModel--;
                     updated = true;
@@ -141,12 +147,61 @@
                 this.UpdateModel();
             }
 
-            var a = Math.Tau * this.frame / this.frames;
-            var (x, z) = Math.SinCos(a);
-            var t = Math.Sin(a / 3);
-            var p = new Vector3((float)(this.size * x), (float)(this.size / 10 * t), (float)(this.size * z));
-            this.Camera.Position = this.center + p;
-            this.Camera.Direction = -p;
+            if (this[Keys.W] || this[Keys.S] || this[Keys.A] || this[Keys.D])
+            {
+                this.flying = true;
+            }
+
+            if (this.flying)
+            {
+                var moveVector = Vector3.Zero;
+
+                if (this[Keys.W])
+                {
+                    moveVector += this.Camera.Direction;
+                }
+
+                if (this[Keys.S])
+                {
+                    moveVector += -this.Camera.Direction;
+                }
+
+                if (this[Keys.A])
+                {
+                    moveVector += -this.Camera.Right;
+                }
+
+                if (this[Keys.D])
+                {
+                    moveVector += this.Camera.Right;
+                }
+
+                if (this[Keys.C])
+                {
+                    moveVector += -this.Camera.Up;
+                }
+
+                if (this[Keys.Space])
+                {
+                    moveVector += this.Camera.Up;
+                }
+
+                if (moveVector != Vector3.Zero)
+                {
+                    moveVector = Vector3.Normalize(moveVector);
+                    moveVector *= this.size / 100;
+                    this.Camera.Position += moveVector;
+                }
+            }
+            else
+            {
+                var a = Math.Tau * this.frame / this.frames;
+                var (x, z) = Math.SinCos(a);
+                var t = Math.Sin(a / 3);
+                var p = new Vector3((float)(this.size * x), (float)(this.size / 10 * t), (float)(this.size * z));
+                this.Camera.Position = this.center + p;
+                this.Camera.Direction = -p;
+            }
 
             base.AdvanceFrame(elapsed);
         }

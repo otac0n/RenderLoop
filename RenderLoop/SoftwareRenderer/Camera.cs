@@ -42,6 +42,8 @@
             }
         }
 
+        public Vector3 Right => Vector3.Cross(this.direction, this.up);
+
         public Vector3 Position
         {
             get => this.position;
