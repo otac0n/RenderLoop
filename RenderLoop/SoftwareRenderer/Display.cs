@@ -127,7 +127,7 @@
             var height = bitmap.Height;
             var black = Color.Black.ToArgb();
 
-            static Vector3 Scale(Vector4 v) => new Vector3(v.X, v.Y, v.Z) / Math.Abs(v.W);
+            static Vector3 Scale(Vector4 v) => new Vector3(v.X, v.Y, v.Z) / v.W;
 
             var v0 = Scale(vertices[0]);
             var v1 = Scale(vertices[1]);

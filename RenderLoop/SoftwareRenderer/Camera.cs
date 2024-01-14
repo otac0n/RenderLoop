@@ -14,6 +14,34 @@
         private float nearPlane = 0.1f;
         private float farPlane = 10.0f;
         private Matrix4x4? matrix;
+        private Matrix4x4? worldToCamera;
+        private Matrix4x4? projection;
+
+        public Matrix4x4 WorldToCamera
+        {
+            get
+            {
+                if (this.worldToCamera == null)
+                {
+                    this.ComputeMatrix();
+                }
+
+                return this.worldToCamera!.Value;
+            }
+        }
+
+        public Matrix4x4 Projection
+        {
+            get
+            {
+                if (this.projection == null)
+                {
+                    this.ComputeMatrix();
+                }
+
+                return this.projection!.Value;
+            }
+        }
 
         public Matrix4x4 Matrix
         {
@@ -137,17 +165,83 @@
             }
         }
 
-        public Vector4 Transform(Vector3 position)
+        /// <summary>
+        /// Transform points from World space to Camera space.
+        /// </summary>
+        /// <param name="world">The position in World space.</param>
+        /// <returns>The coordinates in Camera space.</returns>
+        public Vector4 TransformToCameraSpace(Vector3 world) =>
+            Vector4.Transform(world, this.WorldToCamera);
+
+        /// <summary>
+        /// Transform points from World space to Clip space.
+        /// </summary>
+        /// <param name="world">The position in World space.</param>
+        /// <returns>The coordinates in Clip space.</returns>
+        public Vector4 TransformToClipSpace(Vector3 world) =>
+            Vector4.Transform(world, this.Matrix);
+
+        /// <summary>
+        /// Transform points from Camera space to Clip space.
+        /// </summary>
+        /// <param name="camera">The position in Camera space.</param>
+        /// <returns>The coordinates in Clip space.</returns>
+        public Vector4 TransformCameraToClip(Vector3 camera) =>
+            Vector4.Transform(camera, this.Projection);
+
+        /// <summary>
+        /// Transform points from Camera space to Clip space.
+        /// </summary>
+        /// <param name="camera">The position in Camera space.</param>
+        /// <returns>The coordinates in Clip space.</returns>
+        public Vector4 TransformCameraToClip(Vector4 camera) =>
+            Vector4.Transform(camera, this.Projection);
+
+        /// <summary>
+        /// Transform points from World space to NDC (Normalized Device Coordinate) space.
+        /// </summary>
+        /// <param name="world">The position in World space.</param>
+        /// <returns>The coordinates in NDC space.</returns>
+        /// <remarks>Projective information is lost by dividing by the <see cref="Vector4.W"/> component.</remarks>
+        public Vector3 TransformToNDCSpace(Vector3 world) =>
+            TransformClipToNDC(this.TransformToClipSpace(world));
+
+        /// <summary>
+        /// Transform points from Clip space to NDC (Normalized Device Coordinate) space.
+        /// </summary>
+        /// <param name="clip">The position in Clip space.</param>
+        /// <returns>The coordinates in NDC space.</returns>
+        /// <remarks>This operation destroys perspective information.</remarks>
+        public static Vector3 TransformClipToNDC(Vector4 clip) =>
+            new(clip.X / clip.W, clip.Y / clip.W, clip.Z / clip.W);
+
+        /// <summary>
+        /// Transform points from World space to Screen space.
+        /// </summary>
+        /// <param name="world">The position in World space.</param>
+        /// <returns>The coordinates in Screen space.</returns>
+        /// <remarks>Projective information is lost by dividing by the <see cref="Vector4.W"/> component.</remarks>
+        public Vector3 TransformToScreenSpace(Vector3 world) =>
+            this.TransformNDCToScreen(this.TransformToNDCSpace(world));
+
+        /// <summary>
+        /// Transform points from NDC (Normalized Device Coordinate) space to Screen space.
+        /// </summary>
+        /// <param name="ndc">The position in NDC space.</param>
+        /// <returns>The coordinates in Screen space.</returns>
+        public Vector3 TransformNDCToScreen(Vector3 ndc)
         {
-            var t = Vector4.Transform(position, this.Matrix);
-            t.X = (t.X / t.W + 1) * 0.5f * this.Width * t.W;
-            t.Y = (1 - t.Y / t.W) * 0.5f * this.Height * t.W;
-            return t;
+            var s = ndc;
+            s.X = (s.X + 1) / 2 * this.Width;
+            s.Y = (1 - s.Y) / 2 * this.Height;
+            return s;
         }
 
         private void ComputeMatrix()
         {
-            this.matrix = Matrix4x4.CreateLookAt(this.Position, this.Position + this.Direction, this.Up) * Matrix4x4.CreatePerspectiveFieldOfView(this.FieldOfView, this.AspectRatio, this.NearPlane, this.FarPlane);
+            this.worldToCamera = Matrix4x4.CreateLookAt(this.Position, this.Position + this.Direction, this.Up);
+            this.projection = Matrix4x4.CreatePerspectiveFieldOfView(this.FieldOfView, this.AspectRatio, this.NearPlane, this.FarPlane);
+            this.matrix = this.worldToCamera * this.projection;
         }
     }
 }
