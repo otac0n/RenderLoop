@@ -125,7 +125,7 @@
                 {
                     var indices = new byte[4];
                     stream.ReadExactly(indices, 4);
-                    (indices[2], indices[3]) = (indices[3], indices[2]);
+                    (indices[0], indices[1]) = (indices[1], indices[0]);
                     faces[v].VertexIndices = Array.ConvertAll(indices, i => (int)i);
                 }
 
@@ -135,7 +135,7 @@
                 {
                     var indices = new byte[4];
                     stream.ReadExactly(indices, 4);
-                    (indices[2], indices[3]) = (indices[3], indices[2]);
+                    (indices[0], indices[1]) = (indices[1], indices[0]);
                     faces[v].NormalIndices = Array.ConvertAll(indices, i => (int)i);
                 }
 
@@ -155,7 +155,7 @@
                         4 * v + 2,
                         4 * v + 3
                     ];
-                    (indices[2], indices[3]) = (indices[3], indices[2]);
+                    (indices[0], indices[1]) = (indices[1], indices[0]);
                     faces[v].TextureIndices = indices;
                 }
 
