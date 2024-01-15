@@ -115,31 +115,29 @@
         public static Vector3 MapCoordinates(Vector3 barycenter, Vector3[] coordinates) =>
             barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2];
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Color color) =>
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Color color) =>
             FillTriangle(bitmap, depthBuffer, vertices, culling, (_, _) => color);
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, float[], Color> getColor) =>
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], Color> getColor) =>
             FillTriangle(bitmap, depthBuffer, vertices, culling, (b, z) => getColor(b, z).ToArgb());
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, float[], int> getArgb)
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], int> getArgb)
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
             var black = Color.Black.ToArgb();
 
-            static Vector3 Scale(Vector4 v) => new Vector3(v.X, v.Y, v.Z) / v.W;
-
-            var v0 = Scale(vertices[0]);
-            var v1 = Scale(vertices[1]);
-            var v2 = Scale(vertices[2]);
+            var v0 = vertices[0];
+            var v1 = vertices[1];
+            var v2 = vertices[2];
             var min = Vector3.Min(Vector3.Min(v0, v1), v2);
             var max = Vector3.Max(Vector3.Max(v0, v1), v2);
 
             if (float.IsNaN(min.X) ||
                 float.IsNaN(min.Y) ||
                 max.Z < 0 ||
-                min.X > width ||
-                min.Y > height ||
+                min.X > (width - 1) ||
+                min.Y > (height - 1) ||
                 max.X < 0 ||
                 max.Y < 0)
             {
@@ -175,25 +173,27 @@
                 {
                     p.X = x + initX + 0.5f;
 
-                    var w0 = EdgeFunction(v1, v2, p);
-                    var w1 = EdgeFunction(v2, v0, p);
-                    var w2 = EdgeFunction(v0, v1, p);
-
-                    if ((w0 >= 0) && (w1 >= 0) && (w2 >= 0) ||
-                        (w0 <= 0) && (w1 <= 0) && (w2 <= 0))
+                    var barycenter = new Vector3(
+                        EdgeFunction(v1, v2, p),
+                        EdgeFunction(v2, v0, p),
+                        EdgeFunction(v0, v1, p));
+                    if ((barycenter.X >= 0) && (barycenter.Y >= 0) && (barycenter.Z >= 0) ||
+                        (barycenter.X <= 0) && (barycenter.Y <= 0) && (barycenter.Z <= 0))
                     {
+                        barycenter /= area;
+
                         if (startX < 0)
                         {
                             startX = x;
                             Marshal.Copy(scan + sizeof(int) * startX, colorData, startX, boundX - startX);
                         }
 
-                        p.Z = (w0 * v0.Z + w1 * v1.Z + w2 * v2.Z) / area;
+                        p.Z = barycenter.X * v0.Z + barycenter.Y * v1.Z + barycenter.Z * v2.Z;
                         if (p.Z > 0)
                         {
                             if (p.Z < depthBuffer[y + initY, x + initX])
                             {
-                                var color = getArgb(GetBarycentricCoordinates(v0, v1, v2, p), [v0.Z, v1.Z, v2.Z, p.Z]);
+                                var color = getArgb(barycenter, [v0.Z, v1.Z, v2.Z, p.Z]);
                                 if ((color & 0xFF000000) == 0xFF000000)
                                 {
                                     depthBuffer[y + initY, x + initX] = p.Z;
@@ -215,25 +215,6 @@
             }
 
             bitmap.UnlockBits(bmpData);
-        }
-
-        private static Vector3 GetBarycentricCoordinates(Vector3 v0, Vector3 v1, Vector3 v2, Vector3 p)
-        {
-            var u = v1 - v0;
-            var v = v2 - v0;
-            var w = p - v0;
-
-            var vw = Vector3.Cross(v, w);
-            var uw = Vector3.Cross(u, w);
-            var uv = Vector3.Cross(u, v);
-
-            var l = uv.Length();
-            var b1 = vw.Length() / l;
-            var b2 = uw.Length() / l;
-
-            var rem = b1 + b2;
-
-            return new Vector3(1 - rem, b1, b2);
         }
 
         private void FrameTimer_Tick(object sender, EventArgs e)
