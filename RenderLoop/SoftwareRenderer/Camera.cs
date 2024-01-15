@@ -23,7 +23,7 @@
             {
                 if (this.worldToCamera == null)
                 {
-                    this.ComputeMatrix();
+                    this.ComputeMatrices();
                 }
 
                 return this.worldToCamera!.Value;
@@ -36,7 +36,7 @@
             {
                 if (this.projection == null)
                 {
-                    this.ComputeMatrix();
+                    this.ComputeMatrices();
                 }
 
                 return this.projection!.Value;
@@ -49,7 +49,7 @@
             {
                 if (this.matrix == null)
                 {
-                    this.ComputeMatrix();
+                    this.ComputeMatrices();
                 }
 
                 return this.matrix!.Value;
@@ -65,7 +65,7 @@
                 if (this.up != value)
                 {
                     this.up = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -80,7 +80,7 @@
                 if (this.position != value)
                 {
                     this.position = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -93,7 +93,7 @@
                 if (this.fieldOfView != value)
                 {
                     this.fieldOfView = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -106,7 +106,7 @@
                 if (this.width != value)
                 {
                     this.width = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -119,7 +119,7 @@
                 if (this.height != value)
                 {
                     this.height = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -134,7 +134,7 @@
                 if (this.nearPlane != value)
                 {
                     this.nearPlane = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -147,7 +147,7 @@
                 if (this.farPlane != value)
                 {
                     this.farPlane = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -160,7 +160,7 @@
                 if (this.direction != value)
                 {
                     this.direction = value;
-                    this.matrix = null;
+                    this.ClearMatrices();
                 }
             }
         }
@@ -237,7 +237,14 @@
             return s;
         }
 
-        private void ComputeMatrix()
+        private void ClearMatrices()
+        {
+            this.worldToCamera = null;
+            this.projection = null;
+            this.matrix = null;
+        }
+
+        private void ComputeMatrices()
         {
             this.worldToCamera = Matrix4x4.CreateLookAt(this.Position, this.Position + this.Direction, this.Up);
             this.projection = Matrix4x4.CreatePerspectiveFieldOfView(this.FieldOfView, this.AspectRatio, this.NearPlane, this.FarPlane);
