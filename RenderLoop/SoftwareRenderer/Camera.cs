@@ -170,8 +170,8 @@
         /// </summary>
         /// <param name="world">The position in World space.</param>
         /// <returns>The coordinates in Camera space.</returns>
-        public Vector4 TransformToCameraSpace(Vector3 world) =>
-            Vector4.Transform(world, this.WorldToCamera);
+        public Vector3 TransformToCameraSpace(Vector3 world) =>
+            Vector3.Transform(world, this.WorldToCamera);
 
         /// <summary>
         /// Transform points from World space to Clip space.
