@@ -125,7 +125,6 @@
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
-            var black = Color.Black.ToArgb();
 
             var v0 = vertices[0];
             var v1 = vertices[1];
