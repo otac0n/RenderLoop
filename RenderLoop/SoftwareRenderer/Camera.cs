@@ -209,7 +209,8 @@
         /// Transform points from Clip space to NDC (Normalized Device Coordinate) space.
         /// </summary>
         /// <param name="clip">The position in Clip space.</param>
-        /// <returns>The coordinates in NDC space.</returns>
+        /// <returns>The coordinates in NDC space. The <see cref="W"/> coordinate is unmodified from Clip Space.</returns>
+        /// <remarks>The <see cref="Vector4.W"/> field is preserved unmodified in order to maintain perspective information.</remarks>
         public static Vector4 TransformClipToNDC(Vector4 clip) =>
             new(clip.X / clip.W, clip.Y / clip.W, clip.Z / clip.W, clip.W);
 
@@ -217,7 +218,7 @@
         /// Transform points from World space to Screen space.
         /// </summary>
         /// <param name="world">The position in World space.</param>
-        /// <returns>The coordinates in Screen space.</returns>
+        /// <returns>The coordinates in Screen space. The <see cref="W"/> coordinate is unmodified from Clip Space.</returns>
         public Vector4 TransformToScreenSpace(Vector3 world) =>
             this.TransformNDCToScreen(this.TransformToNDCSpace(world));
 
@@ -225,7 +226,7 @@
         /// Transform points from NDC (Normalized Device Coordinate) space to Screen space.
         /// </summary>
         /// <param name="ndc">The position in NDC space.</param>
-        /// <returns>The coordinates in Screen space.</returns>
+        /// <returns>The coordinates in Screen space. The <see cref="W"/> coordinate is unmodified from Clip Space.</returns>
         public Vector4 TransformNDCToScreen(Vector4 ndc) =>
             new((ndc.X + 1) / 2 * this.Width, (1 - ndc.Y) / 2 * this.Height, ndc.Z, ndc.W);
 

@@ -57,6 +57,12 @@
 
         protected abstract void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer);
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">An array of vertices.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(TVertex[] source, Action<TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -75,6 +81,12 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">An enumerable collection of vertices.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(IEnumerable<TVertex> source, Action<TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -97,6 +109,13 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="indices">The indices that represent the triangles.</param>
+        /// <param name="vertices">The lookup source for the indices.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<int[], TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -117,6 +136,13 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="indices">The indices that represent the triangles.</param>
+        /// <param name="vertices">The lookup source for the indices.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -135,6 +161,14 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TSource">The type containing a source vertex.</typeparam>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">The source containing vertices.</param>
+        /// <param name="getVertex">A function that will be used to retrieve each vertex.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -155,6 +189,14 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TSource">The type containing a source vertex.</typeparam>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">The source containing vertices.</param>
+        /// <param name="getVertex">A function that will be used to retrieve each vertex.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(IEnumerable<TSource> source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -179,6 +221,14 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TSource">The type containing a source vertex.</typeparam>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">The source containing vertices.</param>
+        /// <param name="getVertex">A function that will be used to retrieve each vertex.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
@@ -197,6 +247,14 @@
             }
         }
 
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TSource">The type containing a source vertex.</typeparam>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">The source containing vertices.</param>
+        /// <param name="getVertex">A function that will be used to retrieve each vertex.</param>
+        /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(IEnumerable<TSource> source, Func<TSource, TVertex> getVertex, Action<TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
