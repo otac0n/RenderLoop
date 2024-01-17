@@ -229,13 +229,8 @@
         /// </summary>
         /// <param name="ndc">The position in NDC space.</param>
         /// <returns>The coordinates in Screen space.</returns>
-        public Vector3 TransformNDCToScreen(Vector3 ndc)
-        {
-            var s = ndc;
-            s.X = (s.X + 1) / 2 * this.Width;
-            s.Y = (1 - s.Y) / 2 * this.Height;
-            return s;
-        }
+        public Vector3 TransformNDCToScreen(Vector3 ndc) =>
+            new((ndc.X + 1) / 2 * this.Width, (1 - ndc.Y) / 2 * this.Height, ndc.Z);
 
         private void ClearMatrices()
         {
