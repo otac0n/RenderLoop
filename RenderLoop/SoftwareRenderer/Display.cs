@@ -329,7 +329,7 @@
 
             if (float.IsNaN(min.X) ||
                 float.IsNaN(min.Y) ||
-                max.Z <= 0 ||
+                min.Z <= 0 ||
                 min.X > (width - 1) ||
                 min.Y > (height - 1) ||
                 max.X < 0 ||
