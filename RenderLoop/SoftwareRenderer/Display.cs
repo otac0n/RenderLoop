@@ -302,17 +302,17 @@
             g.DrawLine(Pens.White, p[2], p[0]);
         }
 
-        public static Vector3 MapCoordinates(Vector3 perspective, Vector3[] coordinates) =>
-            perspective.X * coordinates[0] + perspective.Y * coordinates[1] + perspective.Z * coordinates[2];
+        public static Vector3 MapCoordinates(Vector3 barycenter, Vector3[] coordinates) =>
+            (barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2]) / (barycenter.X + barycenter.Y + barycenter.Z);
 
-        public static Vector2 MapCoordinates(Vector3 perspective, Vector2[] coordinates) =>
-            (perspective.X * coordinates[0] + perspective.Y * coordinates[1] + perspective.Z * coordinates[2]) / (perspective.X + perspective.Y + perspective.Z);
+        public static Vector2 MapCoordinates(Vector3 barycenter, Vector2[] coordinates) =>
+            (barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2]) / (barycenter.X + barycenter.Y + barycenter.Z);
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Color color) =>
             FillTriangle(bitmap, depthBuffer, vertices, culling, _ => color);
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, Color> getColor) =>
-            FillTriangle(bitmap, depthBuffer, vertices, culling, perspective => getColor(perspective).ToArgb());
+            FillTriangle(bitmap, depthBuffer, vertices, culling, barycenter => getColor(barycenter).ToArgb());
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
         {
