@@ -68,7 +68,7 @@
             foreach (var face in Shapes)
             {
                 var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                DrawShape(indices, i => transformed[i.index], (v, vertices) =>
+                DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
                     FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
                     {
                         var uv = MapCoordinates(perspective, [v[0].uv, v[1].uv, v[2].uv]);

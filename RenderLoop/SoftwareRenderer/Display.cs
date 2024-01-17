@@ -57,10 +57,13 @@
 
         protected abstract void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer);
 
-        protected static void DrawShape<TPoint>(int[] shape, TPoint[] points, Action<TPoint[]> render) =>
-            DrawShape(shape, i => points[i], (_, points) => render(points));
+        public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<TVertex[]> render) =>
+            DrawStrip(indices, vertices, (_, points) => render(points));
 
-        protected static void DrawShape<TShape, TPoint>(TShape[] shape, Func<TShape, TPoint> getPoint, Action<TShape[], TPoint[]> render)
+        public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<int[], TVertex[]> render) =>
+            DrawStrip(indices, i => vertices[i], render);
+
+        public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
             var swath = new TShape[TRIANGLE_POINTS];
