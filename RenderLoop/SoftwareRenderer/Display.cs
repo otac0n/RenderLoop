@@ -66,28 +66,20 @@
         public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
             const int TRIANGLE_POINTS = 3;
-            var swath = new TShape[TRIANGLE_POINTS];
-            var subject = new TPoint[TRIANGLE_POINTS];
-            for (var i = 0; i <= shape.Length - TRIANGLE_POINTS; i++)
+            var items = new TSource[TRIANGLE_POINTS];
+            var vertices = new TVertex[TRIANGLE_POINTS];
+            if (source.Length >= TRIANGLE_POINTS)
             {
-                if (i % 2 == 0)
+                vertices[0] = getVertex(items[0] = source[0]);
+                vertices[1] = getVertex(items[1] = source[1]);
+                for (var i = 2; i < source.Length; i++)
                 {
-                    for (var j = 0; j < TRIANGLE_POINTS; j++)
-                    {
-                        swath[j] = shape[i + j];
-                        subject[j] = getPoint(swath[j]);
-                    }
-                }
-                else
-                {
-                    for (var j = 0; j < TRIANGLE_POINTS; j++)
-                    {
-                        swath[j] = shape[i + (TRIANGLE_POINTS - 1 - j)];
-                        subject[j] = getPoint(swath[j]);
-                    }
-                }
+                    vertices[2] = getVertex(items[2] = source[i]);
+                    render(items, vertices);
 
-                render(swath, subject);
+                    items[i % 2] = items[2];
+                    vertices[i % 2] = vertices[2];
+                }
             }
         }
 
