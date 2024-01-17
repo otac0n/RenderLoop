@@ -202,8 +202,7 @@
         /// </summary>
         /// <param name="world">The position in World space.</param>
         /// <returns>The coordinates in NDC space.</returns>
-        /// <remarks>Projective information is lost by dividing by the <see cref="Vector4.W"/> component.</remarks>
-        public Vector3 TransformToNDCSpace(Vector3 world) =>
+        public Vector4 TransformToNDCSpace(Vector3 world) =>
             TransformClipToNDC(this.TransformToClipSpace(world));
 
         /// <summary>
@@ -211,17 +210,15 @@
         /// </summary>
         /// <param name="clip">The position in Clip space.</param>
         /// <returns>The coordinates in NDC space.</returns>
-        /// <remarks>This operation destroys perspective information.</remarks>
-        public static Vector3 TransformClipToNDC(Vector4 clip) =>
-            new(clip.X / clip.W, clip.Y / clip.W, clip.Z / clip.W);
+        public static Vector4 TransformClipToNDC(Vector4 clip) =>
+            new(clip.X / clip.W, clip.Y / clip.W, clip.Z / clip.W, clip.W);
 
         /// <summary>
         /// Transform points from World space to Screen space.
         /// </summary>
         /// <param name="world">The position in World space.</param>
         /// <returns>The coordinates in Screen space.</returns>
-        /// <remarks>Projective information is lost by dividing by the <see cref="Vector4.W"/> component.</remarks>
-        public Vector3 TransformToScreenSpace(Vector3 world) =>
+        public Vector4 TransformToScreenSpace(Vector3 world) =>
             this.TransformNDCToScreen(this.TransformToNDCSpace(world));
 
         /// <summary>
@@ -229,8 +226,8 @@
         /// </summary>
         /// <param name="ndc">The position in NDC space.</param>
         /// <returns>The coordinates in Screen space.</returns>
-        public Vector3 TransformNDCToScreen(Vector3 ndc) =>
-            new((ndc.X + 1) / 2 * this.Width, (1 - ndc.Y) / 2 * this.Height, ndc.Z);
+        public Vector4 TransformNDCToScreen(Vector4 ndc) =>
+            new((ndc.X + 1) / 2 * this.Width, (1 - ndc.Y) / 2 * this.Height, ndc.Z, ndc.W);
 
         private void ClearMatrices()
         {

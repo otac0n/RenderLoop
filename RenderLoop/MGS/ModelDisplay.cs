@@ -210,15 +210,7 @@
             var (_, model) = this.models[this.activeModel];
             foreach (var mesh in model.Meshes)
             {
-                var transformed = Array.ConvertAll(mesh.Vertices, world =>
-                {
-                    var camera = this.Camera.TransformToCameraSpace(world);
-                    var clip = this.Camera.TransformCameraToClip(camera);
-                    var ndc = Camera.TransformClipToNDC(clip);
-                    var screen = this.Camera.TransformNDCToScreen(ndc);
-                    screen.Z = clip.Z;
-                    return screen;
-                });
+                var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.TransformToScreenSpace);
                 foreach (var face in mesh.Faces)
                 {
                     this.textureLookup.TryGetValue(face.TextureId, out var texture);
