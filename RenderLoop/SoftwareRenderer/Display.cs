@@ -104,24 +104,27 @@
             return (c.X - a.X) * (b.Y - a.Y) - (c.Y - a.Y) * (b.X - a.X);
         }
 
-        public static void DrawWireFrame(Graphics g, Vector4[] vertices)
+        public static void DrawWireFrame(Graphics g, Vector3[] vertices)
         {
-            var p = Array.ConvertAll(vertices, v => new PointF(v.X / v.W, v.Y / v.W));
+            var p = Array.ConvertAll(vertices, v => new PointF(v.X, v.Y));
             g.DrawLine(Pens.White, p[0], p[1]);
             g.DrawLine(Pens.White, p[2], p[1]);
             g.DrawLine(Pens.White, p[2], p[0]);
         }
 
-        public static Vector3 MapCoordinates(Vector3 barycenter, Vector3[] coordinates) =>
-            barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2];
+        public static Vector3 MapCoordinates(Vector3 perspective, Vector3[] coordinates) =>
+            perspective.X * coordinates[0] + perspective.Y * coordinates[1] + perspective.Z * coordinates[2];
+
+        public static Vector2 MapCoordinates(Vector3 perspective, Vector2[] coordinates) =>
+            (perspective.X * coordinates[0] + perspective.Y * coordinates[1] + perspective.Z * coordinates[2]) / (perspective.X + perspective.Y + perspective.Z);
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Color color) =>
-            FillTriangle(bitmap, depthBuffer, vertices, culling, (_, _) => color);
+            FillTriangle(bitmap, depthBuffer, vertices, culling, _ => color);
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], Color> getColor) =>
-            FillTriangle(bitmap, depthBuffer, vertices, culling, (b, z) => getColor(b, z).ToArgb());
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, Color> getColor) =>
+            FillTriangle(bitmap, depthBuffer, vertices, culling, perspective => getColor(perspective).ToArgb());
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, float[], int> getArgb)
+        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector3[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
@@ -192,7 +195,11 @@
                         {
                             if (p.Z < depthBuffer[y + initY, x + initX])
                             {
-                                var color = getArgb(barycenter, [v0.Z, v1.Z, v2.Z, p.Z]);
+                                barycenter.X /= v0.Z;
+                                barycenter.Y /= v1.Z;
+                                barycenter.Z /= v2.Z;
+
+                                var color = getArgb(barycenter);
                                 if ((color & 0xFF000000) == 0xFF000000)
                                 {
                                     depthBuffer[y + initY, x + initX] = p.Z;

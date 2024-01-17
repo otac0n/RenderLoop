@@ -213,23 +213,28 @@
             var (_, model) = this.models[this.activeModel];
             foreach (var mesh in model.Meshes)
             {
-                var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.TransformToScreenSpace);
+                var transformed = Array.ConvertAll(mesh.Vertices, world =>
+                {
+                    var camera = this.Camera.TransformToCameraSpace(world);
+                    var clip = this.Camera.TransformCameraToClip(camera);
+                    var ndc = Camera.TransformClipToNDC(clip);
+                    var screen = this.Camera.TransformNDCToScreen(ndc);
+                    screen.Z = clip.Z;
+                    return screen;
+                });
                 foreach (var face in mesh.Faces)
                 {
                     this.textureLookup.TryGetValue(face.TextureId, out var texture);
 
                     var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
                     DrawShape(indices, s => transformed[s.index], (v, vertices) =>
-                        FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, (barycenter, z) =>
+                        FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective =>
                         {
-                            var uv = MapCoordinates(
-                                barycenter,
-                                [
-                                    new Vector3(v[0].textureCoords.X / z[0], v[0].textureCoords.Y / z[0], 1 / z[0]),
-                                    new Vector3(v[1].textureCoords.X / z[1], v[1].textureCoords.Y / z[1], 1 / z[1]),
-                                    new Vector3(v[2].textureCoords.X / z[2], v[2].textureCoords.Y / z[2], 1 / z[2]),
-                                ]);
-                            uv *= z[3];
+                            var uv = MapCoordinates(perspective, [
+                                v[0].textureCoords,
+                                v[1].textureCoords,
+                                v[2].textureCoords,
+                            ]);
                             if (texture != null)
                             {
                                 // MGS textures use the last pixel as buffer
