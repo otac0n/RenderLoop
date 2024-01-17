@@ -2,7 +2,6 @@
 {
     using System.Threading.Tasks;
     using CommandLine;
-    using DiscUtils.Complete;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using RenderLoop.MGS;
@@ -23,8 +22,6 @@
             {
                 return 1;
             }
-
-            SetupHelper.SetupComplete();
 
             var builder = Host.CreateDefaultBuilder(args);
             builder.ConfigureServices(services =>

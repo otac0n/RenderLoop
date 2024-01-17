@@ -6,11 +6,14 @@
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Archives;
+    using DiscUtils.Complete;
 
     internal class ServiceRegistration
     {
         internal static void Register(IServiceCollection services, Program.Options options)
         {
+            SetupHelper.SetupComplete();
+
             services.AddTransient<CodecDisplay>();
             services.AddTransient<ModelDisplay>();
 
