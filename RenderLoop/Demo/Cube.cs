@@ -63,10 +63,10 @@
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
+            var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
+
             foreach (var face in Shapes)
             {
-                var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
-
                 var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
                 DrawShape(indices, i => transformed[i.index], (v, vertices) =>
                     FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
