@@ -130,11 +130,11 @@
             var width = bitmap.Width;
             var height = bitmap.Height;
 
-            static Vector3 AsVector3(Vector4 v) => new(v.X, v.Y, v.Z);
+            static (Vector3 vertex, float factor) AsVector3(Vector4 v) => (new(v.X, v.Y, v.Z), v.Z * v.W);
 
-            var v0 = AsVector3(vertices[0]);
-            var v1 = AsVector3(vertices[1]);
-            var v2 = AsVector3(vertices[2]);
+            var (v0, f0) = AsVector3(vertices[0]);
+            var (v1, f1) = AsVector3(vertices[1]);
+            var (v2, f2) = AsVector3(vertices[2]);
             var min = Vector3.Min(Vector3.Min(v0, v1), v2);
             var max = Vector3.Max(Vector3.Max(v0, v1), v2);
 
@@ -185,22 +185,21 @@
                     if ((barycenter.X >= 0) && (barycenter.Y >= 0) && (barycenter.Z >= 0) ||
                         (barycenter.X <= 0) && (barycenter.Y <= 0) && (barycenter.Z <= 0))
                     {
-                        barycenter /= area;
-
                         if (startX < 0)
                         {
                             startX = x;
                             Marshal.Copy(scan + sizeof(int) * startX, colorData, startX, boundX - startX);
                         }
 
+                        barycenter /= area;
                         p.Z = barycenter.X * v0.Z + barycenter.Y * v1.Z + barycenter.Z * v2.Z;
                         if (p.Z > 0)
                         {
                             if (p.Z < depthBuffer[y + initY, x + initX])
                             {
-                                barycenter.X /= v0.Z * vertices[0].W;
-                                barycenter.Y /= v1.Z * vertices[1].W;
-                                barycenter.Z /= v2.Z * vertices[2].W;
+                                barycenter.X /= f0;
+                                barycenter.Y /= f1;
+                                barycenter.Z /= f2;
 
                                 var color = getArgb(barycenter);
                                 if ((color & 0xFF000000) == 0xFF000000)
