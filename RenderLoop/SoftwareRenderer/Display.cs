@@ -319,7 +319,7 @@
             var width = bitmap.Width;
             var height = bitmap.Height;
 
-            static (Vector3 vertex, float factor) AsVector3(Vector4 v) => (new(v.X, v.Y, v.Z), v.Z * v.W);
+            static (Vector3 vertex, float factor) AsVector3(Vector4 v) => (new(v.X, v.Y, v.Z), v.Z * Math.Abs(v.W));
 
             var (v0, f0) = AsVector3(vertices[0]);
             var (v1, f1) = AsVector3(vertices[1]);
@@ -329,7 +329,7 @@
 
             if (float.IsNaN(min.X) ||
                 float.IsNaN(min.Y) ||
-                max.Z < 0 ||
+                max.Z <= 0 ||
                 min.X > (width - 1) ||
                 min.Y > (height - 1) ||
                 max.X < 0 ||

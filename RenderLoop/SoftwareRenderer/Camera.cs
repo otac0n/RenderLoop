@@ -212,7 +212,7 @@
         /// <returns>The coordinates in NDC space. The <see cref="W"/> coordinate is unmodified from Clip Space.</returns>
         /// <remarks>The <see cref="Vector4.W"/> field is preserved unmodified in order to maintain perspective information.</remarks>
         public static Vector4 TransformClipToNDC(Vector4 clip) =>
-            new(clip.X / clip.W, clip.Y / clip.W, clip.Z / clip.W, clip.W);
+            new(clip.X / clip.W, clip.Y / clip.W, clip.Z / Math.Abs(clip.W), clip.W);
 
         /// <summary>
         /// Transform points from World space to Screen space.
