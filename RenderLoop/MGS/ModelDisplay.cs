@@ -34,6 +34,7 @@
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
             this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
+            this.activeModel = Random.Shared.Next(this.models.Count);
 
             this.Camera.Up = new Vector3(0, 1, 0);
 
