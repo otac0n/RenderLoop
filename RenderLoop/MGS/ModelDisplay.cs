@@ -207,9 +207,6 @@
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
-            var width = buffer.Width;
-            var height = buffer.Height;
-
             var (_, model) = this.models[this.activeModel];
             foreach (var mesh in model.Meshes)
             {
