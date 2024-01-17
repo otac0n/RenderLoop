@@ -26,6 +26,7 @@
             this.timestamp = Stopwatch.GetTimestamp();
             this.KeyDown += this.Display_KeyDown;
             this.KeyUp += this.Display_KeyUp;
+            this.AdvanceFrame(TimeSpan.Zero);
         }
 
         private void Display_KeyDown(object? sender, KeyEventArgs e)
