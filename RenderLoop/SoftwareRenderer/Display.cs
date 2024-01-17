@@ -83,6 +83,30 @@
             }
         }
 
+        public static void DrawStrip<TSource, TVertex>(IEnumerable<TSource> source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var items = new TSource[TRIANGLE_POINTS];
+            var vertices = new TVertex[TRIANGLE_POINTS];
+            using var enumerable = source.GetEnumerator();
+            if (enumerable.MoveNext())
+            {
+                vertices[0] = getVertex(items[0] = enumerable.Current);
+                if (enumerable.MoveNext())
+                {
+                    vertices[1] = getVertex(items[1] = enumerable.Current);
+                    for (var i = 0; enumerable.MoveNext(); i++)
+                    {
+                        vertices[2] = getVertex(items[2] = enumerable.Current);
+                        render(items, vertices);
+
+                        items[i % 2] = items[2];
+                        vertices[i % 2] = vertices[2];
+                    }
+                }
+            }
+        }
+
         private static void ClearDepthBuffer(float[,] depthBuffer)
         {
             for (var y = 0; y < depthBuffer.GetLength(0); y++)
