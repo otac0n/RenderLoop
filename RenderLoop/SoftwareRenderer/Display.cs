@@ -57,11 +57,83 @@
 
         protected abstract void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer);
 
-        public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<TVertex[]> render) =>
-            DrawStrip(indices, vertices, (_, points) => render(points));
+        public static void DrawStrip<TVertex>(TVertex[] source, Action<TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var vertices = new TVertex[TRIANGLE_POINTS];
+            if (source.Length >= TRIANGLE_POINTS)
+            {
+                vertices[0] = source[0];
+                vertices[1] = source[1];
+                for (var i = 2; i < source.Length; i++)
+                {
+                    vertices[2] = source[i];
+                    render(vertices);
 
-        public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<int[], TVertex[]> render) =>
-            DrawStrip(indices, i => vertices[i], render);
+                    vertices[i % 2] = vertices[2];
+                }
+            }
+        }
+
+        public static void DrawStrip<TVertex>(IEnumerable<TVertex> source, Action<TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var vertices = new TVertex[TRIANGLE_POINTS];
+            using var enumerable = source.GetEnumerator();
+            if (enumerable.MoveNext())
+            {
+                vertices[0] = enumerable.Current;
+                if (enumerable.MoveNext())
+                {
+                    vertices[1] = enumerable.Current;
+                    for (var i = 0; enumerable.MoveNext(); i++)
+                    {
+                        vertices[2] = enumerable.Current;
+                        render(vertices);
+
+                        vertices[i % 2] = vertices[2];
+                    }
+                }
+            }
+        }
+
+        public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<int[], TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var indexSwath = new int[TRIANGLE_POINTS];
+            var vertexSwath = new TVertex[TRIANGLE_POINTS];
+            if (indices.Length >= TRIANGLE_POINTS)
+            {
+                vertexSwath[0] = vertices[indexSwath[0] = indices[0]];
+                vertexSwath[1] = vertices[indexSwath[1] = indices[1]];
+                for (var i = 2; i < indices.Length; i++)
+                {
+                    vertexSwath[2] = vertices[indexSwath[2] = indices[i]];
+                    render(indexSwath, vertexSwath);
+
+                    indexSwath[i % 2] = indexSwath[2];
+                    vertexSwath[i % 2] = vertexSwath[2];
+                }
+            }
+        }
+
+        public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var vertexSwath = new TVertex[TRIANGLE_POINTS];
+            if (indices.Length >= TRIANGLE_POINTS)
+            {
+                vertexSwath[0] = vertices[indices[0]];
+                vertexSwath[1] = vertices[indices[1]];
+                for (var i = 2; i < indices.Length; i++)
+                {
+                    vertexSwath[2] = vertices[indices[i]];
+                    render(vertexSwath);
+
+                    vertexSwath[i % 2] = vertexSwath[2];
+                }
+            }
+        }
 
         public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
@@ -101,6 +173,46 @@
                         render(items, vertices);
 
                         items[i % 2] = items[2];
+                        vertices[i % 2] = vertices[2];
+                    }
+                }
+            }
+        }
+
+        public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var vertices = new TVertex[TRIANGLE_POINTS];
+            if (source.Length >= TRIANGLE_POINTS)
+            {
+                vertices[0] = getVertex(source[0]);
+                vertices[1] = getVertex(source[1]);
+                for (var i = 2; i < source.Length; i++)
+                {
+                    vertices[2] = getVertex(source[i]);
+                    render(vertices);
+
+                    vertices[i % 2] = vertices[2];
+                }
+            }
+        }
+
+        public static void DrawStrip<TSource, TVertex>(IEnumerable<TSource> source, Func<TSource, TVertex> getVertex, Action<TVertex[]> render)
+        {
+            const int TRIANGLE_POINTS = 3;
+            var vertices = new TVertex[TRIANGLE_POINTS];
+            using var enumerable = source.GetEnumerator();
+            if (enumerable.MoveNext())
+            {
+                vertices[0] = getVertex(enumerable.Current);
+                if (enumerable.MoveNext())
+                {
+                    vertices[1] = getVertex(enumerable.Current);
+                    for (var i = 0; enumerable.MoveNext(); i++)
+                    {
+                        vertices[2] = getVertex(enumerable.Current);
+                        render(vertices);
+
                         vertices[i % 2] = vertices[2];
                     }
                 }
