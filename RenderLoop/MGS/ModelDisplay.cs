@@ -238,10 +238,7 @@
                             }
                             else
                             {
-                                return Color.FromArgb(
-                                    (int)(uv.X % 1.0 * 255),
-                                    (int)(uv.Y % 1.0 * 255),
-                                    0).ToArgb();
+                                return Color.Black.ToArgb();
                             }
                         }));
                 }
