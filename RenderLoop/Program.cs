@@ -27,6 +27,7 @@
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(options);
+                services.AddTransient<Demo.Cube>();
                 ServiceRegistration.Register(services, options);
 
                 services.AddHostedService<RenderLoopApplication>();
