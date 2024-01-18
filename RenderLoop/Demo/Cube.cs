@@ -77,6 +77,8 @@
                             : Color.Gray.ToArgb();
                     }));
             }
+
+            base.DrawScene(g, buffer, depthBuffer);
         }
     }
 }

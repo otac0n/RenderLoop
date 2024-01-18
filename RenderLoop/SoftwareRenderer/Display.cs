@@ -17,6 +17,7 @@
         private Bitmap buffer;
         private float[,] depthBuffer;
         private long timestamp;
+        private double fps;
         private readonly Dictionary<Keys, bool> keyDown = [];
 
         public Display()
@@ -39,6 +40,8 @@
             this.keyDown[e.KeyCode] = false;
         }
 
+        public bool ShowFps { get; set; } = true;
+
         protected Camera Camera { get; } = new();
 
         public bool this[Keys key] => this.keyDown.TryGetValue(key, out var pressed) && pressed;
@@ -55,7 +58,17 @@
             e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
         }
 
-        protected abstract void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer);
+        protected virtual void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
+        {
+            if (this.ShowFps)
+            {
+
+                var fps = $"{this.fps:F1} FPS";
+                var size = g.MeasureString(fps, this.Font);
+                using var textBrush = new SolidBrush(this.ForeColor);
+                g.DrawString(fps, this.Font, textBrush, new PointF(buffer.Width - size.Width, 0));
+            }
+        }
 
         /// <summary>
         /// Segments a strip of triangles and renders them with the provided function.
@@ -426,6 +439,11 @@
 
         protected virtual void AdvanceFrame(TimeSpan elapsed)
         {
+            if (elapsed > TimeSpan.Zero)
+            {
+                this.fps = 1 / elapsed.TotalSeconds;
+            }
+
             this.Invalidate();
         }
 
