@@ -39,7 +39,7 @@
             this.Camera.Up = new Vector3(0, 1, 0);
 
             this.KeyPreview = true;
-            this.BackColor = Color.Gray;
+            this.ClientSize = new(640, 480);
             this.UpdateModel();
         }
 
@@ -74,6 +74,7 @@
             var size = max - min;
             this.center = min + size / 2;
             this.size = Math.Max(size.X, Math.Max(size.Y, size.Z));
+            this.Camera.FarPlane = 2 * this.size;
         }
 
         private (ushort id, Bitmap? texture) EnsureTexture(string file)
@@ -147,7 +148,7 @@
                 this.UpdateModel();
             }
 
-            if (this[Keys.W] || this[Keys.S] || this[Keys.A] || this[Keys.D])
+            if (this[Keys.W] || this[Keys.S] || this[Keys.A] || this[Keys.D] || this[Keys.C] || this[Keys.Space])
             {
                 this.flying = true;
             }
