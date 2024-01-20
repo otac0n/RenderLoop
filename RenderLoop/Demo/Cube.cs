@@ -73,8 +73,8 @@
                     {
                         var uv = MapCoordinates(perspective, [v[0].uv, v[1].uv, v[2].uv]);
                         return ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
-                            ? Color.White.ToArgb()
-                            : Color.Gray.ToArgb();
+                            ? Color.White
+                            : Color.Gray;
                     }));
             }
 

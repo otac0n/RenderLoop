@@ -321,9 +321,6 @@
         public static Vector2 MapCoordinates(Vector3 barycenter, Vector2[] coordinates) =>
             (barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2]) / (barycenter.X + barycenter.Y + barycenter.Z);
 
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Color color) =>
-            FillTriangle(bitmap, depthBuffer, vertices, culling, _ => color);
-
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, Color> getColor) =>
             FillTriangle(bitmap, depthBuffer, vertices, culling, barycenter => getColor(barycenter).ToArgb());
 
