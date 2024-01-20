@@ -427,6 +427,140 @@
             bitmap.UnlockBits(bmpData);
         }
 
+        public static void FillTriangleA(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
+        {
+            var width = bitmap.Width;
+            var height = bitmap.Height;
+
+            static (Vector3 vertex, float factor) AsVector3(Vector4 v) => (new(v.X, v.Y, v.Z), v.Z * Math.Abs(v.W));
+
+            var (v0, f0) = AsVector3(vertices[0]);
+            var (v1, f1) = AsVector3(vertices[1]);
+            var (v2, f2) = AsVector3(vertices[2]);
+            var min = Vector3.Min(Vector3.Min(v0, v1), v2);
+            var max = Vector3.Max(Vector3.Max(v0, v1), v2);
+
+            if (float.IsNaN(min.X) ||
+                float.IsNaN(min.Y) ||
+                min.Z <= 0 ||
+                min.X > width ||
+                min.Y > height ||
+                max.X < 0 ||
+                max.Y < 0)
+            {
+                return;
+            }
+
+            var area = EdgeFunction(v0, v1, v2);
+            if (culling == BackfaceCulling.Cull && area <= 0)
+            {
+                return;
+            }
+
+            var clamp = new Vector3(width - 1, height - 1, 0);
+            min = Vector3.Min(clamp, Vector3.Max(Vector3.Zero, min));
+            max = Vector3.Min(clamp, Vector3.Max(Vector3.Zero, max));
+            var initY = (int)min.Y;
+            var initX = (int)min.X;
+            var boundY = (int)max.Y - initY + 1;
+            var boundX = (int)max.X - initX + 1;
+
+            var startEnd = new (float start, Vector3 startCoord, float end, Vector3 endCoord)[boundY];
+            for (var y = 0; y < boundY; y++)
+            {
+                startEnd[y].start = float.PositiveInfinity;
+                startEnd[y].end = float.NegativeInfinity;
+            }
+
+            void DrawEdge(Vector3 a, Vector3 aCoord, Vector3 b, Vector3 bCoord)
+            {
+                var v = b - a;
+                var step = Math.Abs(v.X) >= Math.Abs(v.Y)
+                    ? Math.Abs(v.X)
+                    : Math.Abs(v.Y);
+                v /= step;
+                var vCoord = (bCoord - aCoord) / step;
+                var i = 0;
+                while (i <= step)
+                {
+                    var y = (int)a.Y - initY;
+                    if (y >= 0 && y < boundY)
+                    {
+                        var x = (int)a.X;
+
+                        var (start, startCoord, end, endCoord) = startEnd[y];
+
+                        if (x < start)
+                        {
+                            start = x;
+                            startCoord = aCoord;
+                        }
+
+                        if (x > end)
+                        {
+                            end = x;
+                            endCoord = aCoord;
+                        }
+
+                        startEnd[y] = (start, startCoord, end, endCoord);
+                    }
+
+                    a += v;
+                    aCoord += vCoord;
+                    i++;
+                }
+            }
+
+            DrawEdge(v0, new Vector3(1, 0, 0), v1, new Vector3(0, 1, 0));
+            DrawEdge(v2, new Vector3(0, 0, 1), v1, new Vector3(0, 1, 0));
+            DrawEdge(v2, new Vector3(0, 0, 1), v0, new Vector3(1, 0, 0));
+
+            var bmpData = bitmap.LockBits(new Rectangle(initX, initY, boundX, boundY), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            var colorData = new int[boundX];
+            var scan = bmpData.Scan0;
+
+            for (var y = 0; y < boundY; y++, scan += bmpData.Stride)
+            {
+                var (start, barycenter, end, endCoord) = startEnd[y];
+                if (end >= initX)
+                {
+                    var init = (int)Math.Clamp(start, 0, width - 1);
+                    var startX = init - initX;
+                    var endX = (int)Math.Clamp(end, 0, width - 1) - initX;
+                    var xLen = endX - startX + 1;
+                    Marshal.Copy(scan + sizeof(int) * startX, colorData, 0, xLen);
+
+                    var vCoord = (endCoord - barycenter) / (end - start);
+                    barycenter += (init - start) * vCoord;
+                    for (var x = startX; x <= endX; x++, barycenter += vCoord)
+                    {
+                        var z = barycenter.X * v0.Z + barycenter.Y * v1.Z + barycenter.Z * v2.Z;
+                        if (z > 0)
+                        {
+                            if (z < depthBuffer[y + initY, x + initX])
+                            {
+                                var perspectiveBarycenter = barycenter;
+                                perspectiveBarycenter.X /= f0;
+                                perspectiveBarycenter.Y /= f1;
+                                perspectiveBarycenter.Z /= f2;
+
+                                var color = getArgb(perspectiveBarycenter);
+                                if ((color & 0xFF000000) == 0xFF000000)
+                                {
+                                    depthBuffer[y + initY, x + initX] = z;
+                                    colorData[x - startX] = color;
+                                }
+                            }
+                        }
+                    }
+
+                    Marshal.Copy(colorData, 0, scan + sizeof(int) * startX, xLen);
+                }
+            }
+
+            bitmap.UnlockBits(bmpData);
+        }
+
         private void FrameTimer_Tick(object sender, EventArgs e)
         {
             var now = Stopwatch.GetTimestamp();
