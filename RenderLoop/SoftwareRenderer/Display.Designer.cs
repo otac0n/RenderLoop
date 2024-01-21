@@ -36,7 +36,7 @@
             // 
             this.frameTimer.Enabled = true;
             this.frameTimer.Interval = 33;
-            this.frameTimer.Tick += this.FrameTimer_Tick;
+            this.frameTimer.Tick += this.FrameTimer_FirstTick;
             // 
             // Display
             // 

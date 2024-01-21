@@ -27,7 +27,6 @@
             this.timestamp = Stopwatch.GetTimestamp();
             this.KeyDown += this.Display_KeyDown;
             this.KeyUp += this.Display_KeyUp;
-            this.AdvanceFrame(TimeSpan.Zero);
         }
 
         private void Display_KeyDown(object? sender, KeyEventArgs e)
@@ -554,6 +553,15 @@
             }
 
             bitmap.UnlockBits(bmpData);
+        }
+
+        private void FrameTimer_FirstTick(object sender, EventArgs e)
+        {
+            var now = Stopwatch.GetTimestamp();
+            this.timestamp = now;
+            this.frameTimer.Tick -= this.FrameTimer_FirstTick;
+            this.frameTimer.Tick += this.FrameTimer_Tick;
+            this.AdvanceFrame(TimeSpan.Zero);
         }
 
         private void FrameTimer_Tick(object sender, EventArgs e)
