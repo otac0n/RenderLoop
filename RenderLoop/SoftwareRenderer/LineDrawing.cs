@@ -11,13 +11,11 @@
             var a = Vector2.Abs(v);
             var step = a.X >= a.Y ? a.X : a.Y;
             v /= step;
-            var p = start;
-            var i = 0;
-            while (i <= step)
+            Vector2 p;
+            int i;
+            for (i = 0, p = start; i <= step; i++, p = start + v * i)
             {
                 yield return ((int)p.X, (int)p.Y);
-                p += v;
-                i++;
             }
         }
     }

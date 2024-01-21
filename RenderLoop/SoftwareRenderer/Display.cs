@@ -477,34 +477,32 @@
                     : Math.Abs(v.Y);
                 v /= step;
                 var vCoord = (bCoord - aCoord) / step;
-                var i = 0;
-                while (i <= step)
+
+                int i;
+                Vector3 p, pCoord;
+                for (i = 0, p = a, pCoord = aCoord; i <= step; i++, p = a + v * i, pCoord = aCoord + vCoord * i)
                 {
-                    var y = (int)a.Y - initY;
+                    var y = (int)p.Y - initY;
                     if (y >= 0 && y < boundY)
                     {
-                        var x = (int)a.X;
+                        var x = (int)p.X;
 
                         var (start, startCoord, end, endCoord) = startEnd[y];
 
                         if (x < start)
                         {
                             start = x;
-                            startCoord = aCoord;
+                            startCoord = pCoord;
                         }
 
                         if (x > end)
                         {
                             end = x;
-                            endCoord = aCoord;
+                            endCoord = pCoord;
                         }
 
                         startEnd[y] = (start, startCoord, end, endCoord);
                     }
-
-                    a += v;
-                    aCoord += vCoord;
-                    i++;
                 }
             }
 
