@@ -42,7 +42,7 @@
                     y: BitConverter.ToInt32(buffer, 24),
                     z: BitConverter.ToInt32(buffer, 28)));
 
-            var meshes = new Mesh[meshCount];
+            var meshes = new List<Mesh>((int)meshCount);
             var offsets = new List<Point>();
             for (var m = 0; m < meshCount; m++)
             {
@@ -59,7 +59,7 @@
                         x: BitConverter.ToInt32(buffer, 20),
                         y: BitConverter.ToInt32(buffer, 24),
                         z: BitConverter.ToInt32(buffer, 28)));
-                var relativePoint = (
+                var relativePoint = new Vector3(
                     x: BitConverter.ToInt32(buffer, 32),
                     y: BitConverter.ToInt32(buffer, 36),
                     z: BitConverter.ToInt32(buffer, 40));
@@ -73,16 +73,7 @@
                 var texCoordAddress = BitConverter.ToUInt32(buffer, 76);
                 var textureAddress = BitConverter.ToUInt32(buffer, 80);
 
-                if (baseCoord != -1 && !(baseCoord == 0 && offsets.Count == 0))
-                {
-                    var basePoint = offsets[baseCoord];
-                    relativePoint.x += basePoint.x;
-                    relativePoint.y += basePoint.y;
-                    relativePoint.z += basePoint.z;
-                }
-
-                offsets.Add(relativePoint);
-
+                var relativeMesh = baseCoord != -1 && !(baseCoord == 0 && m == 0) ? meshes[baseCoord] : null;
                 var baseOffset = stream.Position;
 
                 var vertices = new Vector3[vertexCount];
@@ -92,9 +83,9 @@
                     stream.ReadExactly(buffer, 8);
                     // Not using W.
                     vertices[v] = new Vector3(
-                        BitConverter.ToInt16(buffer, 0) + relativePoint.x,
-                        BitConverter.ToInt16(buffer, 2) + relativePoint.y,
-                        BitConverter.ToInt16(buffer, 4) + relativePoint.z);
+                        BitConverter.ToInt16(buffer, 0),
+                        BitConverter.ToInt16(buffer, 2),
+                        BitConverter.ToInt16(buffer, 4));
                 }
 
                 var normals = new Vector3[normalCount];
@@ -159,16 +150,19 @@
                     faces[v].TextureIndices = indices;
                 }
 
-                meshes[m] = new Mesh(
-                    vertices,
-                    texCoords,
-                    normals,
-                    faces);
+                meshes.Add(
+                    new Mesh(
+                        relativePoint,
+                        vertices,
+                        texCoords,
+                        normals,
+                        faces,
+                        relativeMesh));
 
                 stream.Seek(baseOffset, SeekOrigin.Begin);
             }
 
-            return new Model(meshes);
+            return new Model([.. meshes]);
         }
     }
 }
