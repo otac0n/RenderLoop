@@ -3,13 +3,10 @@
     using System;
     using System.Collections.Generic;
     using System.Drawing;
-    using System.IO;
     using System.Linq;
     using System.Numerics;
     using System.Windows.Forms;
-    using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.Archives;
     using RenderLoop.SoftwareRenderer;
 
     public class RexDisplay : Display
@@ -97,7 +94,7 @@
 
         private double t;
         private ulong animate;
-        private bool flying = false;
+        private bool flying;
         private Vector3 center;
         private float size;
 
@@ -226,26 +223,13 @@
                     using var textureFile = this.stageDir.File.OpenRead(file);
                     textureFile.ReadExactly(buffer, 2);
                     texture.id = BitConverter.ToUInt16(buffer, 0);
-                    texture.texture = ReadMgsPcx(textureFile);
+                    texture.texture = Model.ReadMgsPcx(textureFile);
                 }
 
                 this.textures[file] = texture;
             }
 
             return texture;
-        }
-
-        private static Bitmap? ReadMgsPcx(Stream stream)
-        {
-            try
-            {
-                using var pcxStream = new OffsetStreamSpan(stream, 8, stream.Length - 8);
-                return new MagickImage(pcxStream).ToBitmap();
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         protected override void OnPreviewKeyDown(PreviewKeyDownEventArgs e)

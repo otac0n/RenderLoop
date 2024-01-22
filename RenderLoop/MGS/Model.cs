@@ -2,9 +2,12 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Drawing;
     using System.IO;
     using System.Linq;
     using System.Numerics;
+    using ImageMagick;
+    using RenderLoop.Archives;
     using Point = (int x, int y, int z);
 
     public class Model
@@ -22,6 +25,19 @@
             {
                 using var stream = stage.File.OpenRead(file);
                 yield return (file, FromStream(stream));
+            }
+        }
+
+        public static Bitmap? ReadMgsPcx(Stream stream)
+        {
+            try
+            {
+                using var pcxStream = new OffsetStreamSpan(stream, 8, stream.Length - 8);
+                return new MagickImage(pcxStream).ToBitmap();
+            }
+            catch
+            {
+                return null;
             }
         }
 
