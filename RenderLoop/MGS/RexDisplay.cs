@@ -11,10 +11,11 @@
 
     public class RexDisplay : Display
     {
-        private static readonly Dictionary<string, (string[] versions, (int index, Vector3 min, Vector3 max)[] freedoms)> Sources = new()
+        private static readonly Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> Sources = new()
         {
             ["leg_a"] = (
                 ["s17a/model/835c.kmd"],
+                null,
                 [
                     (1, Angles(1 / 8f, 1 / 32f, 1 / 16f), Angles(1 / 4f, 1 / 32f, 1 / 16f)), // Legs, proper
                     (2, Angles(1 / 8f, 1 / 32f, 0), Angles(1 / 8f, 1 / 32f, 0)), // Leg armor
@@ -27,6 +28,7 @@
             ),
             ["leg_b"] = (
                 ["s17a/model/841c.kmd"],
+                null,
                 [
                     (1, Angles(1 / 8f, -1 / 32f, -1 / 16f), Angles(1 / 4f, -1 / 32f, -1 / 16f)), // Legs, proper
                     (2, Angles(1 / 8f, -1 / 32f, -0), Angles(1 / 8f, -1 / 32f, -0)), // Leg armor
@@ -44,6 +46,7 @@
                     "s17a/model/32f7.kmd",
                     "s17a/model/32f8.kmd",
                 ],
+                ("leg_a", 1),
                 []
             ),
             ["knee_b"] = (
@@ -53,10 +56,12 @@
                     "s17a/model/3327.kmd",
                     "s17a/model/3328.kmd",
                 ],
+                ("leg_b", 1),
                 []
             ),
             ["body"] = (
                 ["s17a/model/8422.kmd"],
+                null,
                 [
                     (1, Angles(1 / 128f, 1 / 32f, 1 / 16f), Angles(1 / 16f, 1 / 32f, 1 / 16f)), // Neck
                     (2, Angles(0, 1 / 32f, 1 / 16f), Angles(1 / 16f, 1 / 32f, 1 / 16f)), // Head
@@ -71,13 +76,15 @@
             ),
             ["palate"] = (
                 ["s17a/model/638a.kmd"],
+                ("body", 3),
                 []
             ),
             ["cockpit"] = (
                 [
-                    "s17a/model/cd95.kmd", // Liquid
                     "s17a/model/638b.kmd",
+                    "s17a/model/cd95.kmd", // Liquid
                 ],
+                ("body", 3),
                 []
             ),
             ["radome"] = (
@@ -86,6 +93,7 @@
                     "s17a/model/9ae5.kmd",
                     "s17a/model/9ae6.kmd", // + "s17a/model/9ae7.kmd" antennae?
                 ],
+                ("body", 6),
                 [
                     (0, Angles(1 / 32f, 1 / 32f, 1 / 32f), Angles(1 / 32f, 1 / 32f, 1 / 32f)),
                 ]
@@ -132,33 +140,17 @@
                 models.Add(name, versions);
             }
 
-            foreach (var leg in new[] { "a", "b" })
+            foreach (var (name, info) in Sources)
             {
-                var legMesh = models[$"leg_{leg}"].Single().Meshes[1];
-                var kneeModels = models[$"knee_{leg}"];
-                foreach (var knee in kneeModels.SelectMany(k => k.Meshes))
+                if (info.attach is (string attachTo, int atIndex) attach)
                 {
-                    knee.RelativeMesh = legMesh;
-                    var crash = knee.RelativeMesh;
+                    var mesh = models[attach.attachTo].Single().Meshes[attach.atIndex];
+                    var toAttach = models[name];
+                    foreach (var model in toAttach)
+                    {
+                        model.Meshes[0].RelativeMesh = mesh;
+                    }
                 }
-            }
-
-            var skullMesh = models[$"body"].Single().Meshes[3];
-            foreach (var palate in models[$"palate"].SelectMany(k => k.Meshes))
-            {
-                palate.RelativeMesh = skullMesh;
-            }
-
-            var jawMesh = models[$"body"].Single().Meshes[3];
-            foreach (var cockpit in models[$"cockpit"].SelectMany(k => k.Meshes))
-            {
-                cockpit.RelativeMesh = jawMesh;
-            }
-
-            var shoulderMesh = models[$"body"].Single().Meshes[6];
-            foreach (var radome in models[$"radome"].SelectMany(k => k.Meshes))
-            {
-                radome.RelativeMesh = shoulderMesh;
             }
 
             this.models = models;
