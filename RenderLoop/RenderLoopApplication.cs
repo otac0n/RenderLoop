@@ -30,7 +30,7 @@
 
         private void Run(CancellationToken cancel)
         {
-            using var display = this.serviceProvider.GetRequiredService<ModelDisplay>();
+            using var display = this.serviceProvider.GetRequiredService<RexDisplay>();
 
             cancel.Register(() => display.InvokeIfRequired(display.Close));
             Application.Run(display);
