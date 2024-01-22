@@ -9,7 +9,7 @@
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.SoftwareRenderer;
 
-    public class RexDisplay : Display
+    public class VehicleDisplay : Display
     {
         private static readonly Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)>[] Sources =
         [
@@ -101,6 +101,123 @@
                     ]
                 ),
             },
+            new()
+            {
+                ["airframe"] = (
+                    ["s11h/model/c7dd.kmd"],
+                    null,
+                    [
+                        (1, Angles(0, 1 / 2f, 0), Angles(0, 1 / 2f, 0)), // Main Rotor
+                        (2, Angles(1 / 2f, 0, 0), Angles(1 / 2f, 0, 0)), // Tail Rotor
+                        (3, Angles(0, 1 / 8f, 0), Angles(0, 1 / 8f, 0)), // Turret
+                        (4, Angles(0, 0, 0), Angles(3 / 16f, 0, 0)), // Cannon
+                    ]
+                ),
+                ["canopy"] = (
+                    ["s11h/model/57fc.kmd"],
+                    null,
+                    [
+                    ]
+                ),
+                ["pilot"] = (
+                    [
+                        "s11h/model/d85b.kmd", // Liquid
+                    ],
+                    null,
+                    [
+                    ]
+                ),
+                ["gunner"] = (
+                    [
+                        "s11h/model/6fba.kmd",
+                    ],
+                    null,
+                    [
+                    ]
+                ),
+                ["missile_1"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 5),
+                    [
+                    ]
+                ),
+                ["trail_1"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_1", 0),
+                    [
+                    ]
+                ),
+                ["missile_2"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 6),
+                    [
+                    ]
+                ),
+                ["trail_2"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_2", 0),
+                    [
+                    ]
+                ),
+                ["missile_3"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 7),
+                    [
+                    ]
+                ),
+                ["trail_3"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_3", 0),
+                    [
+                    ]
+                ),
+                ["missile_4"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 8),
+                    [
+                    ]
+                ),
+                ["trail_4"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_4", 0),
+                    [
+                    ]
+                ),
+                //["gear_a"] = (
+                //    ["s11h/model/647f.kmd"],
+                //    null,
+                //    [
+                //    ]
+                //),
+                //["gear_b"] = (
+                //    ["s11h/model/6485.kmd"],
+                //    null,
+                //    [
+                //    ]
+                //),
+                //["gear_c"] = (
+                //    ["s11h/model/6479.kmd"],
+                //    null,
+                //    [
+                //    ]
+                //),
+            },
         ];
 
         private double t;
@@ -115,7 +232,7 @@
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
         private readonly Dictionary<ushort, Bitmap?> textureLookup = [];
 
-        public RexDisplay(IServiceProvider serviceProvider)
+        public VehicleDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));

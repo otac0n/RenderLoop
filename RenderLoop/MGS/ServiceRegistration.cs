@@ -16,7 +16,7 @@
 
             services.AddTransient<CodecDisplay>();
             services.AddTransient<ModelDisplay>();
-            services.AddTransient<RexDisplay>();
+            services.AddTransient<VehicleDisplay>();
 
             services.AddKeyedSingleton(options.File, (s, key) => new MArchiveV1VirtualFileSystem(key, s.GetRequiredService<Program.Options>().Key));
 
