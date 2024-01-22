@@ -11,104 +11,107 @@
 
     public class RexDisplay : Display
     {
-        private static readonly Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> Sources = new()
-        {
-            ["leg_a"] = (
-                ["s17a/model/835c.kmd"],
-                null,
-                [
-                    (1, Angles(1 / 8f, 1 / 32f, 1 / 16f), Angles(1 / 4f, 1 / 32f, 1 / 16f)), // Legs, proper
-                    (2, Angles(1 / 8f, 1 / 32f, 0), Angles(1 / 8f, 1 / 32f, 0)), // Leg armor
-                    (3, Angles(0, 0, 0), Angles(1 / 32f, 0, 0)), // Shin
-                    //(4, Angles(0, 0, 0), Angles(0, 0, 0)), // Foot
-                    (5, Angles(1 / 16f, 1 / 64f, 1 / 32f), Angles(3 / 16f, 1 / 64f, 1 / 32f)), // Heel
-                    (8, Angles(1 / 16f, 1 / 64f, 1 / 32f), Angles(1 / 32f, 1 / 64f, 1 / 32f)), // Toe
-                    //(7, Angles(0, 0, 0), Angles(0, 0, 0)), // Arch
-                ]
-            ),
-            ["leg_b"] = (
-                ["s17a/model/841c.kmd"],
-                null,
-                [
-                    (1, Angles(1 / 8f, -1 / 32f, -1 / 16f), Angles(1 / 4f, -1 / 32f, -1 / 16f)), // Legs, proper
-                    (2, Angles(1 / 8f, -1 / 32f, -0), Angles(1 / 8f, -1 / 32f, -0)), // Leg armor
-                    (3, Angles(0, -0, -0), Angles(1 / 32f, -0, -0)), // Shin
-                    //(4, Angles(0, -0, -0), Angles(0, -0, -0)), // Foot
-                    (5, Angles(1 / 16f, -1 / 64f, -1 / 32f), Angles(3 / 16f, -1 / 64f, -1 / 32f)), // Heel
-                    (8, Angles(1 / 16f, -1 / 64f, -1 / 32f), Angles(1 / 32f, -1 / 64f, -1 / 32f)), // Toe
-                    //(7, Angles(0, -0, -0), Angles(0, -0, -0)), // Arch
-                ]
-            ),
-            ["knee_a"] = (
-                [
-                    "s17a/model/32f5.kmd",
-                    "s17a/model/32f6.kmd",
-                    "s17a/model/32f7.kmd",
-                    "s17a/model/32f8.kmd",
-                ],
-                ("leg_a", 1),
-                []
-            ),
-            ["knee_b"] = (
-                [
-                    "s17a/model/3325.kmd",
-                    "s17a/model/3326.kmd",
-                    "s17a/model/3327.kmd",
-                    "s17a/model/3328.kmd",
-                ],
-                ("leg_b", 1),
-                []
-            ),
-            ["body"] = (
-                ["s17a/model/8422.kmd"],
-                null,
-                [
-                    (1, Angles(1 / 128f, 1 / 32f, 1 / 16f), Angles(1 / 16f, 1 / 32f, 1 / 16f)), // Neck
-                    (2, Angles(0, 1 / 32f, 1 / 16f), Angles(1 / 16f, 1 / 32f, 1 / 16f)), // Head
-                    (3, Angles(0, 0, 0), Angles(1 / 16f, 0, 0)), // Jaw
-                    (4, Angles(1 / 16f, 1 / 8f, 1 / 16f), Angles(1 / 16f, 1 / 8f, 1 / 16f)), // Back
-                    (5, Angles(1 / 16f, 0, 1 / 8f), Angles(1 / 16f, 0, 1 / 8f)), // Radar Arm
-                    (6, Angles(1 / 16f, 0, 1 / 8f), Angles(1 / 16f, 1 / 16f, 1 / 8f)), // Radar Boom
-                    (7, Angles(1 / 16f, -0, -1 / 8f), Angles(1 / 16f, -0, -1 / 8f)), // Railgun Arm
-                    (8, Angles(1 / 16f, -0, -1 / 8f), Angles(1 / 16f, -1 / 16f, -1 / 8f)), // Railgun
-                    (9, Angles(1 / 16f, 1 / 8f, 1 / 16f), Angles(1 / 16f, 1 / 8f, 1 / 16f)), // Crotch Gun
-                ]
-            ),
-            ["palate"] = (
-                ["s17a/model/638a.kmd"],
-                ("body", 3),
-                []
-            ),
-            ["cockpit"] = (
-                [
-                    "s17a/model/638b.kmd",
-                    "s17a/model/cd95.kmd", // Liquid
-                ],
-                ("body", 3),
-                []
-            ),
-            ["radome"] = (
-                [
-                    "s17a/model/9ae4.kmd",
-                    "s17a/model/9ae5.kmd",
-                    "s17a/model/9ae6.kmd", // + "s17a/model/9ae7.kmd" antennae?
-                ],
-                ("body", 6),
-                [
-                    (0, Angles(1 / 32f, 1 / 32f, 1 / 32f), Angles(1 / 32f, 1 / 32f, 1 / 32f)),
-                ]
-            ),
-        };
+        private static readonly Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)>[] Sources =
+        [
+            new()
+            {
+                ["leg_a"] = (
+                    ["s17a/model/835c.kmd"],
+                    null,
+                    [
+                        (1, Angles(1 / 8f, 1 / 32f, 1 / 16f), Angles(1 / 4f, 1 / 32f, 1 / 16f)), // Legs, proper
+                        (2, Angles(1 / 8f, 1 / 32f, 0), Angles(1 / 8f, 1 / 32f, 0)), // Leg armor
+                        (3, Angles(0, 0, 0), Angles(1 / 32f, 0, 0)), // Shin
+                        //(4, Angles(0, 0, 0), Angles(0, 0, 0)), // Foot
+                        (5, Angles(1 / 16f, 1 / 64f, 1 / 32f), Angles(3 / 16f, 1 / 64f, 1 / 32f)), // Heel
+                        (8, Angles(1 / 16f, 1 / 64f, 1 / 32f), Angles(1 / 32f, 1 / 64f, 1 / 32f)), // Toe
+                        //(7, Angles(0, 0, 0), Angles(0, 0, 0)), // Arch
+                    ]
+                ),
+                ["leg_b"] = (
+                    ["s17a/model/841c.kmd"],
+                    null,
+                    [
+                        (1, Angles(1 / 8f, -1 / 32f, -1 / 16f), Angles(1 / 4f, -1 / 32f, -1 / 16f)), // Legs, proper
+                        (2, Angles(1 / 8f, -1 / 32f, -0), Angles(1 / 8f, -1 / 32f, -0)), // Leg armor
+                        (3, Angles(0, -0, -0), Angles(1 / 32f, -0, -0)), // Shin
+                        //(4, Angles(0, -0, -0), Angles(0, -0, -0)), // Foot
+                        (5, Angles(1 / 16f, -1 / 64f, -1 / 32f), Angles(3 / 16f, -1 / 64f, -1 / 32f)), // Heel
+                        (8, Angles(1 / 16f, -1 / 64f, -1 / 32f), Angles(1 / 32f, -1 / 64f, -1 / 32f)), // Toe
+                        //(7, Angles(0, -0, -0), Angles(0, -0, -0)), // Arch
+                    ]
+                ),
+                ["knee_a"] = (
+                    [
+                        "s17a/model/32f5.kmd",
+                        "s17a/model/32f6.kmd",
+                        "s17a/model/32f7.kmd",
+                        "s17a/model/32f8.kmd",
+                    ],
+                    ("leg_a", 1),
+                    []
+                ),
+                ["knee_b"] = (
+                    [
+                        "s17a/model/3325.kmd",
+                        "s17a/model/3326.kmd",
+                        "s17a/model/3327.kmd",
+                        "s17a/model/3328.kmd",
+                    ],
+                    ("leg_b", 1),
+                    []
+                ),
+                ["body"] = (
+                    ["s17a/model/8422.kmd"],
+                    null,
+                    [
+                        (1, Angles(1 / 128f, 1 / 32f, 1 / 16f), Angles(1 / 16f, 1 / 32f, 1 / 16f)), // Neck
+                        (2, Angles(0, 1 / 32f, 1 / 16f), Angles(1 / 16f, 1 / 32f, 1 / 16f)), // Head
+                        (3, Angles(0, 0, 0), Angles(1 / 16f, 0, 0)), // Jaw
+                        (4, Angles(1 / 16f, 1 / 8f, 1 / 16f), Angles(1 / 16f, 1 / 8f, 1 / 16f)), // Back
+                        (5, Angles(1 / 16f, 0, 1 / 8f), Angles(1 / 16f, 0, 1 / 8f)), // Radar Arm
+                        (6, Angles(1 / 16f, 0, 1 / 8f), Angles(1 / 16f, 1 / 16f, 1 / 8f)), // Radar Boom
+                        (7, Angles(1 / 16f, -0, -1 / 8f), Angles(1 / 16f, -0, -1 / 8f)), // Railgun Arm
+                        (8, Angles(1 / 16f, -0, -1 / 8f), Angles(1 / 16f, -1 / 16f, -1 / 8f)), // Railgun
+                        (9, Angles(1 / 16f, 1 / 8f, 1 / 16f), Angles(1 / 16f, 1 / 8f, 1 / 16f)), // Crotch Gun
+                    ]
+                ),
+                ["palate"] = (
+                    ["s17a/model/638a.kmd"],
+                    ("body", 3),
+                    []
+                ),
+                ["cockpit"] = (
+                    [
+                        "s17a/model/638b.kmd",
+                        "s17a/model/cd95.kmd", // Liquid
+                    ],
+                    ("body", 3),
+                    []
+                ),
+                ["radome"] = (
+                    [
+                        "s17a/model/9ae4.kmd",
+                        "s17a/model/9ae5.kmd",
+                        "s17a/model/9ae6.kmd", // + "s17a/model/9ae7.kmd" antennae?
+                    ],
+                    ("body", 6),
+                    [
+                        (0, Angles(1 / 32f, 1 / 32f, 1 / 32f), Angles(1 / 32f, 1 / 32f, 1 / 32f)),
+                    ]
+                ),
+            },
+        ];
 
         private double t;
         private ulong animate;
         private bool flying;
         private Vector3 center;
         private float size;
-
+        private int activeModel;
         private readonly StageDirVirtualFileSystem stageDir;
 
-        private readonly Dictionary<string, Model[]> models;
+        private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
         private readonly Dictionary<ushort, Bitmap?> textureLookup = [];
 
@@ -117,49 +120,55 @@
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
 
-            var models = new Dictionary<string, Model[]>();
-            foreach (var (name, info) in Sources)
+            this.models = new();
+            foreach (var source in Sources)
             {
-                var versions = new Model[info.versions.Length];
+                var parts = new Dictionary<string, Model[]>();
 
-                for (var f = 0; f < info.versions.Length; f++)
+                foreach (var (name, info) in source)
                 {
-                    var file = info.versions[f];
-                    using var stream = this.stageDir.File.OpenRead(file);
-                    var model = Model.FromStream(stream);
-                    versions[f] = model;
+                    var versions = new Model[info.versions.Length];
 
-                    var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
-                    foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
+                    for (var f = 0; f < info.versions.Length; f++)
                     {
-                        var (id, texture) = this.EnsureTexture(tx);
-                        this.textureLookup[id] = texture;
+                        var file = info.versions[f];
+                        using var stream = this.stageDir.File.OpenRead(file);
+                        var model = Model.FromStream(stream);
+                        versions[f] = model;
+
+                        var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
+                        foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
+                        {
+                            var (id, texture) = this.EnsureTexture(tx);
+                            this.textureLookup[id] = texture;
+                        }
+                    }
+
+                    parts.Add(name, versions);
+                }
+
+                foreach (var (name, info) in source)
+                {
+                    if (info.attach is (string attachTo, int atIndex) attach)
+                    {
+                        var mesh = parts[attach.attachTo].Single().Meshes[attach.atIndex];
+                        var toAttach = parts[name];
+                        foreach (var model in toAttach)
+                        {
+                            model.Meshes[0].RelativeMesh = mesh;
+                        }
                     }
                 }
 
-                models.Add(name, versions);
+                this.models.Add((source, parts));
             }
 
-            foreach (var (name, info) in Sources)
-            {
-                if (info.attach is (string attachTo, int atIndex) attach)
-                {
-                    var mesh = models[attach.attachTo].Single().Meshes[attach.atIndex];
-                    var toAttach = models[name];
-                    foreach (var model in toAttach)
-                    {
-                        model.Meshes[0].RelativeMesh = mesh;
-                    }
-                }
-            }
-
-            this.models = models;
+            this.UpdateModel();
 
             this.Camera.Up = new Vector3(0, 1, 0);
 
             this.KeyPreview = true;
             this.ClientSize = new(640, 480);
-            this.UpdateModel();
         }
 
         private static Vector3 Angles(double x, double y, double z) =>
@@ -181,10 +190,15 @@
 
         private void UpdateModel()
         {
+            this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
+            this.flying = false;
+
             var min = new Vector3(float.PositiveInfinity);
             var max = new Vector3(float.NegativeInfinity);
 
-            foreach (var (_, versions) in this.models)
+            var (_, parts) = this.models[this.activeModel];
+
+            foreach (var (_, versions) in parts)
             {
                 foreach (var model in versions)
                 {
@@ -226,11 +240,27 @@
 
         protected override void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
         {
+            var updated = false;
             switch (e.KeyCode)
             {
                 case Keys.Escape:
                     this.flying = false;
                     break;
+
+                case Keys.Left:
+                    this.activeModel--;
+                    updated = true;
+                    break;
+
+                case Keys.Right:
+                    this.activeModel++;
+                    updated = true;
+                    break;
+            }
+
+            if (updated)
+            {
+                this.UpdateModel();
             }
 
             base.OnPreviewKeyDown(e);
@@ -240,9 +270,11 @@
         {
             var animateFrame = this.animate;
             var animateT = this.t - (int)this.t;
-            foreach (var (name, versions) in this.models)
+
+            var (source, parts) = this.models[this.activeModel];
+            foreach (var (name, versions) in parts)
             {
-                var freedoms = Sources[name].freedoms;
+                var freedoms = source[name].freedoms;
                 if (freedoms.Length == 0)
                 {
                     continue;
@@ -338,7 +370,8 @@
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
-            foreach (var (_, versions) in this.models)
+            var (_, parts) = this.models[this.activeModel];
+            foreach (var (_, versions) in parts)
             {
                 foreach (var mesh in versions[0].Meshes)
                 {
@@ -349,7 +382,7 @@
 
                         var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
                         DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
-                            FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
+                            FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective =>
                             {
                                 var uv = MapCoordinates(perspective, [
                                     v[0].textureCoords,
