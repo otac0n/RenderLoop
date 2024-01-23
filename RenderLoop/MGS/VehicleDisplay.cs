@@ -15,6 +15,46 @@
         [
             new()
             {
+                ["projectile"] = (
+                    ["s05a/model/3dcc.kmd"],
+                    null,
+                    []
+                ),
+                ["chassis"] = (
+                    ["s05a/model/5108.kmd"],
+                    null,
+                    [
+                        (3, Angles(0, 3 / 8f, 0), Angles(0, 3 / 8f, 0)), // Turret
+                        (5, Angles(1 / 16f, 0, 0), Angles(1 / 32f, 0, 0)), // Cannon
+                        (6, Angles(0, 1 / 4f, 0), Angles(0, 1 / 32f, 0)), // MG1 Seat
+                        (8, Angles(1 / 4f, 0, 0), Angles(0, 0, 0)), // MG1 Lid
+                        (9, Angles(1 / 8f, 0, 0), Angles(1 / 32f, 0, 0)), // MG1
+                        (11, Angles(1 / 4f, 0, 0), Angles(0, 0, 0)), // MG2 Lid
+                        //(12, Angles(0, 0, 0), Angles(0, 0, 0)), // MG2 Seat
+                        (13, Angles(1 / 8f, 1 / 16f, 0), Angles(1 / 32f, 1 / 8f, 0)), // MG2
+                    ]
+                ),
+                ["track_a"] = (
+                    [
+                        "s05a/model/c236.kmd",
+                        "s05a/model/c237.kmd",
+                        "s05a/model/c238.kmd",
+                    ],
+                    ("chassis", 1),
+                    []
+                ),
+                ["track_b"] = (
+                    [
+                        "s05a/model/c2f6.kmd",
+                        "s05a/model/c2f7.kmd",
+                        "s05a/model/c2f8.kmd",
+                    ],
+                    ("chassis", 1),
+                    []
+                ),
+            },
+            new()
+            {
                 ["leg_a"] = (
                     ["s17a/model/835c.kmd"],
                     null,
