@@ -17,7 +17,7 @@
             {
                 ["projectile"] = (
                     ["s05a/model/3dcc.kmd"],
-                    null,
+                    ("chassis", 5),
                     []
                 ),
                 ["chassis"] = (
