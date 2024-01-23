@@ -8,7 +8,7 @@
     {
         private MutableDependency<Mesh?> relativeMesh;
         private MutableDependency<Matrix4x4> rotation;
-        private PureDependency<Matrix4x4?> modelToWorld;
+        private PureDependency<Matrix4x4> modelToWorld;
         private PureDependency<Vector3[]> vertices;
 
         public Mesh(Vector3 relativeOrigin, Vector3[] relativeVertices, Vector2[] textureCoords, Vector3[] normals, Face[] faces, Mesh? relativeMesh = null)
@@ -21,9 +21,9 @@
 
             this.relativeMesh = D.Mutable(relativeMesh);
             this.rotation = D.Mutable(Matrix4x4.Identity);
-            var parentToWorld = D.Unwrap(D.Pure(this.relativeMesh, v => v?.modelToWorld));
-            this.modelToWorld = D.Pure(D.All(parentToWorld, this.rotation), () => (Matrix4x4?)(this.rotation.Value * Matrix4x4.CreateTranslation(this.RelativeOrigin) * (parentToWorld.Value ?? Matrix4x4.Identity)));
-            this.vertices = D.Pure(this.modelToWorld, () => Array.ConvertAll(this.RelativeVertices, v => Vector3.Transform(v, this.ModelToWorld)));
+            var parentToWorld = D.Unwrap(this.relativeMesh.Pure(v => v?.modelToWorld.Pure(m => (Matrix4x4?)m)));
+            this.modelToWorld = D.Pure(D.All(parentToWorld, this.rotation), () => this.rotation.Value * Matrix4x4.CreateTranslation(this.RelativeOrigin) * (parentToWorld.Value ?? Matrix4x4.Identity));
+            this.vertices = this.modelToWorld.Pure(m => Array.ConvertAll(this.RelativeVertices, v => Vector3.Transform(v, m)));
         }
 
         public Mesh? RelativeMesh
@@ -51,6 +51,6 @@
             set => this.rotation.Value = value;
         }
 
-        public Matrix4x4 ModelToWorld => this.modelToWorld.Value ?? Matrix4x4.Identity;
+        public Matrix4x4 ModelToWorld => this.modelToWorld.Value;
     }
 }
