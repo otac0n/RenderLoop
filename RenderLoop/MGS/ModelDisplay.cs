@@ -173,7 +173,11 @@
 
                 if (moveVector != Vector3.Zero)
                 {
-                    moveVector = Vector3.Normalize(moveVector);
+                    if (moveVector.LengthSquared() > 1)
+                    {
+                        moveVector = Vector3.Normalize(moveVector);
+                    }
+
                     moveVector *= this.size / 100;
                     this.Camera.Position += moveVector;
                 }
