@@ -157,6 +157,7 @@
             get => this.direction;
             set
             {
+                value = Vector3.Normalize(value);
                 if (this.direction != value)
                 {
                     this.direction = value;

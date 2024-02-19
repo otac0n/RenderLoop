@@ -61,7 +61,6 @@
         {
             if (this.ShowFps)
             {
-
                 var fps = $"{this.fps:F1} FPS";
                 var size = g.MeasureString(fps, this.Font);
                 using var textBrush = new SolidBrush(this.ForeColor);

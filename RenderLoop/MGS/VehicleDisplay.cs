@@ -474,7 +474,6 @@
 
             var moveVector = Vector3.Zero;
 
-
             if (this[Keys.W])
             {
                 moveVector += this.Camera.Direction;
