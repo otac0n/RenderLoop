@@ -6,6 +6,8 @@
     using System.Linq;
     using System.Numerics;
     using System.Windows.Forms;
+    using DevDecoder.HIDDevices.Controllers;
+    using DevDecoder.HIDDevices;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.SoftwareRenderer;
 
@@ -262,11 +264,12 @@
 
         private double t;
         private ulong animate;
-        private bool flying;
         private Vector3 center;
         private float size;
         private int activeModel;
         private readonly StageDirVirtualFileSystem stageDir;
+
+        private Gamepad? gamepad;
 
         private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
@@ -274,6 +277,18 @@
 
         public VehicleDisplay(IServiceProvider serviceProvider)
         {
+            var devices = serviceProvider.GetRequiredService<Devices>();
+            devices.Controllers<Gamepad>().Subscribe(g =>
+            {
+                if (this.gamepad?.IsConnected == true)
+                {
+                    return;
+                }
+
+                this.gamepad = g;
+                g.Connect();
+            });
+
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
 
@@ -348,7 +363,6 @@
         private void UpdateModel()
         {
             this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
-            this.flying = false;
 
             var min = new Vector3(float.PositiveInfinity);
             var max = new Vector3(float.NegativeInfinity);
@@ -373,6 +387,9 @@
             var size = max - min;
             this.center = min + size / 2;
             this.size = Math.Max(size.X, Math.Max(size.Y, size.Z));
+            var p = new Vector3(this.size, this.size / 10, this.size);
+            this.Camera.Position = this.center + p;
+            this.Camera.Direction = -p;
             this.Camera.FarPlane = 2 * this.size;
         }
 
@@ -400,10 +417,6 @@
             var updated = false;
             switch (e.KeyCode)
             {
-                case Keys.Escape:
-                    this.flying = false;
-                    break;
-
                 case Keys.Left:
                     this.activeModel--;
                     updated = true;
@@ -459,60 +472,68 @@
                 }
             }
 
-            if (this[Keys.W] || this[Keys.S] || this[Keys.A] || this[Keys.D] || this[Keys.C] || this[Keys.Space])
+            var moveVector = Vector3.Zero;
+
+
+            if (this[Keys.W])
             {
-                this.flying = true;
+                moveVector += this.Camera.Direction;
+            }
+            else if (this.gamepad?.Y > 0.1)
+            {
+                moveVector += this.Camera.Direction * -(float)this.gamepad.Y;
             }
 
-            if (this.flying)
+            if (this[Keys.S])
             {
-                var moveVector = Vector3.Zero;
-
-                if (this[Keys.W])
-                {
-                    moveVector += this.Camera.Direction;
-                }
-
-                if (this[Keys.S])
-                {
-                    moveVector += -this.Camera.Direction;
-                }
-
-                if (this[Keys.A])
-                {
-                    moveVector += -this.Camera.Right;
-                }
-
-                if (this[Keys.D])
-                {
-                    moveVector += this.Camera.Right;
-                }
-
-                if (this[Keys.C])
-                {
-                    moveVector += -this.Camera.Up;
-                }
-
-                if (this[Keys.Space])
-                {
-                    moveVector += this.Camera.Up;
-                }
-
-                if (moveVector != Vector3.Zero)
-                {
-                    moveVector = Vector3.Normalize(moveVector);
-                    moveVector *= this.size / 100;
-                    this.Camera.Position += moveVector;
-                }
+                moveVector += -this.Camera.Direction;
             }
-            else
+            else if (this.gamepad?.Y < -0.1)
             {
-                var a = Math.Tau * this.t / 10;
-                var (x, z) = Math.SinCos(a);
-                var t = Math.Sin(a / 3);
-                var p = new Vector3((float)(this.size * x), (float)(this.size / 10 * t), (float)(this.size * z));
-                this.Camera.Position = this.center + p;
-                this.Camera.Direction = -p;
+                moveVector += this.Camera.Direction * -(float)this.gamepad.Y;
+            }
+
+            if (this[Keys.A])
+            {
+                moveVector += -this.Camera.Right;
+            }
+            else if (this.gamepad?.X > 0.1)
+            {
+                moveVector += this.Camera.Right * (float)this.gamepad.X;
+            }
+
+            if (this[Keys.D])
+            {
+                moveVector += this.Camera.Right;
+            }
+            else if (this.gamepad?.X < -0.1)
+            {
+                moveVector += this.Camera.Right * (float)this.gamepad.X;
+            }
+
+            if (this[Keys.C])
+            {
+                moveVector += -this.Camera.Up;
+            }
+            else if (this.gamepad?.Ry > 0.1)
+            {
+                moveVector += this.Camera.Up * -(float)this.gamepad.Ry;
+            }
+
+            if (this[Keys.Space])
+            {
+                moveVector += this.Camera.Up;
+            }
+            else if (this.gamepad?.Ry < -0.1)
+            {
+                moveVector += this.Camera.Up * -(float)this.gamepad.Ry;
+            }
+
+            if (moveVector != Vector3.Zero)
+            {
+                moveVector = Vector3.Normalize(moveVector);
+                moveVector *= this.size / 100;
+                this.Camera.Position += moveVector;
             }
 
             var before = (ulong)this.t;
