@@ -2,6 +2,7 @@
 {
     using System.Threading.Tasks;
     using CommandLine;
+    using DevDecoder.HIDDevices;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using RenderLoop.MGS;
@@ -27,6 +28,7 @@
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(options);
+                services.AddSingleton<Devices>();
                 services.AddTransient<Demo.Cube>();
                 ServiceRegistration.Register(services, options);
 
