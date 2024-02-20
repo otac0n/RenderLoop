@@ -554,7 +554,7 @@
             bitmap.UnlockBits(bmpData);
         }
 
-        private void FrameTimer_FirstTick(object sender, EventArgs e)
+        private void FrameTimer_FirstTick(object? sender, EventArgs e)
         {
             var now = Stopwatch.GetTimestamp();
             this.timestamp = now;
@@ -563,7 +563,7 @@
             this.AdvanceFrame(TimeSpan.Zero);
         }
 
-        private void FrameTimer_Tick(object sender, EventArgs e)
+        private void FrameTimer_Tick(object? sender, EventArgs e)
         {
             var now = Stopwatch.GetTimestamp();
             var elapsed = Stopwatch.GetElapsedTime(this.timestamp, now);
