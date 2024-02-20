@@ -12,8 +12,6 @@
 
     public abstract partial class Display : Form
     {
-        private int width;
-        private int height;
         private Bitmap buffer;
         private float[,] depthBuffer;
         private long timestamp;
@@ -40,8 +38,6 @@
         }
 
         public bool ShowFps { get; set; } = true;
-
-        protected Camera Camera { get; } = new();
 
         public bool this[Keys key] => this.keyDown.TryGetValue(key, out var pressed) && pressed;
 
@@ -592,12 +588,14 @@
         private void UpdateSize()
         {
             var size = this.ClientSize;
-            this.width = Math.Max(size.Width, 1);
-            this.height = Math.Max(size.Height, 1);
-            this.buffer = new Bitmap(this.width, this.height);
-            this.depthBuffer = new float[this.height, this.width];
-            this.Camera.Width = this.width;
-            this.Camera.Height = this.height;
+            var width = Math.Max(size.Width, 1);
+            var height = Math.Max(size.Height, 1);
+            if (width != this.buffer?.Width ||
+                height != this.buffer?.Height)
+            {
+                this.buffer = new Bitmap(width, height);
+                this.depthBuffer = new float[height, width];
+            }
         }
     }
 }

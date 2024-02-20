@@ -8,6 +8,7 @@
 
     internal class Cube : Display
     {
+        private readonly Camera Camera = new();
         private double t;
 
         /// <remarks>
@@ -62,6 +63,9 @@
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
+            this.Camera.Width = buffer.Width;
+            this.Camera.Height = buffer.Height;
+
             var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
 
             foreach (var face in Shapes)

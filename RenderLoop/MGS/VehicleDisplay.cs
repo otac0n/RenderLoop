@@ -262,6 +262,7 @@
             },
         ];
 
+        private readonly Camera Camera = new();
         private double t;
         private ulong animate;
         private Vector3 center;
@@ -549,6 +550,9 @@
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
+            this.Camera.Width = buffer.Width;
+            this.Camera.Height = buffer.Height;
+
             var (_, parts) = this.models[this.activeModel];
             foreach (var (_, versions) in parts)
             {

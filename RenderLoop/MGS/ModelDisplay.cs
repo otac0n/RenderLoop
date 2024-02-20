@@ -12,6 +12,7 @@
     public class ModelDisplay : Display
     {
         private static readonly double ModelDisplaySeconds = 10.0;
+        private readonly Camera Camera = new();
         private int frame;
         private int frames = 90;
         private double nextModel = ModelDisplaySeconds;
@@ -195,6 +196,9 @@
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
+            this.Camera.Width = buffer.Width;
+            this.Camera.Height = buffer.Height;
+
             var (_, model) = this.models[this.activeModel];
             foreach (var mesh in model.Meshes)
             {
