@@ -58,7 +58,6 @@
             this.Camera.Direction = -p;
 
             this.t += elapsed.TotalSeconds;
-            base.AdvanceFrame(elapsed);
         }
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
@@ -77,8 +76,6 @@
                             : Color.Gray;
                     }));
             }
-
-            base.DrawScene(g, buffer, depthBuffer);
         }
     }
 }

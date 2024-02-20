@@ -52,12 +52,17 @@
                 g.Clear(this.BackColor);
                 ClearDepthBuffer(this.depthBuffer);
                 this.DrawScene(g, this.buffer, this.depthBuffer);
+                this.DrawFps(g, this.buffer);
             }
 
             e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
         }
 
-        protected virtual void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
+        protected abstract void AdvanceFrame(TimeSpan elapsed);
+
+        protected abstract void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer);
+
+        private void DrawFps(Graphics g, Bitmap buffer)
         {
             if (this.ShowFps)
             {
@@ -560,7 +565,7 @@
             this.timestamp = now;
             this.frameTimer.Tick -= this.FrameTimer_FirstTick;
             this.frameTimer.Tick += this.FrameTimer_Tick;
-            this.AdvanceFrame(TimeSpan.Zero);
+            this.Invalidate(TimeSpan.Zero);
         }
 
         private void FrameTimer_Tick(object? sender, EventArgs e)
@@ -568,12 +573,12 @@
             var now = Stopwatch.GetTimestamp();
             var elapsed = Stopwatch.GetElapsedTime(this.timestamp, now);
             this.timestamp = now;
-            this.AdvanceFrame(elapsed);
+            this.Invalidate(elapsed);
         }
 
         private void Renderer_SizeChanged(object sender, EventArgs e) => this.UpdateSize();
 
-        protected virtual void AdvanceFrame(TimeSpan elapsed)
+        private void Invalidate(TimeSpan elapsed)
         {
             if (elapsed > TimeSpan.Zero)
             {
@@ -581,6 +586,7 @@
             }
 
             this.Invalidate();
+            this.AdvanceFrame(elapsed);
         }
 
         private void UpdateSize()

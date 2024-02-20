@@ -191,8 +191,6 @@
                 this.Camera.Position = this.center + p;
                 this.Camera.Direction = -p;
             }
-
-            base.AdvanceFrame(elapsed);
         }
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
@@ -237,8 +235,6 @@
             using var textBrush = new SolidBrush(this.ForeColor);
             var paths = string.Join(Environment.NewLine, this.models[this.activeModel].path.Select((p, i) => (i > 0 ? new string(' ', i * 2) + "└" : "") + p));
             g.DrawString(paths, this.Font, textBrush, PointF.Empty);
-
-            base.DrawScene(g, buffer, depthBuffer);
         }
     }
 }

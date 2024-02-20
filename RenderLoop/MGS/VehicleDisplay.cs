@@ -545,8 +545,6 @@
             {
                 this.animate = (ulong)Random.Shared.NextInt64();
             }
-
-            base.AdvanceFrame(elapsed);
         }
 
         protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
@@ -590,8 +588,6 @@
                     }
                 }
             }
-
-            base.DrawScene(g, buffer, depthBuffer);
         }
     }
 }
