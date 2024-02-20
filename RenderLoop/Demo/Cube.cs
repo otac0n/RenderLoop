@@ -6,10 +6,11 @@
     using System.Numerics;
     using RenderLoop.SoftwareRenderer;
 
-    internal class Cube : Display
+    internal class Cube : Display<Cube.AppState>
     {
+        public record class AppState(double T);
+
         private readonly Camera Camera = new();
-        private double t;
 
         /// <remarks>
         /// 0 -- 1
@@ -47,21 +48,30 @@
             [2, 3, 6, 7], // RIGHT
         ];
 
-        protected override void AdvanceFrame(TimeSpan elapsed)
+        public Cube()
+            : base(new AppState(0))
+        {
+        }
+
+        protected override AppState AdvanceFrame(AppState state, TimeSpan elapsed)
         {
             var dist = 2;
 
-            var a = Math.Tau * this.t / 3;
+            var a = Math.Tau * state.T / 3;
             var (x, y) = Math.SinCos(a);
             var z = Math.Sin(a / 3);
             var p = new Vector3((float)(dist * x), (float)(dist * y), (float)(dist / 2 * z));
+
             this.Camera.Position = p;
             this.Camera.Direction = -p;
 
-            this.t += elapsed.TotalSeconds;
+            return state with
+            {
+                T = state.T + elapsed.TotalSeconds,
+            };
         }
 
-        protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
+        protected override void DrawScene(AppState state, Graphics g, Bitmap buffer, float[,] depthBuffer)
         {
             this.Camera.Width = buffer.Width;
             this.Camera.Height = buffer.Height;
