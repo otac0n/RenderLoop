@@ -53,7 +53,7 @@
         {
         }
 
-        protected override AppState AdvanceFrame(AppState state, TimeSpan elapsed)
+        protected override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
         {
             var dist = 2;
 
@@ -65,7 +65,7 @@
             this.Camera.Position = p;
             this.Camera.Direction = -p;
 
-            return state with
+            state = state with
             {
                 T = state.T + elapsed.TotalSeconds,
             };

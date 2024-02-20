@@ -5,17 +5,19 @@
 
     public abstract class Display<TState> : Display
     {
+        private TState state;
+
         public Display(TState initialState)
         {
-            this.State = initialState;
+            this.state = initialState;
         }
 
-        public TState State { get; private set; }
+        public TState State => this.state;
 
-        protected abstract TState AdvanceFrame(TState state, TimeSpan elapsed);
+        protected abstract void AdvanceFrame(ref TState state, TimeSpan elapsed);
 
         protected sealed override void AdvanceFrame(TimeSpan elapsed) =>
-            this.State = this.AdvanceFrame(this.State, elapsed);
+            this.AdvanceFrame(ref this.state, elapsed);
 
         protected abstract void DrawScene(TState state, Graphics g, Bitmap buffer, float[,] depthBuffer);
 
