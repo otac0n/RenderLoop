@@ -10,7 +10,7 @@
     {
         public record class AppState(double T);
 
-        private readonly Camera Camera = new();
+        protected readonly Camera Camera = new();
 
         /// <remarks>
         /// 0 -- 1
@@ -18,14 +18,14 @@
         /// | /  |
         /// 2 -- 3
         /// </remarks>
-        private static readonly Vector2[] UV = [
+        protected static readonly Vector2[] UV = [
             new(0, 0),
             new(0, 1),
             new(1, 0),
             new(1, 1),
         ];
 
-        private static readonly Vector3[] Vertices = [
+        protected static readonly Vector3[] Vertices = [
             new Vector3(-1, -1, +1) / 2, // L, F, T
             new Vector3(-1, +1, +1) / 2, // L, B, T
             new Vector3(+1, +1, +1) / 2, // R, B, T
@@ -39,7 +39,7 @@
         /// <remarks>
         /// Same order as <see cref="UV"/>
         /// </remarks>
-        private static readonly int[][] Shapes = [
+        protected static readonly int[][] Shapes = [
             [1, 0, 2, 3], // TOP
             [4, 5, 7, 6], // BOTTOM
             [3, 0, 7, 4], // FRONT
@@ -53,7 +53,7 @@
         {
         }
 
-        protected override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
+        protected sealed override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
         {
             var dist = 2;
 
