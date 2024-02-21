@@ -5,7 +5,6 @@
     using DevDecoder.HIDDevices;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
-    using RenderLoop.MGS;
 
     internal static class Program
     {
@@ -29,8 +28,8 @@
             {
                 services.AddSingleton(options);
                 services.AddSingleton<Devices>();
-                services.AddTransient<Demo.Cube>();
-                ServiceRegistration.Register(services, options);
+                Demo.ServiceRegistration.Register(services);
+                MGS.ServiceRegistration.Register(services, options);
 
                 services.AddHostedService<RenderLoopApplication>();
             });
