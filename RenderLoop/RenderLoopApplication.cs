@@ -32,8 +32,9 @@
         {
             using var display = this.serviceProvider.GetRequiredService<VehicleDisplay>();
 
-            cancel.Register(() => display.InvokeIfRequired(display.Close));
-            Application.Run(display);
+            var context = new ApplicationContext(display);
+            cancel.Register(context.ExitThread);
+            Application.Run(context);
             this.lifetime.StopApplication();
         }
 
