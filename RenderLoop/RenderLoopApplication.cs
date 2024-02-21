@@ -9,7 +9,7 @@
     using Microsoft.Extensions.Logging;
     using RenderLoop.MGS;
 
-    internal class RenderLoopApplication : BackgroundService
+    internal partial class RenderLoopApplication : BackgroundService
     {
         private readonly ILogger<RenderLoopApplication> logger;
         private readonly IServiceProvider serviceProvider;
@@ -21,9 +21,9 @@
             this.logger = logger;
             this.serviceProvider = serviceProvider;
 
-            this.lifetime.ApplicationStarted.Register(() => this.logger.LogInformation("started"));
-            this.lifetime.ApplicationStopping.Register(() => this.logger.LogInformation("stopping"));
-            this.lifetime.ApplicationStopped.Register(() => this.logger.LogInformation("stopped"));
+            this.lifetime.ApplicationStarted.Register(() => LogMessages.ApplicationStarted(this.logger));
+            this.lifetime.ApplicationStopping.Register(() => LogMessages.ApplicationStopping(this.logger));
+            this.lifetime.ApplicationStopped.Register(() => LogMessages.ApplicationStopped(this.logger));
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.Run(() => this.Run(stoppingToken));
@@ -35,6 +35,18 @@
             cancel.Register(() => display.InvokeIfRequired(display.Close));
             Application.Run(display);
             this.lifetime.StopApplication();
+        }
+
+        private static partial class LogMessages
+        {
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Application Started")]
+            public static partial void ApplicationStarted(ILogger logger);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Application Stopping")]
+            public static partial void ApplicationStopping(ILogger logger);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Application Stopped")]
+            public static partial void ApplicationStopped(ILogger logger);
         }
     }
 }
