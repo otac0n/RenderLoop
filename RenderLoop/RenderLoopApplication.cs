@@ -26,7 +26,7 @@
             this.lifetime.ApplicationStopped.Register(() => LogMessages.ApplicationStopped(this.logger));
         }
 
-        protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.Run(() => this.Run(stoppingToken));
+        protected override Task ExecuteAsync(CancellationToken stoppingToken) => Task.Run(() => this.Run(stoppingToken), stoppingToken);
 
         private void Run(CancellationToken cancel)
         {
