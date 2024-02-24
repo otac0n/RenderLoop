@@ -34,7 +34,7 @@
             });
 
             using var host = builder.Build();
-            await host.RunAsync();
+            await host.RunAsync().ConfigureAwait(true);
             return 0;
         }
 
