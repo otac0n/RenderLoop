@@ -267,9 +267,8 @@
         private Vector3 center;
         private float size;
         private int activeModel;
-        private readonly StageDirVirtualFileSystem stageDir;
-
         private readonly ControlChangeTracker controlChangeTracker;
+        private readonly StageDirVirtualFileSystem stageDir;
 
         private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
@@ -463,36 +462,6 @@
             }
 
             var moveVector = Vector3.Zero;
-
-            if (this[Keys.W])
-            {
-                moveVector += this.Camera.Direction;
-            }
-
-            if (this[Keys.S])
-            {
-                moveVector += -this.Camera.Direction;
-            }
-
-            if (this[Keys.A])
-            {
-                moveVector += -this.Camera.Right;
-            }
-
-            if (this[Keys.D])
-            {
-                moveVector += this.Camera.Right;
-            }
-
-            if (this[Keys.C])
-            {
-                moveVector += -this.Camera.Up;
-            }
-
-            if (this[Keys.Space])
-            {
-                moveVector += this.Camera.Up;
-            }
 
             var bindings = new Bindings<Action<double>>();
             bindings.BindCurrent(

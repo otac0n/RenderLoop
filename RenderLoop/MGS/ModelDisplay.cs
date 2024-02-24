@@ -7,6 +7,7 @@
     using System.Numerics;
     using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
+    using RenderLoop.Input;
     using RenderLoop.SoftwareRenderer;
 
     public class ModelDisplay : Display
@@ -20,7 +21,7 @@
         private bool flying;
         private Vector3 center;
         private float size;
-
+        private readonly ControlChangeTracker controlChangeTracker;
         private readonly StageDirVirtualFileSystem stageDir;
 
         private readonly IList<(string[] path, Model model)> models;
@@ -29,6 +30,8 @@
 
         public ModelDisplay(IServiceProvider serviceProvider)
         {
+            this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
+
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
             this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
@@ -133,57 +136,35 @@
                 this.UpdateModel();
             }
 
-            if (this[Keys.W] || this[Keys.S] || this[Keys.A] || this[Keys.D] || this[Keys.C] || this[Keys.Space])
+            var moveVector = Vector3.Zero;
+
+            var bindings = new Bindings<Action<double>>();
+            bindings.BindCurrent(
+                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X",
+                v => moveVector += this.Camera.Right * (float)((v - 0.5) * 2));
+            bindings.BindCurrent(
+                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y",
+                v => moveVector += this.Camera.Direction * -(float)((v - 0.5) * 2));
+            bindings.BindCurrent(
+                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry",
+                v => moveVector += this.Camera.Up * -(float)((v - 0.5) * 2));
+
+            this.controlChangeTracker.ProcessChanges(bindings);
+
+            if (moveVector != Vector3.Zero)
             {
                 this.flying = true;
+
+                if (moveVector.LengthSquared() > 1)
+                {
+                    moveVector = Vector3.Normalize(moveVector);
+                }
+
+                moveVector *= this.size / 100;
+                this.Camera.Position += moveVector;
             }
 
-            if (this.flying)
-            {
-                var moveVector = Vector3.Zero;
-
-                if (this[Keys.W])
-                {
-                    moveVector += this.Camera.Direction;
-                }
-
-                if (this[Keys.S])
-                {
-                    moveVector += -this.Camera.Direction;
-                }
-
-                if (this[Keys.A])
-                {
-                    moveVector += -this.Camera.Right;
-                }
-
-                if (this[Keys.D])
-                {
-                    moveVector += this.Camera.Right;
-                }
-
-                if (this[Keys.C])
-                {
-                    moveVector += -this.Camera.Up;
-                }
-
-                if (this[Keys.Space])
-                {
-                    moveVector += this.Camera.Up;
-                }
-
-                if (moveVector != Vector3.Zero)
-                {
-                    if (moveVector.LengthSquared() > 1)
-                    {
-                        moveVector = Vector3.Normalize(moveVector);
-                    }
-
-                    moveVector *= this.size / 100;
-                    this.Camera.Position += moveVector;
-                }
-            }
-            else
+            if (!this.flying)
             {
                 var a = Math.Tau * this.frame / this.frames;
                 var (x, z) = Math.SinCos(a);

@@ -17,29 +17,14 @@
         private long timestamp;
         private double fps;
         private bool sizeValid;
-        private readonly Dictionary<Keys, bool> keyDown = [];
 
         public Display()
         {
             this.InitializeComponent();
             this.timestamp = Stopwatch.GetTimestamp();
-            this.KeyDown += this.Display_KeyDown;
-            this.KeyUp += this.Display_KeyUp;
-        }
-
-        private void Display_KeyDown(object? sender, KeyEventArgs e)
-        {
-            this.keyDown[e.KeyCode] = true;
-        }
-
-        private void Display_KeyUp(object? sender, KeyEventArgs e)
-        {
-            this.keyDown[e.KeyCode] = false;
         }
 
         public bool ShowFps { get; set; } = true;
-
-        public bool this[Keys key] => this.keyDown.TryGetValue(key, out var pressed) && pressed;
 
         protected override void OnPaint(PaintEventArgs e)
         {
