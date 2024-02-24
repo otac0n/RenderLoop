@@ -16,12 +16,12 @@
         private float[,] depthBuffer;
         private long timestamp;
         private double fps;
+        private bool sizeValid;
         private readonly Dictionary<Keys, bool> keyDown = [];
 
         public Display()
         {
             this.InitializeComponent();
-            this.UpdateSize();
             this.timestamp = Stopwatch.GetTimestamp();
             this.KeyDown += this.Display_KeyDown;
             this.KeyUp += this.Display_KeyUp;
@@ -43,15 +43,10 @@
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            using (var g = Graphics.FromImage(this.buffer))
+            if (this.buffer != null)
             {
-                g.Clear(this.BackColor);
-                ClearDepthBuffer(this.depthBuffer);
-                this.DrawScene(g, this.buffer, this.depthBuffer);
-                this.DrawFps(g, this.buffer);
+                e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
             }
-
-            e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
         }
 
         protected abstract void AdvanceFrame(TimeSpan elapsed);
@@ -572,7 +567,7 @@
             this.Invalidate(elapsed);
         }
 
-        private void Renderer_SizeChanged(object sender, EventArgs e) => this.UpdateSize();
+        private void Renderer_SizeChanged(object sender, EventArgs e) => this.sizeValid = false;
 
         private void Invalidate(TimeSpan elapsed)
         {
@@ -581,8 +576,22 @@
                 this.fps = 1 / elapsed.TotalSeconds;
             }
 
-            this.Invalidate();
             this.AdvanceFrame(elapsed);
+
+            if (!this.sizeValid)
+            {
+                this.UpdateSize();
+            }
+
+            using (var g = Graphics.FromImage(this.buffer))
+            {
+                g.Clear(this.BackColor);
+                ClearDepthBuffer(this.depthBuffer);
+                this.DrawScene(g, this.buffer, this.depthBuffer);
+                this.DrawFps(g, this.buffer);
+            }
+
+            this.Invalidate();
         }
 
         private void UpdateSize()
@@ -596,6 +605,8 @@
                 this.buffer = new Bitmap(width, height);
                 this.depthBuffer = new float[height, width];
             }
+
+            this.sizeValid = true;
         }
     }
 }
