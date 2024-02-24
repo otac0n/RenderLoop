@@ -20,4 +20,7 @@
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="20.0.15" />
     <PackageReference Include="Whisk" Version="0.5.0-alpha0001" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RenderLoop.SoftwareRenderer\RenderLoop.SoftwareRenderer.csproj" />
+  </ItemGroup>
 </Project>
