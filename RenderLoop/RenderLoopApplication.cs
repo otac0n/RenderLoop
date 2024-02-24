@@ -3,7 +3,6 @@
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
@@ -30,11 +29,8 @@
 
         private void Run(CancellationToken cancel)
         {
-            using var display = this.serviceProvider.GetRequiredService<VehicleDisplay>();
-
-            var context = new ApplicationContext(display);
-            cancel.Register(context.ExitThread);
-            Application.Run(context);
+            using var gameLoop = this.serviceProvider.GetRequiredService<VehicleDisplay>();
+            gameLoop.Run(cancel);
             this.lifetime.StopApplication();
         }
 

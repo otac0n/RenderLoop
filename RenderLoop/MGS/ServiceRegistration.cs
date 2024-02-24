@@ -7,7 +7,6 @@
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Archives;
     using DiscUtils.Complete;
-    using RenderLoop.SoftwareRenderer;
 
     internal class ServiceRegistration
     {
@@ -15,7 +14,7 @@
         {
             SetupHelper.SetupComplete();
 
-            services.AddInheritedTypes<Display>(typeof(ServiceRegistration).Namespace, services.AddTransient);
+            services.AddInheritedTypes<GameLoop>(typeof(ServiceRegistration).Namespace, services.AddTransient);
 
             services.AddKeyedSingleton(options.File, (s, key) => new MArchiveV1VirtualFileSystem(key, s.GetRequiredService<Program.Options>().Key));
 

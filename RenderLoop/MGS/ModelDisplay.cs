@@ -10,9 +10,10 @@
     using RenderLoop.Input;
     using RenderLoop.SoftwareRenderer;
 
-    public class ModelDisplay : Display
+    public class ModelDisplay : GameLoop
     {
         private static readonly double ModelDisplaySeconds = 10.0;
+        private readonly Display display;
         private readonly Camera Camera = new();
         private int frame;
         private int frames = 90;
@@ -28,8 +29,10 @@
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
         private readonly Dictionary<ushort, Bitmap?> textureLookup = [];
 
-        public ModelDisplay(IServiceProvider serviceProvider)
+        public ModelDisplay(IServiceProvider serviceProvider, Display display)
+            : base(display)
         {
+            this.display = display;
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
@@ -39,8 +42,9 @@
 
             this.Camera.Up = new Vector3(0, 1, 0);
 
-            this.KeyPreview = true;
-            this.ClientSize = new(640, 480);
+            this.display.KeyPreview = true;
+            this.display.ClientSize = new(640, 480);
+            this.display.PreviewKeyDown += this.PreviewKeyDown;
             this.UpdateModel();
         }
 
@@ -97,7 +101,7 @@
             return texture;
         }
 
-        protected override void OnPreviewKeyDown(PreviewKeyDownEventArgs e)
+        protected void PreviewKeyDown(object? sender, PreviewKeyDownEventArgs e)
         {
             var updated = false;
             switch (e.KeyCode)
@@ -121,8 +125,6 @@
             {
                 this.UpdateModel();
             }
-
-            base.OnPreviewKeyDown(e);
         }
 
         protected override void AdvanceFrame(TimeSpan elapsed)
@@ -175,51 +177,55 @@
             }
         }
 
-        protected override void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer)
+        protected override void DrawScene(TimeSpan elapsed)
         {
-            this.Camera.Width = buffer.Width;
-            this.Camera.Height = buffer.Height;
-
-            var (_, model) = this.models[this.activeModel];
-            foreach (var mesh in model.Meshes)
+            this.display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
             {
-                var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.TransformToScreenSpace);
-                foreach (var face in mesh.Faces)
+
+                this.Camera.Width = buffer.Width;
+                this.Camera.Height = buffer.Height;
+
+                var (_, model) = this.models[this.activeModel];
+                foreach (var mesh in model.Meshes)
                 {
-                    this.textureLookup.TryGetValue(face.TextureId, out var texture);
+                    var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.TransformToScreenSpace);
+                    foreach (var face in mesh.Faces)
+                    {
+                        this.textureLookup.TryGetValue(face.TextureId, out var texture);
 
-                    var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
-                    DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
-                        FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective =>
-                        {
-                            var uv = MapCoordinates(perspective, [
-                                v[0].textureCoords,
-                                v[1].textureCoords,
-                                v[2].textureCoords,
-                            ]);
-                            if (texture != null)
+                        var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
+                        Display.DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
+                            Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective =>
                             {
-                                // MGS textures use the last pixel as buffer
-                                var tw = texture.Width - 1;
-                                var th = texture.Height - 1;
-                                var color = texture.GetPixel(
-                                    (int)(((uv.X % 1.0) + 1) % 1.0 * tw),
-                                    (int)(((uv.Y % 1.0) + 1) % 1.0 * th)).ToArgb();
-                                // MGS treats pure black as transparent.
-                                var masked = color & 0xFFFFFF;
-                                return masked == 0x000000 ? masked : color;
-                            }
-                            else
-                            {
-                                return Color.Black.ToArgb();
-                            }
-                        }));
+                                var uv = Display.MapCoordinates(perspective, [
+                                    v[0].textureCoords,
+                                    v[1].textureCoords,
+                                    v[2].textureCoords,
+                                ]);
+                                if (texture != null)
+                                {
+                                    // MGS textures use the last pixel as buffer
+                                    var tw = texture.Width - 1;
+                                    var th = texture.Height - 1;
+                                    var color = texture.GetPixel(
+                                        (int)(((uv.X % 1.0) + 1) % 1.0 * tw),
+                                        (int)(((uv.Y % 1.0) + 1) % 1.0 * th)).ToArgb();
+                                    // MGS treats pure black as transparent.
+                                    var masked = color & 0xFFFFFF;
+                                    return masked == 0x000000 ? masked : color;
+                                }
+                                else
+                                {
+                                    return Color.Black.ToArgb();
+                                }
+                            }));
+                    }
                 }
-            }
 
-            using var textBrush = new SolidBrush(this.ForeColor);
-            var paths = string.Join(Environment.NewLine, this.models[this.activeModel].path.Select((p, i) => (i > 0 ? new string(' ', i * 2) + "└" : "") + p));
-            g.DrawString(paths, this.Font, textBrush, PointF.Empty);
+                using var textBrush = new SolidBrush(this.display.ForeColor);
+                var paths = string.Join(Environment.NewLine, this.models[this.activeModel].path.Select((p, i) => (i > 0 ? new string(' ', i * 2) + "└" : "") + p));
+                g.DrawString(paths, this.display.Font, textBrush, PointF.Empty);
+            });
         }
     }
 }

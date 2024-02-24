@@ -29,14 +29,13 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            this.frameTimer = new System.Windows.Forms.Timer(this.components);
+            this.FrameTimer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
-            // frameTimer
+            // FrameTimer
             // 
-            this.frameTimer.Enabled = true;
-            this.frameTimer.Interval = 15;
-            this.frameTimer.Tick += this.FrameTimer_FirstTick;
+            this.FrameTimer.Enabled = true;
+            this.FrameTimer.Interval = 15;
             // 
             // Display
             // 
@@ -55,6 +54,6 @@
 
         #endregion
 
-        private System.Windows.Forms.Timer frameTimer;
+        public System.Windows.Forms.Timer FrameTimer;
     }
 }

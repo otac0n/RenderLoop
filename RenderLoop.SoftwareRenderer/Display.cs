@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.Numerics;
@@ -10,18 +9,16 @@
     using System.Runtime.InteropServices;
     using System.Windows.Forms;
 
-    public abstract partial class Display : Form
+    public sealed partial class Display : Form
     {
         private Bitmap buffer;
         private float[,] depthBuffer;
-        private long timestamp;
         private double fps;
         private bool sizeValid;
 
         public Display()
         {
             this.InitializeComponent();
-            this.timestamp = Stopwatch.GetTimestamp();
         }
 
         public bool ShowFps { get; set; } = true;
@@ -33,10 +30,6 @@
                 e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
             }
         }
-
-        protected abstract void AdvanceFrame(TimeSpan elapsed);
-
-        protected abstract void DrawScene(Graphics g, Bitmap buffer, float[,] depthBuffer);
 
         private void DrawFps(Graphics g, Bitmap buffer)
         {
@@ -535,33 +528,14 @@
             bitmap.UnlockBits(bmpData);
         }
 
-        private void FrameTimer_FirstTick(object? sender, EventArgs e)
-        {
-            var now = Stopwatch.GetTimestamp();
-            this.timestamp = now;
-            this.frameTimer.Tick -= this.FrameTimer_FirstTick;
-            this.frameTimer.Tick += this.FrameTimer_Tick;
-            this.Invalidate(TimeSpan.Zero);
-        }
-
-        private void FrameTimer_Tick(object? sender, EventArgs e)
-        {
-            var now = Stopwatch.GetTimestamp();
-            var elapsed = Stopwatch.GetElapsedTime(this.timestamp, now);
-            this.timestamp = now;
-            this.Invalidate(elapsed);
-        }
-
         private void Renderer_SizeChanged(object sender, EventArgs e) => this.sizeValid = false;
 
-        private void Invalidate(TimeSpan elapsed)
+        public void PaintFrame(TimeSpan elapsed, Action<Graphics, Bitmap, float[,]> draw)
         {
             if (elapsed > TimeSpan.Zero)
             {
                 this.fps = 1 / elapsed.TotalSeconds;
             }
-
-            this.AdvanceFrame(elapsed);
 
             if (!this.sizeValid)
             {
@@ -572,7 +546,7 @@
             {
                 g.Clear(this.BackColor);
                 ClearDepthBuffer(this.depthBuffer);
-                this.DrawScene(g, this.buffer, this.depthBuffer);
+                draw(g, this.buffer, this.depthBuffer);
                 this.DrawFps(g, this.buffer);
             }
 

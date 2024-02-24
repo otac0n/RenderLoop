@@ -4,6 +4,7 @@
     using CommandLine;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
+    using RenderLoop.SoftwareRenderer;
 
     internal static class Program
     {
@@ -26,6 +27,7 @@
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(options);
+                services.AddTransient<Display>();
                 Input.ServiceRegistration.Register(services);
                 Demo.ServiceRegistration.Register(services);
                 MGS.ServiceRegistration.Register(services, options);

@@ -6,10 +6,11 @@
     using System.Numerics;
     using RenderLoop.SoftwareRenderer;
 
-    internal class Cube : Display<Cube.AppState>
+    internal class Cube : GameLoop<Cube.AppState>
     {
         public record class AppState(double T);
 
+        protected readonly Display display;
         protected readonly Camera Camera = new();
 
         /// <remarks>
@@ -48,9 +49,10 @@
             [2, 3, 6, 7], // RIGHT
         ];
 
-        public Cube()
-            : base(new AppState(0))
+        public Cube(Display display)
+            : base(display, new AppState(0))
         {
+            this.display = display;
         }
 
         protected sealed override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
@@ -71,25 +73,28 @@
             };
         }
 
-        protected override void DrawScene(AppState state, Graphics g, Bitmap buffer, float[,] depthBuffer)
+        protected override void DrawScene(AppState state, TimeSpan elapsed)
         {
-            this.Camera.Width = buffer.Width;
-            this.Camera.Height = buffer.Height;
-
-            var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
-
-            foreach (var face in Shapes)
+            this.display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
             {
-                var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                    FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
-                    {
-                        var uv = MapCoordinates(perspective, [v[0].uv, v[1].uv, v[2].uv]);
-                        return ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
-                            ? Color.White
-                            : Color.Gray;
-                    }));
-            }
+                this.Camera.Width = buffer.Width;
+                this.Camera.Height = buffer.Height;
+
+                var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
+
+                foreach (var face in Shapes)
+                {
+                    var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
+                    Display.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
+                        Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
+                        {
+                            var uv = Display.MapCoordinates(perspective, [v[0].uv, v[1].uv, v[2].uv]);
+                            return ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
+                                ? Color.White
+                                : Color.Gray;
+                        }));
+                }
+            });
         }
     }
 }
