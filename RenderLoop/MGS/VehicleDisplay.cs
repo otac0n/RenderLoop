@@ -6,10 +6,9 @@
     using System.Linq;
     using System.Numerics;
     using System.Windows.Forms;
-    using DevDecoder.HIDDevices.Controllers;
-    using DevDecoder.HIDDevices;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.SoftwareRenderer;
+    using RenderLoop.Input;
 
     public class VehicleDisplay : Display
     {
@@ -270,7 +269,7 @@
         private int activeModel;
         private readonly StageDirVirtualFileSystem stageDir;
 
-        private Gamepad? gamepad;
+        private readonly ControlChangeTracker controlChangeTracker;
 
         private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
@@ -278,17 +277,7 @@
 
         public VehicleDisplay(IServiceProvider serviceProvider)
         {
-            var devices = serviceProvider.GetRequiredService<Devices>();
-            devices.Controllers<Gamepad>().Subscribe(g =>
-            {
-                if (this.gamepad?.IsConnected == true)
-                {
-                    return;
-                }
-
-                this.gamepad = g;
-                g.Connect();
-            });
+            this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
@@ -479,55 +468,44 @@
             {
                 moveVector += this.Camera.Direction;
             }
-            else if (this.gamepad?.Y > 0.1)
-            {
-                moveVector += this.Camera.Direction * -(float)this.gamepad.Y;
-            }
 
             if (this[Keys.S])
             {
                 moveVector += -this.Camera.Direction;
-            }
-            else if (this.gamepad?.Y < -0.1)
-            {
-                moveVector += this.Camera.Direction * -(float)this.gamepad.Y;
             }
 
             if (this[Keys.A])
             {
                 moveVector += -this.Camera.Right;
             }
-            else if (this.gamepad?.X > 0.1)
-            {
-                moveVector += this.Camera.Right * (float)this.gamepad.X;
-            }
 
             if (this[Keys.D])
             {
                 moveVector += this.Camera.Right;
-            }
-            else if (this.gamepad?.X < -0.1)
-            {
-                moveVector += this.Camera.Right * (float)this.gamepad.X;
             }
 
             if (this[Keys.C])
             {
                 moveVector += -this.Camera.Up;
             }
-            else if (this.gamepad?.Ry > 0.1)
-            {
-                moveVector += this.Camera.Up * -(float)this.gamepad.Ry;
-            }
 
             if (this[Keys.Space])
             {
                 moveVector += this.Camera.Up;
             }
-            else if (this.gamepad?.Ry < -0.1)
-            {
-                moveVector += this.Camera.Up * -(float)this.gamepad.Ry;
-            }
+
+            var bindings = new Bindings<Action<double>>();
+            bindings.BindCurrent(
+                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X",
+                v => moveVector += this.Camera.Right * (float)((v - 0.5) * 2));
+            bindings.BindCurrent(
+                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y",
+                v => moveVector += this.Camera.Direction * -(float)((v - 0.5) * 2));
+            bindings.BindCurrent(
+                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry",
+                v => moveVector += this.Camera.Up * -(float)((v - 0.5) * 2));
+
+            this.controlChangeTracker.ProcessChanges(bindings);
 
             if (moveVector != Vector3.Zero)
             {

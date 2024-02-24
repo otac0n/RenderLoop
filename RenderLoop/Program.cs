@@ -2,7 +2,6 @@
 {
     using System.Threading.Tasks;
     using CommandLine;
-    using DevDecoder.HIDDevices;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
@@ -27,7 +26,7 @@
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton(options);
-                services.AddSingleton<Devices>();
+                Input.ServiceRegistration.Register(services);
                 Demo.ServiceRegistration.Register(services);
                 MGS.ServiceRegistration.Register(services, options);
 
