@@ -19,39 +19,40 @@
                     continue;
                 }
 
-                foreach (var eachBinding in this.eachBindings)
+                var matching = from eachBinding in this.eachBindings
+                               from p in eachBinding.Bindings.Where(b => b.Predicate(c.Control)).Take(1)
+                               select (eachBinding.Value, p.Converter);
+
+                foreach (var (value, converter) in matching)
                 {
-                    if (eachBinding.Predicate(c.Control))
+                    if (converter(c.Value) && !converter(c.PreviousValue))
                     {
-                        if (c.Value >= 0.75 && c.PreviousValue < 0.75)
-                        {
-                            yield return (c.Timestamp, c.Value, eachBinding.Value);
-                        }
+                        yield return (c.Timestamp, c.Value, value);
                     }
                 }
             }
 
             foreach (var currentBinding in this.currentBindings)
             {
-                var matching = tracker.Controls
-                    .Where(currentBinding.Predicate)
-                    .Select(c => tracker[c]);
+                var matching = from c in tracker.Controls
+                               from p in currentBinding.Bindings.Where(b => b.Predicate(c)).Take(1)
+                               select (Change: tracker[c], p.Converter);
 
                 var lastTime = 0L;
                 var lastValue = double.NaN;
-                foreach (var c in matching)
+                foreach (var (change, converter) in matching)
                 {
-                    if (double.IsNaN(c.Value))
+                    if (double.IsNaN(change.Value))
                     {
                         if (double.IsNaN(lastValue))
                         {
-                            lastTime = c.Timestamp;
+                            lastTime = change.Timestamp;
                         }
                     }
-                    else if (c.Timestamp > lastTime)
+                    else if (change.Timestamp > lastTime)
                     {
-                        lastTime = c.Timestamp;
-                        lastValue = c.Value;
+                        lastTime = change.Timestamp;
+                        lastValue = converter(change.Value);
                     }
                 }
 
@@ -59,18 +60,18 @@
             }
         }
 
-        public void BindCurrent(Func<Control, bool> predicate, T value)
+        public void BindCurrent((Func<Control, bool> predicate, Func<double, double> converter)[] bindings, T value)
         {
-            this.currentBindings.Add(new CurrentBinding(predicate, value));
+            this.currentBindings.Add(new CurrentBinding(bindings, value));
         }
 
-        public void BindEach(Func<Control, bool> predicate, T value)
+        public void BindEach((Func<Control, bool> predicate, Func<double, bool> converter)[] bindings, T value)
         {
-            this.eachBindings.Add(new EachBinding(predicate, value));
+            this.eachBindings.Add(new EachBinding(bindings, value));
         }
 
-        private record struct EachBinding(Func<Control, bool> Predicate, T Value);
+        private record struct EachBinding((Func<Control, bool> Predicate, Func<double, bool> Converter)[] Bindings, T Value);
 
-        private record struct CurrentBinding(Func<Control, bool> Predicate, T Value);
+        private record struct CurrentBinding((Func<Control, bool> Predicate, Func<double, double> Converter)[] Bindings, T Value);
     }
 }

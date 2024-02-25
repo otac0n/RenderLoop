@@ -79,38 +79,38 @@
 
         protected sealed override void AdvanceFrame(TimeSpan elapsed)
         {
-            var moveVector = Vector3.Zero;
+            var moveVector = Vector2.Zero;
             var right = 0.0;
             var up = 0.0;
 
             var bindings = new Bindings<Action<double>>();
             bindings.BindCurrent(
-                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X",
-                v => moveVector += this.Camera.Right * (float)((v - 0.5) * 2));
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X", v => (v - 0.5) * 2)],
+                v => moveVector.X += (float)v);
             bindings.BindCurrent(
-                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y",
-                v => moveVector += this.Camera.Direction * -(float)((v - 0.5) * 2));
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y", v => (v - 0.5) * 2)],
+                v => moveVector.Y += (float)v);
             bindings.BindCurrent(
-                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry",
-                v => up += (0.5 - v) * 2);
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry", v => (v - 0.5) * 2)],
+                v => up -= v);
             bindings.BindCurrent(
-                c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx",
-                v => right += (0.5 - v) * 2);
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", v => (v - 0.5) * 2)],
+                v => right -= v);
 
             this.controlChangeTracker.ProcessChanges(bindings);
 
-            if (moveVector != Vector3.Zero)
+            var moveLength = moveVector.Length();
+            if (moveLength > 0.1)
             {
-                if (moveVector.LengthSquared() > 1)
-                {
-                    moveVector = Vector3.Normalize(moveVector);
-                }
+                var scale = moveLength >= 1
+                    ? 1f / moveLength
+                    : (moveLength - 0.1f) / (0.9f * moveLength);
 
-                moveVector *= (float)elapsed.TotalSeconds * MapSize.Width / 10;
-                this.Camera.Position += moveVector;
+                moveVector *= scale;
+                this.Camera.Position += (this.Camera.Right * moveVector.X - this.Camera.Direction * moveVector.Y) * (float)(elapsed.TotalSeconds * MapSize.Width / 10);
             }
 
-            if (right != 0)
+            if (Math.Abs(right) > 0.1)
             {
                 right *= elapsed.TotalSeconds / 10 * Math.Tau;
 
@@ -120,7 +120,7 @@
                 this.Camera.Direction = v * (float)cos + Vector3.Cross(k, v) * (float)sin + k * Vector3.Dot(k, v) * (float)(1 - cos);
             }
 
-            if (up != 0)
+            if (Math.Abs(up) > 0.1)
             {
                 up *= elapsed.TotalSeconds / 10 * Math.Tau;
 
