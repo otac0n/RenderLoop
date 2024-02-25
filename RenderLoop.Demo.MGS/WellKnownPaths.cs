@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.MGS
+﻿namespace RenderLoop.Demo.MGS
 {
     public static class WellKnownPaths
     {

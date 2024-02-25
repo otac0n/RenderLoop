@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.MGS
+﻿namespace RenderLoop.Demo.MGS
 {
     using System.IO;
     using System;
@@ -11,10 +11,9 @@
     using System.Threading.Tasks;
     using System.Threading;
     using Microsoft.Win32.SafeHandles;
+    using RenderLoop.Demo.MGS.Archives;
     using DirEntry = (string name, long offset);
     using FileEntry = (string name, long offset, long size);
-    using RenderLoop;
-    using RenderLoop.Archives;
 
     public sealed class StageDirVirtualFileSystem : IFileSystem, IDisposable
     {

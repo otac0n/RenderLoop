@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.MGS
+﻿namespace RenderLoop.Demo.MGS
 {
     using System;
     using System.Collections.Generic;
@@ -7,7 +7,7 @@
     using System.Linq;
     using System.Numerics;
     using ImageMagick;
-    using RenderLoop.Archives;
+    using RenderLoop.Demo.MGS.Archives;
     using Point = (int x, int y, int z);
 
     public class Model

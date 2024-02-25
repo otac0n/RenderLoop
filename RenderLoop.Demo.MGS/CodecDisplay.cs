@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.MGS
+﻿namespace RenderLoop.Demo.MGS
 {
     using System.Collections.Generic;
     using System.Drawing;

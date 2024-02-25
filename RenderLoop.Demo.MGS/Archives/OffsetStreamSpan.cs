@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.Archives
+﻿namespace RenderLoop.Demo.MGS.Archives
 {
     using System;
     using System.IO;

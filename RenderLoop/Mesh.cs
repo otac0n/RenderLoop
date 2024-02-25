@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.MGS
+﻿namespace RenderLoop
 {
     using System;
     using System.Numerics;

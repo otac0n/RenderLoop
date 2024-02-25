@@ -1,4 +1,4 @@
-﻿namespace RenderLoop
+﻿namespace RenderLoop.Demo.MGS.Archives
 {
     using System.Linq;
     using System.Text.RegularExpressions;

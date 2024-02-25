@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AnimatedGif" Version="1.0.5" />
+    <PackageReference Include="CommandLineParser" Version="2.9.1" />
+    <PackageReference Include="DiscUtils" Version="0.16.13" />
+    <PackageReference Include="GMWare.M2" Version="1.1.3" />
+    <PackageReference Include="Magick.NET.SystemDrawing" Version="7.2.2" />
+    <PackageReference Include="Magick.NET-Q8-x64" Version="13.6.0" />
+    <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="20.0.15" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RenderLoop\RenderLoop.csproj" />
+    <ProjectReference Include="..\RenderLoop.SoftwareRenderer\RenderLoop.SoftwareRenderer.csproj" />
+  </ItemGroup>
+</Project>

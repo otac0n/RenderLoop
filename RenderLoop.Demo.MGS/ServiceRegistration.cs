@@ -1,20 +1,22 @@
-﻿namespace RenderLoop.MGS
+﻿namespace RenderLoop.Demo.MGS
 {
     using System.IO.Abstractions;
     using System.IO;
     using DiscUtils.Iso9660;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.Archives;
     using DiscUtils.Complete;
+    using RenderLoop.Demo.MGS.Archives;
+    using RenderLoop.SoftwareRenderer;
 
     internal class ServiceRegistration
     {
         internal static void Register(IServiceCollection services, Program.Options options)
         {
-            SetupHelper.SetupComplete();
+            RenderLoop.ServiceRegistration.Register(services);
+            services.AddTransient<Display>();
 
-            services.AddInheritedTypes<GameLoop>(typeof(ServiceRegistration).Namespace, services.AddTransient);
+            SetupHelper.SetupComplete();
 
             services.AddKeyedSingleton(options.File, (s, key) => new MArchiveV1VirtualFileSystem(key, s.GetRequiredService<Program.Options>().Key));
 
@@ -30,6 +32,10 @@
 
             RegisterCD(WellKnownPaths.CD1Path);
             RegisterCD(WellKnownPaths.CD2Path);
+
+            services.AddTransient<CodecDisplay>();
+            services.AddTransient<ModelDisplay>();
+            services.AddTransient<VehicleDisplay>();
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.Archives
+﻿namespace RenderLoop.Demo.MGS.Archives
 {
     using GMWare.M2.Psb;
     using GMWare.M2.Models;
