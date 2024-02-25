@@ -32,7 +32,7 @@
                 Demo.ServiceRegistration.Register(services);
                 MGS.ServiceRegistration.Register(services, options);
 
-                services.AddHostedService<RenderLoopApplication>();
+                services.AddHostedService<GameLoopApplication<MGS.VehicleDisplay>>();
             });
 
             using var host = builder.Build();

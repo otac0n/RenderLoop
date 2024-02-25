@@ -6,21 +6,21 @@
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
-    using RenderLoop.MGS;
 
-    internal partial class RenderLoopApplication : BackgroundService
+    public partial class GameLoopApplication<TGameLoop> : BackgroundService
+        where TGameLoop : GameLoop
     {
-        private readonly ILogger<RenderLoopApplication> logger;
+        private readonly ILogger<GameLoopApplication<TGameLoop>> logger;
         private readonly IServiceProvider serviceProvider;
         private readonly IHostApplicationLifetime lifetime;
 
-        public RenderLoopApplication(IHostApplicationLifetime lifetime, ILogger<RenderLoopApplication> logger, IServiceProvider serviceProvider)
+        public GameLoopApplication(IHostApplicationLifetime lifetime, ILogger<GameLoopApplication<TGameLoop>> logger, IServiceProvider serviceProvider)
         {
             this.lifetime = lifetime;
             this.logger = logger;
             this.serviceProvider = serviceProvider;
 
-            this.lifetime.ApplicationStarted.Register(() => LogMessages.ApplicationStarted(this.logger));
+            this.lifetime.ApplicationStarted.Register(() => LogMessages.ApplicationStarted(this.logger, typeof(TGameLoop)));
             this.lifetime.ApplicationStopping.Register(() => LogMessages.ApplicationStopping(this.logger));
             this.lifetime.ApplicationStopped.Register(() => LogMessages.ApplicationStopped(this.logger));
         }
@@ -29,15 +29,15 @@
 
         private void Run(CancellationToken cancel)
         {
-            using var gameLoop = this.serviceProvider.GetRequiredService<VehicleDisplay>();
+            using var gameLoop = this.serviceProvider.GetRequiredService<TGameLoop>();
             gameLoop.Run(cancel);
             this.lifetime.StopApplication();
         }
 
         private static partial class LogMessages
         {
-            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Application Started")]
-            public static partial void ApplicationStarted(ILogger logger);
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Application Started: {gameLoopType}")]
+            public static partial void ApplicationStarted(ILogger logger, Type gameLoopType);
 
             [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Application Stopping")]
             public static partial void ApplicationStopping(ILogger logger);
