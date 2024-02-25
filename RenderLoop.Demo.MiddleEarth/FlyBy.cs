@@ -159,7 +159,7 @@
 
                             var tx = (int)Math.Floor((double)x / w * tw);
                             var ty = (int)Math.Floor((double)y / h * TextureSize.Width / TextureSize.Height * th - q); //
-                            if (tx > 0 && ty > 0 &&
+                            if (tx >= 0 && ty >= 0 &&
                                 tx < tw && ty < th)
                             {
                                 return this.colorMap[tx, ty];
@@ -174,22 +174,15 @@
                     {
                         for (var x = 0; x < w - 1; x++)
                         {
-                            using var pen = new Pen(GetColor(x, y));
+                            var c = GetColor(x, y);
 
                             var topLeft = this.Camera.TransformToScreenSpace(new Vector3(x, y, this.heightMap[x, y]));
                             var topRight = this.Camera.TransformToScreenSpace(new Vector3(x + 1, y, this.heightMap[x + 1, y]));
                             var bottomLeft = this.Camera.TransformToScreenSpace(new Vector3(x, y + 1, this.heightMap[x, y + 1]));
+                            var bottomRight = this.Camera.TransformToScreenSpace(new Vector3(x + 1, y + 1, this.heightMap[x + 1, y + 1]));
 
-                            if (topLeft.X > 0 && topLeft.X < buffer.Width &&
-                                topLeft.Y > 0 && topLeft.Y < buffer.Height && topLeft.Z > 0)
-                            {
-                                if (topRight.X > 0 && topRight.X < buffer.Width &&
-                                    topRight.Y > 0 && topRight.Y < buffer.Height && topRight.Z > 0)
-                                    g.DrawLine(pen, topLeft.X, topLeft.Y, topRight.X, topRight.Y);
-                                if (bottomLeft.X > 0 && bottomLeft.X < buffer.Width &&
-                                    bottomLeft.Y > 0 && bottomLeft.Y < buffer.Height && bottomLeft.Z > 0)
-                                    g.DrawLine(pen, topLeft.X, topLeft.Y, bottomLeft.X, bottomLeft.Y);
-                            }
+                            Display.FillTriangle(buffer, depthBuffer, [topLeft, topRight, bottomLeft], BackfaceCulling.None, _ => c);
+                            Display.FillTriangle(buffer, depthBuffer, [topRight, bottomRight, bottomLeft], BackfaceCulling.None, _ => c);
                         }
                     }
                 }
