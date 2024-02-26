@@ -43,13 +43,13 @@
                 var bmp = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 try
                 {
-                    var single = new byte[4];
+                    var single = new int[1];
                     for (var y = 0; y < bmp.Height; y++)
                     {
                         for (var x = 0; x < bmp.Width; x++)
                         {
-                            Marshal.Copy(bmp.Scan0 + y * bmp.Stride + x * single.Length, single, 0, single.Length);
-                            remapped[x, y] = getValue(x, y, Color.FromArgb(single[3], single[2], single[1], single[0]));
+                            Marshal.Copy(bmp.Scan0 + y * bmp.Stride + x * sizeof(int), single, 0, single.Length);
+                            remapped[bmp.Width - 1 - x, y] = getValue(x, y, Color.FromArgb(single[0]));
                         }
                     }
                 }
