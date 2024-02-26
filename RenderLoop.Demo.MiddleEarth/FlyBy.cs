@@ -170,6 +170,8 @@
                     }
 
 
+                    var bitmapData = buffer.LockBits(new Rectangle(Point.Empty, buffer.Size), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+
                     for (var y = 0; y < h - 1; y++)
                     {
                         for (var x = 0; x < w - 1; x++)
@@ -181,10 +183,12 @@
                             var bottomLeft = this.Camera.TransformToScreenSpace(new Vector3(x, y + 1, this.heightMap[x, y + 1]));
                             var bottomRight = this.Camera.TransformToScreenSpace(new Vector3(x + 1, y + 1, this.heightMap[x + 1, y + 1]));
 
-                            Display.FillTriangle(buffer, depthBuffer, [topLeft, topRight, bottomLeft], BackfaceCulling.None, _ => c);
-                            Display.FillTriangle(buffer, depthBuffer, [topRight, bottomRight, bottomLeft], BackfaceCulling.None, _ => c);
+                            Display.FillTriangle(bitmapData, depthBuffer, [topLeft, topRight, bottomLeft], BackfaceCulling.None, _ => c);
+                            Display.FillTriangle(bitmapData, depthBuffer, [topRight, bottomRight, bottomLeft], BackfaceCulling.None, _ => c);
                         }
                     }
+
+                    buffer.UnlockBits(bitmapData);
                 }
 
                 using (var textBrush = new SolidBrush(this.display.ForeColor))

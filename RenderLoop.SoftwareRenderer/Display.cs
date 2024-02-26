@@ -298,14 +298,27 @@
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
         {
+            var bitmapData = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
+            try
+            {
+                FillTriangle(bitmapData, depthBuffer, vertices, culling, getArgb);
+            }
+            finally
+            {
+                bitmap.UnlockBits(bitmapData);
+            }
+        }
+
+        public static void FillTriangle(BitmapData bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
+        {
             var width = bitmap.Width;
             var height = bitmap.Height;
 
-            static (Vector3 vertex, float factor) AsVector3(Vector4 v) => (new(v.X, v.Y, v.Z), v.Z * Math.Abs(v.W));
+            static Vector3 AsVector3(Vector4 v) => new(v.X, v.Y, v.Z);
 
-            var (v0, f0) = AsVector3(vertices[0]);
-            var (v1, f1) = AsVector3(vertices[1]);
-            var (v2, f2) = AsVector3(vertices[2]);
+            var v0 = AsVector3(vertices[0]);
+            var v1 = AsVector3(vertices[1]);
+            var v2 = AsVector3(vertices[2]);
             var min = Vector3.Min(Vector3.Min(v0, v1), v2);
             var max = Vector3.Max(Vector3.Max(v0, v1), v2);
 
@@ -334,12 +347,14 @@
             var boundX = (int)max.X - initX + 1;
             var boundY = (int)max.Y - initY + 1;
 
-            var bmpData = bitmap.LockBits(new Rectangle(initX, initY, boundX, boundY), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             var colorData = new int[boundX];
-            var scan = bmpData.Scan0;
+            var scan = bitmap.Scan0 + bitmap.Stride * initY + sizeof(int) * initX;
 
             var p = Vector3.Zero;
-            for (var y = 0; y < boundY; y++, scan += bmpData.Stride)
+            var f0 = v0.Z * Math.Abs(vertices[0].W);
+            var f1 = v1.Z * Math.Abs(vertices[1].W);
+            var f2 = v2.Z * Math.Abs(vertices[2].W);
+            for (var y = 0; y < boundY; y++, scan += bitmap.Stride)
             {
                 p.Y = y + initY + 0.5f;
 
@@ -392,20 +407,18 @@
                     Marshal.Copy(colorData, startX, scan + sizeof(int) * startX, x - startX);
                 }
             }
-
-            bitmap.UnlockBits(bmpData);
         }
 
-        public static void FillTriangleA(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
+        public static void FillTriangleA(BitmapData bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
         {
             var width = bitmap.Width;
             var height = bitmap.Height;
 
-            static (Vector3 vertex, float factor) AsVector3(Vector4 v) => (new(v.X, v.Y, v.Z), v.Z * Math.Abs(v.W));
+            static Vector3 AsVector3(Vector4 v) => new(v.X, v.Y, v.Z);
 
-            var (v0, f0) = AsVector3(vertices[0]);
-            var (v1, f1) = AsVector3(vertices[1]);
-            var (v2, f2) = AsVector3(vertices[2]);
+            var v0 = AsVector3(vertices[0]);
+            var v1 = AsVector3(vertices[1]);
+            var v2 = AsVector3(vertices[2]);
             var min = Vector3.Min(Vector3.Min(v0, v1), v2);
             var max = Vector3.Max(Vector3.Max(v0, v1), v2);
 
@@ -482,11 +495,13 @@
             DrawEdge(v2, new Vector3(0, 0, 1), v1, new Vector3(0, 1, 0));
             DrawEdge(v2, new Vector3(0, 0, 1), v0, new Vector3(1, 0, 0));
 
-            var bmpData = bitmap.LockBits(new Rectangle(initX, initY, boundX, boundY), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
             var colorData = new int[boundX];
-            var scan = bmpData.Scan0;
+            var scan = bitmap.Scan0 + bitmap.Stride * initY + sizeof(int) * initX;
 
-            for (var y = 0; y < boundY; y++, scan += bmpData.Stride)
+            var f0 = v0.Z * Math.Abs(vertices[0].W);
+            var f1 = v1.Z * Math.Abs(vertices[1].W);
+            var f2 = v2.Z * Math.Abs(vertices[2].W);
+            for (var y = 0; y < boundY; y++, scan += bitmap.Stride)
             {
                 var (start, barycenter, end, endCoord) = startEnd[y];
                 if (end >= initX)
@@ -524,8 +539,6 @@
                     Marshal.Copy(colorData, 0, scan + sizeof(int) * startX, xLen);
                 }
             }
-
-            bitmap.UnlockBits(bmpData);
         }
 
         private void Renderer_SizeChanged(object sender, EventArgs e) => this.sizeValid = false;
