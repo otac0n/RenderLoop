@@ -141,12 +141,6 @@
 
         protected override void DrawScene(TimeSpan elapsed)
         {
-            Vector3[] tags = [
-                Vector3.Zero,
-                new Vector3(MapSize.Width, 0, 0),
-                new Vector3(0, MapSize.Height, 0),
-            ];
-
             this.display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
             {
                 this.Camera.Width = buffer.Width;
@@ -204,15 +198,6 @@
 
                 using (var textBrush = new SolidBrush(this.display.ForeColor))
                 {
-                    foreach (var tag in tags)
-                    {
-                        var point = this.Camera.TransformToScreenSpace(tag);
-                        if (point.Z > 0)
-                        {
-                            g.DrawString(tag.ToString(), this.display.Font, textBrush, point.X, point.Y - this.display.Font.Size / 2);
-                        }
-                    }
-
                     var status = this.loading.Status;
                     switch (status)
                     {
