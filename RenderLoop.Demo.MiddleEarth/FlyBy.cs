@@ -23,9 +23,9 @@
         private static readonly Size TextureSize = new(8128, 5764);
         private static readonly Size MapSize = new(8192, 8192);
         private int skip = 32;
-        private Color[,] colorMap;
+        private int[,] colorMap;
         private float[,] heightMap;
-        private Color[,] normalMap;
+        private int[,] normalMap;
 
         public FlyBy(Display display, ControlChangeTracker controlChangeTracker, Program.Options options, IServiceProvider serviceProvider)
             : base(display)
@@ -38,7 +38,7 @@
         protected override void Initialize()
         {
             Bitmap Resize(Image image, Size size) => new Bitmap(image, size);
-            T[,] Remap<T>(Bitmap bitmap, Func<int, int, Color, T> getValue)
+            T[,] Remap<T>(Bitmap bitmap, Func<int, int, int, T> getValue)
             {
                 var remapped = new T[bitmap.Width, bitmap.Height];
                 var bmp = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
@@ -50,7 +50,7 @@
                         for (var x = 0; x < bmp.Width; x++)
                         {
                             Marshal.Copy(bmp.Scan0 + y * bmp.Stride + x * sizeof(int), single, 0, single.Length);
-                            remapped[bmp.Width - 1 - x, y] = getValue(x, y, Color.FromArgb(single[0]));
+                            remapped[bmp.Width - 1 - x, y] = getValue(x, y, single[0]);
                         }
                     }
                 }
@@ -66,8 +66,7 @@
             {
                 Image LoadImage(string path) => Image.FromStream(this.archive.GetEntry(path)!.Open());
 
-                this.heightMap = Remap(Resize(LoadImage("Raw_Bakes/Final Height.png"), MapSize), (x, y, color) => color.R / 256f * MapSize.Width / 32);
-
+                this.heightMap = Remap(Resize(LoadImage("Raw_Bakes/Final Height.png"), MapSize), (x, y, color) => Color.FromArgb(color).R / 256f * MapSize.Width / 32);
                 this.colorMap = Remap(Resize(LoadImage("Textured/ME_Terrain_albedo.png"), MapSize), (x, y, color) => color);
                 this.normalMap = Remap(Resize(LoadImage("Raw_Bakes/Normal Map.png"), MapSize), (x, y, color) => color);
             });
@@ -151,24 +150,32 @@
                     var w = this.heightMap.GetLength(0);
                     var h = this.heightMap.GetLength(1);
 
-                    Color GetColor(int x, int y)
+                    var white = Color.White.ToArgb();
+                    Func<int, int, int> getColor;
+                    if (this.colorMap != null)
                     {
-                        if (this.colorMap != null)
-                        {
-                            var tw = this.colorMap.GetLength(0);
-                            var th = this.colorMap.GetLength(1);
-                            var q = (TextureSize.Width - TextureSize.Height) / 2f * tw / TextureSize.Height;
+                        var tw = this.colorMap.GetLength(0);
+                        var th = this.colorMap.GetLength(1);
+                        var q = (TextureSize.Width - TextureSize.Height) / 2f * tw / TextureSize.Height;
+                        var sx = (double)tw / w;
+                        var sy = (double)th * TextureSize.Width / (h * TextureSize.Height);
 
-                            var tx = (int)Math.Floor((double)x / w * tw);
-                            var ty = (int)Math.Floor((double)y / h * TextureSize.Width / TextureSize.Height * th - q);
-                            if (tx >= 0 && ty >= 0 &&
-                                tx < tw && ty < th)
+                        getColor = (x, y) =>
+                        {
+                            var tx = (int)(x * sx);
+                            var ty = (int)(y * sy - q);
+                            if (tx >= 0 && tx < tw &&
+                                ty >= 0 && ty < th)
                             {
                                 return this.colorMap[tx, ty];
                             }
-                        }
 
-                        return Color.White;
+                            return white;
+                        };
+                    }
+                    else
+                    {
+                        getColor = (_, _) => white;
                     }
 
                     Vector3 GetPoint(int x, int y) => new(x, y, this.heightMap[x, y]);
@@ -184,7 +191,7 @@
                             var topRight = this.Camera.TransformToScreenSpace(GetPoint(x, y));
                             var bottomRight = this.Camera.TransformToScreenSpace(GetPoint(x, y + this.skip));
 
-                            var c = GetColor(x - this.skip, y);
+                            var c = getColor(x - this.skip, y);
                             Display.FillTriangle(bitmapData, depthBuffer, [topLeft, topRight, bottomLeft], BackfaceCulling.None, _ => c);
                             Display.FillTriangle(bitmapData, depthBuffer, [topRight, bottomRight, bottomLeft], BackfaceCulling.None, _ => c);
 
