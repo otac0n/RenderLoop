@@ -98,10 +98,10 @@
                 v => right -= v);
 
             bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 4", v => v > 0.5)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 4")],
                 v => this.skip = Math.Max(this.skip / 2, 1));
             bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 5", v => v > 0.5)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 5")],
                 v => this.skip = Math.Min(this.skip * 2, MapSize.Width / 2));
 
             this.controlChangeTracker.ProcessChanges(bindings);

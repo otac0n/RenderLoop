@@ -65,6 +65,11 @@
             this.currentBindings.Add(new CurrentBinding(bindings, value));
         }
 
+        public void BindEach(Func<Control, bool>[] bindings, T value)
+        {
+            this.eachBindings.Add(new EachBinding(Array.ConvertAll(bindings, b => (b, new Func<double, bool>(v => v >= 2 / 3d))), value));
+        }
+
         public void BindEach((Func<Control, bool> predicate, Func<double, bool> converter)[] bindings, T value)
         {
             this.eachBindings.Add(new EachBinding(bindings, value));
