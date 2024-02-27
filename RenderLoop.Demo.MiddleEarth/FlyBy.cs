@@ -71,9 +71,9 @@
                 this.normalMap = Remap(Resize(LoadImage("Raw_Bakes/Normal Map.png"), MapSize), (x, y, color) => color);
             });
 
-            this.Camera.Position = new Vector3(0, MapSize.Width / 2, MapSize.Width / 8);
+            this.Camera.Position = new Vector3(MapSize.Width / 2, MapSize.Height, MapSize.Width / 4);
             this.Camera.Up = new Vector3(0, 0, 1);
-            this.Camera.Direction = new Vector3(512, 512, 0) - this.Camera.Position;
+            this.Camera.Direction = new Vector3(MapSize.Width / 2, 0, 0) - this.Camera.Position;
             this.Camera.FarPlane = 1024;
         }
 
