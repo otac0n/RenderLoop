@@ -21,7 +21,8 @@
 
         private static readonly Size BakeSize = new(8192, 8192);
         private static readonly Size TextureSize = new(8128, 5764);
-        private static readonly Size MapSize = new(256, 256);
+        private static readonly Size MapSize = new(8192, 8192);
+        private int skip = 32;
         private Color[,] colorMap;
         private float[,] heightMap;
         private Color[,] normalMap;
@@ -97,6 +98,13 @@
                 [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", v => (v - 0.5) * 2)],
                 v => right -= v);
 
+            bindings.BindEach(
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 4", v => v > 0.5)],
+                v => this.skip = Math.Max(this.skip / 2, 1));
+            bindings.BindEach(
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 5", v => v > 0.5)],
+                v => this.skip = Math.Min(this.skip * 2, MapSize.Width / 2));
+
             this.controlChangeTracker.ProcessChanges(bindings);
 
             var moveLength = moveVector.Length();
@@ -158,7 +166,7 @@
                             var q = (TextureSize.Width - TextureSize.Height) / 2f * tw / TextureSize.Height;
 
                             var tx = (int)Math.Floor((double)x / w * tw);
-                            var ty = (int)Math.Floor((double)y / h * TextureSize.Width / TextureSize.Height * th - q); //
+                            var ty = (int)Math.Floor((double)y / h * TextureSize.Width / TextureSize.Height * th - q);
                             if (tx >= 0 && ty >= 0 &&
                                 tx < tw && ty < th)
                             {
@@ -169,22 +177,25 @@
                         return Color.White;
                     }
 
+                    Vector3 GetPoint(int x, int y) => new(x, y, this.heightMap[x, y]);
 
                     var bitmapData = buffer.LockBits(new Rectangle(Point.Empty, buffer.Size), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
 
-                    for (var y = 0; y < h - 1; y++)
+                    for (var y = 0; y < h - this.skip; y += this.skip)
                     {
-                        for (var x = 0; x < w - 1; x++)
+                        var topLeft = this.Camera.TransformToScreenSpace(GetPoint(0, y));
+                        var bottomLeft = this.Camera.TransformToScreenSpace(GetPoint(0, y + this.skip));
+                        for (var x = this.skip; x < w; x += this.skip)
                         {
-                            var c = GetColor(x, y);
+                            var topRight = this.Camera.TransformToScreenSpace(GetPoint(x, y));
+                            var bottomRight = this.Camera.TransformToScreenSpace(GetPoint(x, y + this.skip));
 
-                            var topLeft = this.Camera.TransformToScreenSpace(new Vector3(x, y, this.heightMap[x, y]));
-                            var topRight = this.Camera.TransformToScreenSpace(new Vector3(x + 1, y, this.heightMap[x + 1, y]));
-                            var bottomLeft = this.Camera.TransformToScreenSpace(new Vector3(x, y + 1, this.heightMap[x, y + 1]));
-                            var bottomRight = this.Camera.TransformToScreenSpace(new Vector3(x + 1, y + 1, this.heightMap[x + 1, y + 1]));
-
+                            var c = GetColor(x - this.skip, y);
                             Display.FillTriangle(bitmapData, depthBuffer, [topLeft, topRight, bottomLeft], BackfaceCulling.None, _ => c);
                             Display.FillTriangle(bitmapData, depthBuffer, [topRight, bottomRight, bottomLeft], BackfaceCulling.None, _ => c);
+
+                            topLeft = topRight;
+                            bottomLeft = bottomRight;
                         }
                     }
 
