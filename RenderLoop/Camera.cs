@@ -1,6 +1,7 @@
 ﻿namespace RenderLoop
 {
     using System;
+    using System.Collections.Generic;
     using System.Numerics;
 
     public class Camera
@@ -16,6 +17,7 @@
         private Matrix4x4? matrix;
         private Matrix4x4? worldToCamera;
         private Matrix4x4? projection;
+        private Matrix4x4? inverse;
 
         public Matrix4x4 WorldToCamera
         {
@@ -53,6 +55,19 @@
                 }
 
                 return this.matrix!.Value;
+            }
+        }
+
+        public Matrix4x4 Inverse
+        {
+            get
+            {
+                if (this.inverse == null)
+                {
+                    this.ComputeInverse();
+                }
+
+                return this.inverse!.Value;
             }
         }
 
@@ -183,6 +198,17 @@
             Vector4.Transform(world, this.Matrix);
 
         /// <summary>
+        /// Transform points from Clip space to World space.
+        /// </summary>
+        /// <param name="clip">The position in Clip space.</param>
+        /// <returns>The coordinates in World space.</returns>
+        public Vector3 TransformFromClipSpace(Vector4 clip)
+        {
+            var vec4 = Vector4.Transform(clip, this.Inverse);
+            return new Vector3(vec4.X, vec4.Y, vec4.Z) / vec4.W;
+        }
+
+        /// <summary>
         /// Transform points from Camera space to Clip space.
         /// </summary>
         /// <param name="camera">The position in Camera space.</param>
@@ -207,6 +233,14 @@
             TransformClipToNDC(this.TransformToClipSpace(world));
 
         /// <summary>
+        /// Transform points from NDC (Normalized Device Coordinate) space to World space.
+        /// </summary>
+        /// <param name="ndc">The position in NDC space.</param>
+        /// <returns>The coordinates in World space.</returns>
+        public Vector3 TransformFromNDCSpace(Vector4 ndc) =>
+            this.TransformFromClipSpace(TransformNDCToClip(ndc));
+
+        /// <summary>
         /// Transform points from Clip space to NDC (Normalized Device Coordinate) space.
         /// </summary>
         /// <param name="clip">The position in Clip space.</param>
@@ -214,6 +248,15 @@
         /// <remarks>The <see cref="Vector4.W"/> field is preserved unmodified in order to maintain perspective information.</remarks>
         public static Vector4 TransformClipToNDC(Vector4 clip) =>
             new(clip.X / clip.W, clip.Y / clip.W, clip.Z / Math.Abs(clip.W), clip.W);
+
+        /// <summary>
+        /// Transform points from NDC (Normalized Device Coordinate) space to Clip space.
+        /// </summary>
+        /// <param name="ndc">The position in NDC space.</param>
+        /// <returns>The coordinates in Clip space.</returns>
+        /// <remarks>Assumes the <see cref="W"/> coordinate is unmodified from Clip Space.</remarks>
+        public static Vector4 TransformNDCToClip(Vector4 ndc) =>
+            new(ndc.X * ndc.W, ndc.Y * ndc.W, ndc.Z * Math.Abs(ndc.W), ndc.W);
 
         /// <summary>
         /// Transform points from World space to Screen space.
@@ -224,25 +267,60 @@
             this.TransformNDCToScreen(this.TransformToNDCSpace(world));
 
         /// <summary>
+        /// Transform points from Screen space to World space.
+        /// </summary>
+        /// <param name="screen">The position in Screen space.</param>
+        /// <returns>The coordinates in World space.</returns>
+        /// <remarks>Assumes the <see cref="W"/> coordinate is unmodified from Clip Space.</remarks>
+        public Vector3 TransformFromScreenSpace(Vector4 screen) =>
+            this.TransformFromNDCSpace(this.TransformScreenToNDC(screen));
+
+        /// <summary>
         /// Transform points from NDC (Normalized Device Coordinate) space to Screen space.
         /// </summary>
         /// <param name="ndc">The position in NDC space.</param>
         /// <returns>The coordinates in Screen space. The <see cref="W"/> coordinate is unmodified from Clip Space.</returns>
         public Vector4 TransformNDCToScreen(Vector4 ndc) =>
-            new((ndc.X + 1) / 2 * this.Width, (1 - ndc.Y) / 2 * this.Height, ndc.Z, ndc.W);
+            new((ndc.X + 1) / 2 * this.Width, (-ndc.Y + 1) / 2 * this.Height, ndc.Z, ndc.W);
+
+        /// <summary>
+        /// Transform points from Screen space to NDC (Normalized Device Coordinate) space.
+        /// </summary>
+        /// <param name="screen">The position in Screen space.</param>
+        /// <returns>The coordinates in NDC space.</returns>
+        /// <remarks>Assumes the <see cref="W"/> coordinate is unmodified from Clip Space.</remarks>
+        public Vector4 TransformScreenToNDC(Vector4 screen) =>
+            new(screen.X * 2 / this.Width - 1, -(screen.Y * 2 / this.Height - 1), screen.Z, screen.W);
 
         private void ClearMatrices()
         {
             this.worldToCamera = null;
             this.projection = null;
             this.matrix = null;
+            this.inverse = null;
         }
 
         private void ComputeMatrices()
         {
-            this.worldToCamera = Matrix4x4.CreateLookAt(this.Position, this.Position + this.Direction, this.Up);
-            this.projection = Matrix4x4.CreatePerspectiveFieldOfView(this.FieldOfView, this.AspectRatio, this.NearPlane, this.FarPlane);
-            this.matrix = this.worldToCamera * this.projection;
+            var worldToCamera = Matrix4x4.CreateLookAt(this.Position, this.Position + this.Direction, this.Up);
+            var projection = Matrix4x4.CreatePerspectiveFieldOfView(this.FieldOfView, this.AspectRatio, this.NearPlane, this.FarPlane);
+            var matrix = worldToCamera * projection;
+
+            this.worldToCamera = worldToCamera;
+            this.projection = projection;
+            this.matrix = matrix;
+        }
+
+        private void ComputeInverse()
+        {
+            if (this.matrix == null)
+            {
+                this.ComputeMatrices();
+            }
+
+            this.inverse = Matrix4x4.Invert(this.matrix!.Value, out var inverse)
+                ? inverse
+                : null;
         }
     }
 }
