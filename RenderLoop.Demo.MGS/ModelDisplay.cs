@@ -5,7 +5,6 @@
     using System.Drawing;
     using System.Linq;
     using System.Numerics;
-    using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Input;
     using RenderLoop.SoftwareRenderer;
@@ -42,9 +41,7 @@
 
             this.Camera.Up = new Vector3(0, 1, 0);
 
-            this.display.KeyPreview = true;
             this.display.ClientSize = new(640, 480);
-            this.display.PreviewKeyDown += this.PreviewKeyDown;
             this.UpdateModel();
         }
 
@@ -101,46 +98,20 @@
             return texture;
         }
 
-        protected void PreviewKeyDown(object? sender, PreviewKeyDownEventArgs e)
-        {
-            var updated = false;
-            switch (e.KeyCode)
-            {
-                case Keys.Escape:
-                    this.flying = false;
-                    break;
-
-                case Keys.Left:
-                    this.activeModel--;
-                    updated = true;
-                    break;
-
-                case Keys.Right:
-                    this.activeModel++;
-                    updated = true;
-                    break;
-            }
-
-            if (updated)
-            {
-                this.UpdateModel();
-            }
-        }
-
         protected override void AdvanceFrame(TimeSpan elapsed)
         {
             this.frame++;
+
+            var targetModel = this.activeModel;
+            var moveVector = Vector3.Zero;
+            var right = 0.0;
+            var up = 0.0;
 
             this.nextModel -= elapsed.TotalSeconds;
             if (this.nextModel <= 0 && false)
             {
                 this.activeModel++;
-                this.UpdateModel();
             }
-
-            var moveVector = Vector3.Zero;
-            var right = 0.0;
-            var up = 0.0;
 
             var bindings = new Bindings<Action<double>>();
             bindings.BindCurrent(
@@ -156,7 +127,23 @@
                 [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", v => (v - 0.5) * 2)],
                 v => right -= v);
 
+            bindings.BindEach(
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 1")],
+                v => this.flying = false);
+
+            bindings.BindEach(
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 4")],
+                v => this.activeModel--);
+            bindings.BindEach(
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 5")],
+                v => this.activeModel++);
+
             this.controlChangeTracker.ProcessChanges(bindings);
+
+            if (this.activeModel != targetModel)
+            {
+                this.UpdateModel();
+            }
 
             var moveLength = moveVector.Length();
             if (moveLength > 0.1)
