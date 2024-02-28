@@ -13,6 +13,8 @@
         protected readonly Display display;
         protected readonly Camera Camera = new();
 
+        protected readonly Display.FragmentShader<(uint index, Vector2 uv)> shader;
+
         /// <remarks>
         /// 0 -- 1
         /// |  / |
@@ -53,6 +55,12 @@
             : base(display, new AppState(0))
         {
             this.display = display;
+
+            this.shader = Display.MakeFragmentShader<(uint index, Vector2 uv)>(
+                x => x.uv,
+                uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
+                    ? Color.White
+                    : Color.Gray);
         }
 
         protected sealed override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
@@ -86,13 +94,7 @@
                 {
                     var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
                     Display.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                        Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
-                        {
-                            var uv = Display.MapCoordinates(perspective, [v[0].uv, v[1].uv, v[2].uv]);
-                            return ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
-                                ? Color.White
-                                : Color.Gray;
-                        }));
+                        Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective => this.shader(v, perspective)));
                 }
             });
         }

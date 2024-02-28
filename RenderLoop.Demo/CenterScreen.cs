@@ -50,13 +50,7 @@
                     {
                         var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
                         Display.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                            Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective =>
-                            {
-                                var uv = Display.MapCoordinates(perspective, [v[0].uv, v[1].uv, v[2].uv]);
-                                return ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
-                                    ? Color.White
-                                    : Color.Gray;
-                            }));
+                            Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.Cull, perspective => this.shader(v, perspective)));
                     }
                 });
             }

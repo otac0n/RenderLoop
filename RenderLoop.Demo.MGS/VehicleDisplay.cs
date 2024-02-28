@@ -512,6 +512,29 @@
 
         protected override void DrawScene(TimeSpan elapsed)
         {
+            Bitmap? texture = null;
+            var shader = Display.MakeFragmentShader<(uint index, Vector2 uv)>(
+                x => x.uv,
+                uv =>
+                {
+                    if (texture != null)
+                    {
+                        // MGS textures use the last pixel as buffer
+                        var tw = texture.Width - 1;
+                        var th = texture.Height - 1;
+                        var color = texture.GetPixel(
+                            (int)(((uv.X % 1.0) + 1) % 1.0 * tw),
+                            (int)(((uv.Y % 1.0) + 1) % 1.0 * th)).ToArgb();
+                        // MGS treats pure black as transparent.
+                        var masked = color & 0xFFFFFF;
+                        return masked == 0x000000 ? masked : color;
+                    }
+                    else
+                    {
+                        return Color.Black.ToArgb();
+                    }
+                });
+
             this.display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
             {
                 this.Camera.Width = buffer.Width;
@@ -525,34 +548,11 @@
                         var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.TransformToScreenSpace);
                         foreach (var face in mesh.Faces)
                         {
-                            this.textureLookup.TryGetValue(face.TextureId, out var texture);
+                            this.textureLookup.TryGetValue(face.TextureId, out texture);
 
                             var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
                             Display.DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
-                                Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective =>
-                                {
-                                    var uv = Display.MapCoordinates(perspective, [
-                                        v[0].textureCoords,
-                                        v[1].textureCoords,
-                                        v[2].textureCoords,
-                                    ]);
-                                    if (texture != null)
-                                    {
-                                        // MGS textures use the last pixel as buffer
-                                        var tw = texture.Width - 1;
-                                        var th = texture.Height - 1;
-                                        var color = texture.GetPixel(
-                                            (int)(((uv.X % 1.0) + 1) % 1.0 * tw),
-                                            (int)(((uv.Y % 1.0) + 1) % 1.0 * th)).ToArgb();
-                                        // MGS treats pure black as transparent.
-                                        var masked = color & 0xFFFFFF;
-                                        return masked == 0x000000 ? masked : color;
-                                    }
-                                    else
-                                    {
-                                        return Color.Black.ToArgb();
-                                    }
-                                }));
+                                Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective => shader(v, perspective)));
                         }
                     }
                 }

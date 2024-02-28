@@ -13,6 +13,8 @@
     {
         private const int TRIANGLE_POINTS = 3;
 
+        public delegate int FragmentShader<T>(T[] vertices, Vector3 barycenter);
+
         private Bitmap buffer;
         private float[,] depthBuffer;
         private double fps;
@@ -318,14 +320,23 @@
             g.DrawLine(Pens.White, p[2], p[0]);
         }
 
+        public static FragmentShader<TVertex> MakeFragmentShader<TVertex>(Converter<TVertex, Vector2> getTextureCoordinate, Func<Vector2, Color> shader) =>
+            (vertices, perspective) => shader(MapCoordinates(perspective, Array.ConvertAll(vertices, getTextureCoordinate))).ToArgb();
+
+        public static FragmentShader<TVertex> MakeFragmentShader<TVertex>(Converter<TVertex, Vector3> getTextureCoordinate, Func<Vector3, Color> shader) =>
+            (vertices, perspective) => shader(MapCoordinates(perspective, Array.ConvertAll(vertices, getTextureCoordinate))).ToArgb();
+
+        public static FragmentShader<TVertex> MakeFragmentShader<TVertex>(Converter<TVertex, Vector2> getTextureCoordinate, Func<Vector2, int> shader) =>
+            (vertices, perspective) => shader(MapCoordinates(perspective, Array.ConvertAll(vertices, getTextureCoordinate)));
+
+        public static FragmentShader<TVertex> MakeFragmentShader<TVertex>(Converter<TVertex, Vector3> getTextureCoordinate, Func<Vector3, int> shader) =>
+            (vertices, perspective) => shader(MapCoordinates(perspective, Array.ConvertAll(vertices, getTextureCoordinate)));
+
         public static Vector3 MapCoordinates(Vector3 barycenter, Vector3[] coordinates) =>
             (barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2]) / (barycenter.X + barycenter.Y + barycenter.Z);
 
         public static Vector2 MapCoordinates(Vector3 barycenter, Vector2[] coordinates) =>
             (barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2]) / (barycenter.X + barycenter.Y + barycenter.Z);
-
-        public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, Color> getColor) =>
-            FillTriangle(bitmap, depthBuffer, vertices, culling, barycenter => getColor(barycenter).ToArgb());
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
         {
