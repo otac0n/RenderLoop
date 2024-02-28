@@ -16,9 +16,9 @@
         protected readonly Display.FragmentShader<(uint index, Vector2 uv)> shader;
 
         /// <remarks>
-        /// 0 -- 1
-        /// |  / |
-        /// | /  |
+        /// 0 -- 1<br/>
+        /// |  / |<br/>
+        /// | /  |<br/>
         /// 2 -- 3
         /// </remarks>
         protected static readonly Vector2[] UV = [
