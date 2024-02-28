@@ -26,6 +26,8 @@
             var builder = Host.CreateDefaultBuilder(args);
             builder.ConfigureServices(services =>
             {
+                ApplicationConfiguration.Initialize();
+
                 services.AddSingleton(options);
                 ServiceRegistration.Register(services, options);
 
