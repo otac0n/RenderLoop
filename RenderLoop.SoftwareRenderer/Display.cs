@@ -49,6 +49,43 @@
         /// </summary>
         /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
         /// <param name="source">An array of vertices.</param>
+        /// <returns>An array containing the individual triangles.</returns>
+        public static TVertex[] ExpandStrip<TVertex>(TVertex[] source)
+        {
+            if (source.Length < TRIANGLE_POINTS)
+            {
+                throw new ArgumentOutOfRangeException(nameof(source));
+            }
+
+            var vertices = new TVertex[TRIANGLE_POINTS * (source.Length - TRIANGLE_POINTS + 1)];
+
+            vertices[0] = source[0];
+            vertices[1] = source[1];
+            vertices[2] = source[2];
+            for (int i = 3, j = 3; i < source.Length; i++)
+            {
+                if (i % 2 == 0)
+                {
+                    vertices[j] = vertices[j - 3]; j++;
+                    vertices[j] = vertices[j - 2]; j++;
+                }
+                else
+                {
+                    vertices[j] = vertices[j - 1]; j++;
+                    vertices[j] = vertices[j - 3]; j++;
+                }
+
+                vertices[j++] = source[i];
+            }
+
+            return vertices;
+        }
+
+        /// <summary>
+        /// Segments a strip of triangles and renders them with the provided function.
+        /// </summary>
+        /// <typeparam name="TVertex">The type of a triangle vertex.</typeparam>
+        /// <param name="source">An array of vertices.</param>
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(TVertex[] source, Action<TVertex[]> render)
         {
