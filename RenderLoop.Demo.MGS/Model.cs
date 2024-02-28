@@ -48,15 +48,15 @@
 
             var totalFaces = BitConverter.ToUInt32(buffer, 0);
             var meshCount = BitConverter.ToUInt32(buffer, 4);
-            var totalBounds = (
-                start: (
-                    x: BitConverter.ToInt32(buffer, 8),
-                    y: BitConverter.ToInt32(buffer, 12),
-                    z: BitConverter.ToInt32(buffer, 16)),
-                end: (
-                    x: BitConverter.ToInt32(buffer, 20),
-                    y: BitConverter.ToInt32(buffer, 24),
-                    z: BitConverter.ToInt32(buffer, 28)));
+            ////var totalBounds = (
+            ////    start: (
+            ////        x: BitConverter.ToInt32(buffer, 8),
+            ////        y: BitConverter.ToInt32(buffer, 12),
+            ////        z: BitConverter.ToInt32(buffer, 16)),
+            ////    end: (
+            ////        x: BitConverter.ToInt32(buffer, 20),
+            ////        y: BitConverter.ToInt32(buffer, 24),
+            ////        z: BitConverter.ToInt32(buffer, 28)));
 
             var meshes = new List<Mesh>((int)meshCount);
             var offsets = new List<Point>();
@@ -66,15 +66,15 @@
 
                 var flags = BitConverter.ToUInt32(buffer, 0);
                 var faceCount = BitConverter.ToUInt32(buffer, 4);
-                var bounds = (
-                    start: (
-                        x: BitConverter.ToInt32(buffer, 8),
-                        y: BitConverter.ToInt32(buffer, 12),
-                        z: BitConverter.ToInt32(buffer, 16)),
-                    end: (
-                        x: BitConverter.ToInt32(buffer, 20),
-                        y: BitConverter.ToInt32(buffer, 24),
-                        z: BitConverter.ToInt32(buffer, 28)));
+                ////var bounds = (
+                ////    start: (
+                ////        x: BitConverter.ToInt32(buffer, 8),
+                ////        y: BitConverter.ToInt32(buffer, 12),
+                ////        z: BitConverter.ToInt32(buffer, 16)),
+                ////    end: (
+                ////        x: BitConverter.ToInt32(buffer, 20),
+                ////        y: BitConverter.ToInt32(buffer, 24),
+                ////        z: BitConverter.ToInt32(buffer, 28)));
                 var relativePoint = new Vector3(
                     x: BitConverter.ToInt32(buffer, 32),
                     y: BitConverter.ToInt32(buffer, 36),
@@ -136,7 +136,6 @@
                     faces[v].VertexIndices = Array.ConvertAll(indices, i => (uint)i);
                 }
 
-                var normalIndices = new int[faceCount][];
                 stream.Seek(normalIndexAddress, SeekOrigin.Begin);
                 for (var v = 0; v < faceCount; v++)
                 {
@@ -146,7 +145,6 @@
                     faces[v].NormalIndices = Array.ConvertAll(indices, i => (uint)i);
                 }
 
-                var textureIds = new uint[faceCount];
                 stream.Seek(textureAddress, SeekOrigin.Begin);
                 for (var v = 0; v < faceCount; v++)
                 {
