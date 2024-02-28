@@ -2,7 +2,7 @@
 {
     public struct Face
     {
-        public Face(ushort textureId, int[] vertexIndices, int[] normalIndices, int[] textureIndices)
+        public Face(ushort textureId, uint[] vertexIndices, uint[] normalIndices, uint[] textureIndices)
         {
             this.TextureId = textureId;
             this.VertexIndices = vertexIndices;
@@ -12,10 +12,10 @@
 
         public ushort TextureId { get; set; }
 
-        public int[] VertexIndices { get; set; }
+        public uint[] VertexIndices { get; set; }
 
-        public int[] NormalIndices { get; set; }
+        public uint[] NormalIndices { get; set; }
 
-        public int[] TextureIndices { get; set; }
+        public uint[] TextureIndices { get; set; }
     }
 }

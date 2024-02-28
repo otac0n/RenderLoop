@@ -40,7 +40,7 @@
         /// <remarks>
         /// Same order as <see cref="UV"/>
         /// </remarks>
-        protected static readonly int[][] Shapes = [
+        protected static readonly uint[][] Shapes = [
             [1, 0, 2, 3], // TOP
             [4, 5, 7, 6], // BOTTOM
             [3, 0, 7, 4], // FRONT
