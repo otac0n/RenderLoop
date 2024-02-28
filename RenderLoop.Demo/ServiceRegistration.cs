@@ -8,6 +8,7 @@
         {
             RenderLoop.ServiceRegistration.Register(services);
 
+            services.AddTransient<CubeGL>();
             services.AddTransient<Cube>();
             services.AddTransient<CenterScreen>();
         }

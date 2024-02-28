@@ -31,6 +31,7 @@
                 ServiceRegistration.Register(services, options);
 
                 services.AddHostedService<GameLoopApplication<CenterScreen>>();
+                services.AddHostedService<GameLoopApplication<CubeGL>>();
             });
 
             using var host = builder.Build();
