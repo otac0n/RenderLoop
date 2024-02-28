@@ -7,14 +7,12 @@
     using Microsoft.Extensions.DependencyInjection;
     using DiscUtils.Complete;
     using RenderLoop.Demo.MGS.Archives;
-    using RenderLoop.SoftwareRenderer;
 
     internal class ServiceRegistration
     {
         internal static void Register(IServiceCollection services, Program.Options options)
         {
             RenderLoop.ServiceRegistration.Register(services);
-            services.AddTransient<Display>();
 
             SetupHelper.SetupComplete();
 
