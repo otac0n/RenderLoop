@@ -2,10 +2,17 @@
 {
     using System;
     using RenderLoop.SoftwareRenderer;
+    using Silk.NET.Windowing;
 
     public abstract class GameLoop<TState> : GameLoop
     {
         private TState state;
+
+        public GameLoop(IWindow display, TState initialState)
+            : base(display)
+        {
+            this.state = initialState;
+        }
 
         public GameLoop(Display display, TState initialState)
             : base(display)

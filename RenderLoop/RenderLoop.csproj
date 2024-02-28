@@ -12,6 +12,7 @@
     <PackageReference Include="Whisk" Version="0.5.0-alpha0001" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\RenderLoop.SilkRenderer\RenderLoop.SilkRenderer.csproj" />
     <ProjectReference Include="..\RenderLoop.SoftwareRenderer\RenderLoop.SoftwareRenderer.csproj" />
   </ItemGroup>
 </Project>

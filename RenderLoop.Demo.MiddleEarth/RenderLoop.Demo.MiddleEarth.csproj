@@ -11,6 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\RenderLoop\RenderLoop.csproj" />
-    <ProjectReference Include="..\RenderLoop.SoftwareRenderer\RenderLoop.SoftwareRenderer.csproj" />
+    <ProjectReference Include="..\RenderLoop.SilkRenderer\RenderLoop.SilkRenderer.csproj" />
   </ItemGroup>
 </Project>

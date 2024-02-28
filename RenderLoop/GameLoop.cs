@@ -5,12 +5,38 @@
     using System.Diagnostics;
     using System.Windows.Forms;
     using System.Threading;
+    using Silk.NET.Windowing;
 
     public abstract class GameLoop : IDisposable
     {
         private readonly Action<CancellationToken> run;
 
         private long timestamp;
+
+        public GameLoop(IWindow window)
+        {
+            void FirstUpdate(double t)
+            {
+                window.Update -= FirstUpdate;
+                window.Update += Update;
+                this.AdvanceFrame(TimeSpan.Zero);
+            }
+
+            void Update(double t)
+            {
+                this.AdvanceFrame(TimeSpan.FromSeconds(t));
+            }
+
+            window.Load += this.Initialize;
+            window.Update += FirstUpdate;
+            window.Render += t => this.DrawScene(TimeSpan.FromSeconds(t));
+
+            this.run = (CancellationToken cancel) =>
+            {
+                cancel.Register(window.Close);
+                window.Run();
+            };
+        }
 
         public GameLoop(Display display)
         {
