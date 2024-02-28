@@ -11,6 +11,8 @@
 
     public sealed partial class Display : Form
     {
+        private const int TRIANGLE_POINTS = 3;
+
         private Bitmap buffer;
         private float[,] depthBuffer;
         private double fps;
@@ -50,7 +52,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(TVertex[] source, Action<TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var vertices = new TVertex[TRIANGLE_POINTS];
             if (source.Length >= TRIANGLE_POINTS)
             {
@@ -74,7 +75,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(IEnumerable<TVertex> source, Action<TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var vertices = new TVertex[TRIANGLE_POINTS];
             using var enumerable = source.GetEnumerator();
             if (enumerable.MoveNext())
@@ -103,7 +103,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<int[], TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var indexSwath = new int[TRIANGLE_POINTS];
             var vertexSwath = new TVertex[TRIANGLE_POINTS];
             if (indices.Length >= TRIANGLE_POINTS)
@@ -130,7 +129,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TVertex>(int[] indices, TVertex[] vertices, Action<TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var vertexSwath = new TVertex[TRIANGLE_POINTS];
             if (indices.Length >= TRIANGLE_POINTS)
             {
@@ -156,7 +154,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var items = new TSource[TRIANGLE_POINTS];
             var vertices = new TVertex[TRIANGLE_POINTS];
             if (source.Length >= TRIANGLE_POINTS)
@@ -184,7 +181,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(IEnumerable<TSource> source, Func<TSource, TVertex> getVertex, Action<TSource[], TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var items = new TSource[TRIANGLE_POINTS];
             var vertices = new TVertex[TRIANGLE_POINTS];
             using var enumerable = source.GetEnumerator();
@@ -216,7 +212,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(TSource[] source, Func<TSource, TVertex> getVertex, Action<TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var vertices = new TVertex[TRIANGLE_POINTS];
             if (source.Length >= TRIANGLE_POINTS)
             {
@@ -242,7 +237,6 @@
         /// <param name="render">The function that will be called to render each triangle.</param>
         public static void DrawStrip<TSource, TVertex>(IEnumerable<TSource> source, Func<TSource, TVertex> getVertex, Action<TVertex[]> render)
         {
-            const int TRIANGLE_POINTS = 3;
             var vertices = new TVertex[TRIANGLE_POINTS];
             using var enumerable = source.GetEnumerator();
             if (enumerable.MoveNext())
