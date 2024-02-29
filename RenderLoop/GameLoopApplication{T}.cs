@@ -29,7 +29,7 @@
 
         private void Run(CancellationToken cancel)
         {
-            using var gameLoop = this.serviceProvider.GetRequiredService<TGameLoop>();
+            var gameLoop = this.serviceProvider.GetRequiredService<TGameLoop>();
             gameLoop.Run(cancel);
             this.lifetime.StopApplication();
         }
