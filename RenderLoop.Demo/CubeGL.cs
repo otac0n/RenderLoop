@@ -26,6 +26,7 @@
         protected override void Initialize()
         {
             this.gl = GL.GetApi(this.display);
+            this.display.FramebufferResize += size => this.gl.Viewport(size);
 
             this.shader = new ShaderHandle<(Vector3 position, Vector2 uv)>(
                 this.gl,
