@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Numerics;
     using RenderLoop.SoftwareRenderer;
+    using static Geometry;
 
     internal class Cube : GameLoop<Cube.AppState>
     {
@@ -14,42 +15,6 @@
         protected readonly Camera Camera = new();
 
         protected readonly Display.FragmentShader<(uint index, Vector2 uv)> shader;
-
-        /// <remarks>
-        /// 0 -- 1<br/>
-        /// |  / |<br/>
-        /// | /  |<br/>
-        /// 2 -- 3
-        /// </remarks>
-        protected static readonly Vector2[] UV = [
-            new(0, 0),
-            new(0, 1),
-            new(1, 0),
-            new(1, 1),
-        ];
-
-        protected static readonly Vector3[] Vertices = [
-            new Vector3(-1, -1, +1) / 2, // L, F, T
-            new Vector3(-1, +1, +1) / 2, // L, B, T
-            new Vector3(+1, +1, +1) / 2, // R, B, T
-            new Vector3(+1, -1, +1) / 2, // R, F, T
-            new Vector3(-1, -1, -1) / 2, // L, F, B
-            new Vector3(-1, +1, -1) / 2, // L, B, B
-            new Vector3(+1, +1, -1) / 2, // R, B, B
-            new Vector3(+1, -1, -1) / 2, // R, F, B
-        ];
-
-        /// <remarks>
-        /// Same order as <see cref="UV"/>
-        /// </remarks>
-        protected static readonly uint[][] Shapes = [
-            [1, 0, 2, 3], // TOP
-            [4, 5, 7, 6], // BOTTOM
-            [3, 0, 7, 4], // FRONT
-            [1, 2, 5, 6], // BACK
-            [0, 1, 4, 5], // LEFT
-            [2, 3, 6, 7], // RIGHT
-        ];
 
         public Cube(Display display)
             : base(display, new AppState(0))

@@ -5,6 +5,7 @@
     using System.Linq;
     using System.Windows.Forms;
     using RenderLoop.SoftwareRenderer;
+    using static Geometry;
 
     internal class CenterScreen : Cube
     {

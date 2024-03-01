@@ -9,6 +9,7 @@
     using Silk.NET.Direct3D11;
     using Silk.NET.DXGI;
     using Silk.NET.Windowing;
+    using static Geometry;
 
     internal class CubeDX : GameLoop<CubeDX.AppState>
     {
@@ -21,42 +22,6 @@
 
         private ConstantBuffer<Matrix4x4> cbuffer;
         protected ShaderHandle<(Vector3 position, Vector2 uv)> shader;
-
-        /// <remarks>
-        /// 0 -- 1<br/>
-        /// |  / |<br/>
-        /// | /  |<br/>
-        /// 2 -- 3
-        /// </remarks>
-        protected static readonly Vector2[] UV = [
-            new(0, 0),
-            new(0, 1),
-            new(1, 0),
-            new(1, 1),
-        ];
-
-        protected static readonly Vector3[] Vertices = [
-            new Vector3(-1, -1, +1) / 2, // L, F, T
-            new Vector3(-1, +1, +1) / 2, // L, B, T
-            new Vector3(+1, +1, +1) / 2, // R, B, T
-            new Vector3(+1, -1, +1) / 2, // R, F, T
-            new Vector3(-1, -1, -1) / 2, // L, F, B
-            new Vector3(-1, +1, -1) / 2, // L, B, B
-            new Vector3(+1, +1, -1) / 2, // R, B, B
-            new Vector3(+1, -1, -1) / 2, // R, F, B
-        ];
-
-        /// <remarks>
-        /// Same order as <see cref="UV"/>
-        /// </remarks>
-        protected static readonly uint[][] Shapes = [
-            [0, 1, 3, 2], // TOP
-            [5, 4, 6, 7], // BOTTOM
-            [0, 3, 4, 7], // FRONT
-            [2, 1, 6, 5], // BACK
-            [1, 0, 5, 4], // LEFT
-            [3, 2, 7, 6], // RIGHT
-        ];
 
         protected readonly (Vector3 position, Vector2 uv)[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (Vertices[i], UV[j])).ToArray());
 
