@@ -7,7 +7,7 @@
     using RenderLoop.SoftwareRenderer;
     using static Geometry;
 
-    internal class CenterScreen : Cube
+    internal class CenterScreen : CubeSW
     {
         private readonly Display display2;
 

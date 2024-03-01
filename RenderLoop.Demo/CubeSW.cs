@@ -7,13 +7,13 @@
     using RenderLoop.SoftwareRenderer;
     using static Geometry;
 
-    internal class Cube : CameraSpinner
+    internal class CubeSW : CameraSpinner
     {
         protected readonly Display display;
 
         protected readonly Display.FragmentShader<(uint index, Vector2 uv)> shader;
 
-        public Cube(Display display)
+        public CubeSW(Display display)
             : base(display)
         {
             this.display = display;

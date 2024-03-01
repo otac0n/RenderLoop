@@ -10,7 +10,7 @@
 
             services.AddTransient<CubeDX>();
             services.AddTransient<CubeGL>();
-            services.AddTransient<Cube>();
+            services.AddTransient<CubeSW>();
             services.AddTransient<CenterScreen>();
         }
     }
