@@ -72,7 +72,7 @@
                     float4 ps_main(vs_out input) : SV_TARGET {
                         return ((int)(input.textureCoords.x * 4) + (int)(input.textureCoords.y * 4)) % 2 == 0
                             ? float4(1.0, 1.0, 1.0, 1.0)
-                            : float4(0.6, 0.6, 0.6, 1.0);
+                            : float4(0.5, 0.5, 0.5, 1.0);
                     }
                 """);
         }

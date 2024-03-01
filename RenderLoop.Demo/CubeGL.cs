@@ -49,7 +49,7 @@
                     {
                         color = (int(fragment_textureCoords.x * 4) + int(fragment_textureCoords.y * 4)) % 2 == 0
                             ? vec4(1.0, 1.0, 1.0, 1.0)
-                            : vec4(0.6, 0.6, 0.6, 1.0);
+                            : vec4(0.5, 0.5, 0.5, 1.0);
                     }
                 """);
         }
