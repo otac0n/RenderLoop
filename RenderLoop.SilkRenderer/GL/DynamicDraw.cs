@@ -1,18 +1,19 @@
 ﻿namespace RenderLoop.SilkRenderer.GL
 {
-    using System.Numerics;
     using Silk.NET.OpenGL;
 
     public static class DynamicDraw
     {
-        public static unsafe void DrawTriangles(this GL gl, (Vector3, Vector2)[] vertices, ShaderHandle<(Vector3, Vector2)> shader)
+        public static unsafe void DrawTriangles<TVertex>(this GL gl, TVertex[] vertices, ShaderHandle<TVertex> shader)
+            where TVertex : unmanaged
         {
-            gl.DrawPrimitives(vertices, sizeof(float), VertexAttribPointerType.Float, sizeof(float), VertexAttribPointerType.Float, PrimitiveType.Triangles, shader);
+            gl.DrawPrimitives(vertices, PrimitiveType.Triangles, shader);
         }
 
-        public static unsafe void DrawStrip(this GL gl, (Vector3, Vector2)[] vertices, ShaderHandle<(Vector3, Vector2)> shader)
+        public static unsafe void DrawStrip<TVertex>(this GL gl, TVertex[] vertices, ShaderHandle<TVertex> shader)
+            where TVertex : unmanaged
         {
-            gl.DrawPrimitives(vertices, sizeof(float), VertexAttribPointerType.Float, sizeof(float), VertexAttribPointerType.Float, PrimitiveType.TriangleStrip, shader);
+            gl.DrawPrimitives(vertices, PrimitiveType.TriangleStrip, shader);
         }
 
         public static void PaintFrame(this GL gl, Action paint)
@@ -22,13 +23,11 @@
             paint();
         }
 
-        private static unsafe void DrawPrimitives<T1, T2>(this GL gl, (T1, T2)[] vertices, int t1Size, VertexAttribPointerType t1Type, int t2Size, VertexAttribPointerType t2Type, PrimitiveType primitiveType, ShaderHandle<(T1, T2)> shader)
-            where T1 : unmanaged
-            where T2 : unmanaged
+        private static unsafe void DrawPrimitives<TVertex>(this GL gl, TVertex[] vertices, PrimitiveType primitiveType, ShaderHandle<TVertex> shader)
+            where TVertex : unmanaged
         {
-            var tSize = sizeof((T1, T2));
+            var tSize = sizeof(TVertex);
 
-            shader.Use();
             var vao = gl.GenVertexArray();
             try
             {
@@ -44,11 +43,7 @@
                         gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vertices.Length * tSize), v, BufferUsageARB.DynamicDraw);
                     }
 
-                    gl.VertexAttribPointer(0, sizeof(T1) / t1Size, t1Type, false, (uint)tSize, (void*)0);
-                    gl.EnableVertexAttribArray(0);
-
-                    gl.VertexAttribPointer(1, sizeof(T2) / t2Size, t2Type, false, (uint)tSize, (void*)sizeof(T1));
-                    gl.EnableVertexAttribArray(1);
+                    shader.Bind();
 
                     gl.DrawArrays(primitiveType, 0, (uint)vertices.Length);
                 }

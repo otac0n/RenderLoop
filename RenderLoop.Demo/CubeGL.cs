@@ -29,6 +29,10 @@
 
             this.shader = new ShaderHandle<(Vector3 position, Vector2 uv)>(
                 this.gl,
+                [
+                    (3, VertexAttribPointerType.Float, sizeof(float)),
+                    (2, VertexAttribPointerType.Float, sizeof(float)),
+                ],
                 () => """
                     #version 330 core
                     layout (location = 0) in vec3 vertex_position;

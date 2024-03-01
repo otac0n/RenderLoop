@@ -6,12 +6,24 @@
 
     public sealed class ShaderHandle<TVertex> : IDisposable
     {
-        private readonly uint handle;
         private readonly GL gl;
+        private readonly (int count, VertexAttribPointerType type, uint stride, uint offset)[] attributes;
+        private readonly uint handle;
 
-        public ShaderHandle(GL gl, Func<string> getVertexShader, Func<string> getFragmentShader)
+        public ShaderHandle(GL gl, (int count, VertexAttribPointerType type, int size)[] attributes, Func<string> getVertexShader, Func<string> getFragmentShader)
         {
             this.gl = gl;
+
+            var offset = 0u;
+            var stride = attributes.Sum(a => a.count * a.size);
+            this.attributes = new (int count, VertexAttribPointerType type, uint stride, uint offset)[attributes.Length];
+            for (var i = 0u; i < this.attributes.Length; i++)
+            {
+                var (count, type, size) = attributes[i];
+                var width = (uint)(count * size);
+                this.attributes[i] = (count, type, (uint)stride, offset);
+                offset += width;
+            }
 
             this.handle =
                 this.gl.WithShader(ShaderType.VertexShader, getVertexShader, vertex =>
@@ -19,7 +31,17 @@
                         this.gl.LinkShaders(vertex, fragment)));
         }
 
-        public void Use() => this.gl.UseProgram(this.handle);
+        public unsafe void Bind()
+        {
+            this.gl.UseProgram(this.handle);
+
+            for (var i = 0u; i < this.attributes.Length; i++)
+            {
+                var (count, type, stride, offset) = this.attributes[i];
+                this.gl.VertexAttribPointer(i, count, type, false, stride, (void*)offset);
+                this.gl.EnableVertexAttribArray(i);
+            }
+        }
 
         public void SetUniform(string name, int value) =>
             this.gl.Uniform1(this.GetUniformLocation(name), value);
