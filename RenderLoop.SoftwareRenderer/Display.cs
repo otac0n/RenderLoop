@@ -376,7 +376,8 @@
             }
 
             var area = EdgeFunction(v0, v1, v2);
-            if (culling == BackfaceCulling.Cull && area <= 0)
+            if ((culling == BackfaceCulling.CullClockwise && area <= 0) ||
+                (culling == BackfaceCulling.CullCounterClockwise && area >= 0))
             {
                 return;
             }
@@ -476,7 +477,8 @@
             }
 
             var area = EdgeFunction(v0, v1, v2);
-            if (culling == BackfaceCulling.Cull && area <= 0)
+            if ((culling == BackfaceCulling.CullClockwise && area <= 0) ||
+                (culling == BackfaceCulling.CullCounterClockwise && area >= 0))
             {
                 return;
             }

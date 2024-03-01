@@ -3,6 +3,7 @@
     public enum BackfaceCulling
     {
         None = 0,
-        Cull,
+        CullCounterClockwise = 1,
+        CullClockwise = 2,
     }
 }
