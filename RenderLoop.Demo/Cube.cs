@@ -7,17 +7,14 @@
     using RenderLoop.SoftwareRenderer;
     using static Geometry;
 
-    internal class Cube : GameLoop<Cube.AppState>
+    internal class Cube : CameraSpinner
     {
-        public record class AppState(double T);
-
         protected readonly Display display;
-        protected readonly Camera Camera = new();
 
         protected readonly Display.FragmentShader<(uint index, Vector2 uv)> shader;
 
         public Cube(Display display)
-            : base(display, new AppState(0))
+            : base(display)
         {
             this.display = display;
 
@@ -26,24 +23,6 @@
                 uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
                     ? Color.White
                     : Color.Gray);
-        }
-
-        protected sealed override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
-        {
-            var dist = 2;
-
-            var a = Math.Tau * state.T / 3;
-            var (x, y) = Math.SinCos(a);
-            var z = Math.Sin(a / 3);
-            var p = new Vector3((float)(dist * x), (float)(dist * y), (float)(dist / 2 * z));
-
-            this.Camera.Position = p;
-            this.Camera.Direction = -p;
-
-            state = state with
-            {
-                T = state.T + elapsed.TotalSeconds,
-            };
         }
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)

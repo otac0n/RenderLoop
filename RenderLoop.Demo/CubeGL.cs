@@ -8,20 +8,17 @@
     using Silk.NET.Windowing;
     using static Geometry;
 
-    internal class CubeGL : GameLoop<CubeGL.AppState>
+    internal class CubeGL : CameraSpinner
     {
-        public record class AppState(double T);
-
         protected readonly IWindow display;
         protected GL gl;
-        protected readonly Camera Camera = new();
 
         protected ShaderHandle<(Vector3 position, Vector2 uv)> shader;
 
         protected (Vector3 position, Vector2 uv)[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (index: Vertices[i], uv: UV[j])).ToArray());
 
         public CubeGL(IWindow display)
-            : base(display, new AppState(0))
+            : base(display)
         {
             this.display = display;
         }
@@ -55,24 +52,6 @@
                             : vec4(0.6, 0.6, 0.6, 1.0);
                     }
                 """);
-        }
-
-        protected sealed override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
-        {
-            var dist = 2;
-
-            var a = Math.Tau * state.T / 3;
-            var (x, y) = Math.SinCos(a);
-            var z = Math.Sin(a / 3);
-            var p = new Vector3((float)(dist * x), (float)(dist * y), (float)(dist / 2 * z));
-
-            this.Camera.Position = p;
-            this.Camera.Direction = -p;
-
-            state = state with
-            {
-                T = state.T + elapsed.TotalSeconds,
-            };
         }
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)

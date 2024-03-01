@@ -11,14 +11,12 @@
     using Silk.NET.Windowing;
     using static Geometry;
 
-    internal class CubeDX : GameLoop<CubeDX.AppState>
+    internal class CubeDX : CameraSpinner
     {
-        public record class AppState(double T);
         private readonly ILogger<CubeDX> logger;
 
         protected readonly IWindow display;
         protected DxWindow dx;
-        protected readonly Camera Camera = new();
 
         private ConstantBuffer<Matrix4x4> cbuffer;
         protected ShaderHandle<(Vector3 position, Vector2 uv)> shader;
@@ -26,7 +24,7 @@
         protected readonly (Vector3 position, Vector2 uv)[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (Vertices[i], UV[j])).ToArray());
 
         public CubeDX([FromKeyedServices("Direct3D")] IWindow display, ILogger<CubeDX> logger)
-            : base(display, new AppState(0))
+            : base(display)
         {
             this.display = display;
             this.logger = logger;
@@ -77,24 +75,6 @@
                             : float4(0.6, 0.6, 0.6, 1.0);
                     }
                 """);
-        }
-
-        protected sealed override void AdvanceFrame(ref AppState state, TimeSpan elapsed)
-        {
-            var dist = 2;
-
-            var a = Math.Tau * state.T / 3;
-            var (x, y) = Math.SinCos(a);
-            var z = Math.Sin(a / 3);
-            var p = new Vector3((float)(dist * x), (float)(dist * y), (float)(dist / 2 * z));
-
-            this.Camera.Position = p;
-            this.Camera.Direction = -p;
-
-            state = state with
-            {
-                T = state.T + elapsed.TotalSeconds,
-            };
         }
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)
