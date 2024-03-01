@@ -26,31 +26,15 @@
         private static unsafe void DrawPrimitives<TVertex>(this GL gl, TVertex[] vertices, PrimitiveType primitiveType, ShaderHandle<TVertex> shader)
             where TVertex : unmanaged
         {
-            var tSize = sizeof(TVertex);
-
             var vao = gl.GenVertexArray();
             try
             {
                 gl.BindVertexArray(vao);
 
-                var vbo = gl.GenBuffer();
-                try
-                {
-                    gl.BindBuffer(BufferTargetARB.ArrayBuffer, vbo);
+                using var vbo = new Buffer<TVertex>(gl, vertices, BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
+                shader.Bind();
 
-                    fixed (void* v = &vertices[0])
-                    {
-                        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(vertices.Length * tSize), v, BufferUsageARB.DynamicDraw);
-                    }
-
-                    shader.Bind();
-
-                    gl.DrawArrays(primitiveType, 0, (uint)vertices.Length);
-                }
-                finally
-                {
-                    gl.DeleteBuffer(vbo);
-                }
+                gl.DrawArrays(primitiveType, 0, (uint)vertices.Length);
             }
             finally
             {
