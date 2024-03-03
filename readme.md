@@ -4,7 +4,7 @@ RenderLoop
 Code in this project is generally licensed under the MIT license.  
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](license.md)
 
-The RenderLoop.Demo.MGS application makes use of the GPL libraries, and is therefore also made available under the [GPL v3](RenderLoop.Demo.MGS/license.md).
+The RenderLoop.Demo.MGS application makes use of GPL-licensed libraries, and is therefore also made available under the [GPL v3](RenderLoop.Demo.MGS/license.md).
 
 OpenSource Info
 ---------------
