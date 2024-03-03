@@ -10,13 +10,15 @@ namespace RenderLoop.Demo.MiddleEarth
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using RenderLoop.Input;
     using RenderLoop.SoftwareRenderer;
 
-    internal class FlyBy : GameLoop
+    internal partial class FlyBy : GameLoop
     {
         private readonly Display display;
         private readonly ControlChangeTracker controlChangeTracker;
+        private readonly ILogger<FlyBy> logger;
         private readonly ZipArchive archive;
         private readonly Camera Camera = new();
         private Task loading;
@@ -29,11 +31,12 @@ namespace RenderLoop.Demo.MiddleEarth
         private float[,] heightMap;
         private int[,] normalMap;
 
-        public FlyBy(Display display, ControlChangeTracker controlChangeTracker, Program.Options options, IServiceProvider serviceProvider)
+        public FlyBy(Display display, ControlChangeTracker controlChangeTracker, Program.Options options, IServiceProvider serviceProvider, ILogger<FlyBy> logger)
             : base(display)
         {
             this.display = display;
             this.controlChangeTracker = controlChangeTracker;
+            this.logger = logger;
             this.archive = serviceProvider.GetRequiredKeyedService<ZipArchive>(options.File);
         }
 
@@ -42,6 +45,7 @@ namespace RenderLoop.Demo.MiddleEarth
             Bitmap Resize(Image image, Size size) => new Bitmap(image, size);
             T[,] Remap<T>(Bitmap bitmap, Func<int, int, int, T> getValue)
             {
+                LogMessages.RemappingResource(this.logger);
                 var remapped = new T[bitmap.Width, bitmap.Height];
                 var bmp = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 try
@@ -61,13 +65,18 @@ namespace RenderLoop.Demo.MiddleEarth
                     bitmap.UnlockBits(bmp);
                 }
 
+                LogMessages.RemappingDone(this.logger);
                 return remapped;
+            }
+
+            Image LoadImage(string path)
+            {
+                LogMessages.LoadingImage(this.logger, path);
+                return Image.FromStream(this.archive.GetEntry(path)!.Open());
             }
 
             this.loading = Task.Factory.StartNew(() =>
             {
-                Image LoadImage(string path) => Image.FromStream(this.archive.GetEntry(path)!.Open());
-
                 this.heightMap = Remap(Resize(LoadImage("Raw_Bakes/Final Height.png"), MapSize), (x, y, color) => Color.FromArgb(color).R / 256f * MapSize.Width / 32);
                 this.colorMap = Remap(Resize(LoadImage("Textured/ME_Terrain_albedo.png"), MapSize), (x, y, color) => color);
                 this.normalMap = Remap(Resize(LoadImage("Raw_Bakes/Normal Map.png"), MapSize), (x, y, color) => color);
@@ -227,6 +236,18 @@ namespace RenderLoop.Demo.MiddleEarth
                     }
                 }
             });
+        }
+
+        private static partial class LogMessages
+        {
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Loading '{ImagePath}'...")]
+            public static partial void LoadingImage(ILogger logger, string imagePath);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Remapping...")]
+            public static partial void RemappingResource(ILogger logger);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Done.")]
+            public static partial void RemappingDone(ILogger logger);
         }
     }
 }
