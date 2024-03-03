@@ -47,9 +47,9 @@ namespace RenderLoop.SilkRenderer.DX
 
             var rasterizerDesc = new RasterizerDesc
             {
-                FrontCounterClockwise = false,
-                CullMode = CullMode.Back,
                 FillMode = FillMode.Solid,
+                CullMode = CullMode.Back,
+                FrontCounterClockwise = false,
                 DepthClipEnable = true,
             };
 
@@ -83,11 +83,6 @@ namespace RenderLoop.SilkRenderer.DX
             window.FramebufferResize += this.Window_FramebufferResize;
         }
 
-        private void Window_FramebufferResize(Vector2D<int> newSize)
-        {
-            SilkMarshal.ThrowHResult(this.swapChain.ResizeBuffers(BufferCount, (uint)newSize.X, (uint)newSize.Y, FrameBufferFormat, 0));
-        }
-
         public ComPtr<ID3D11Device> Device => this.device;
 
         public ComPtr<ID3D11DeviceContext> DeviceContext => this.deviceContext;
@@ -95,6 +90,11 @@ namespace RenderLoop.SilkRenderer.DX
         public ComPtr<IDXGISwapChain1> SwapChain => this.swapChain;
 
         public IWindow Window { get; }
+
+        private void Window_FramebufferResize(Vector2D<int> newSize)
+        {
+            SilkMarshal.ThrowHResult(this.swapChain.ResizeBuffers(BufferCount, (uint)newSize.X, (uint)newSize.Y, FrameBufferFormat, 0));
+        }
 
         public void Dispose()
         {
