@@ -13,6 +13,8 @@ namespace RenderLoop.SilkRenderer.DX
 
     public sealed class DxWindow : IDisposable
     {
+        private const int BufferCount = 2;
+        private const Format FrameBufferFormat = Format.FormatB8G8R8A8Unorm;
         private readonly DXGI dxgi;
         private readonly D3D11 d3d;
         private ComPtr<ID3D11Device> device;
@@ -60,11 +62,11 @@ namespace RenderLoop.SilkRenderer.DX
 
             var swapChainDesc = new SwapChainDesc1
             {
-                BufferCount = 2,
-                Format = Format.FormatB8G8R8A8Unorm,
+                BufferCount = BufferCount,
+                Format = FrameBufferFormat,
                 BufferUsage = DXGI.UsageRenderTargetOutput,
                 SwapEffect = SwapEffect.FlipDiscard,
-                SampleDesc = new SampleDesc(1, 0)
+                SampleDesc = new SampleDesc(1, 0),
             };
 
             using var factory = this.dxgi.CreateDXGIFactory<IDXGIFactory2>();
@@ -83,8 +85,7 @@ namespace RenderLoop.SilkRenderer.DX
 
         private void Window_FramebufferResize(Vector2D<int> newSize)
         {
-            SilkMarshal.ThrowHResult(
-                this.swapChain.ResizeBuffers(0, (uint)newSize.X, (uint)newSize.Y, Format.FormatB8G8R8A8Unorm, 0));
+            SilkMarshal.ThrowHResult(this.swapChain.ResizeBuffers(BufferCount, (uint)newSize.X, (uint)newSize.Y, FrameBufferFormat, 0));
         }
 
         public ComPtr<ID3D11Device> Device => this.device;
