@@ -1,4 +1,6 @@
-﻿namespace RenderLoop.Demo.MGS
+﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
+
+namespace RenderLoop.Demo.MGS
 {
     using System.Collections.Generic;
     using System.Drawing;

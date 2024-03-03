@@ -1,4 +1,6 @@
-﻿namespace RenderLoop.Demo.MGS.Archives
+﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
+
+namespace RenderLoop.Demo.MGS.Archives
 {
     using GMWare.M2.Psb;
     using GMWare.M2.Models;

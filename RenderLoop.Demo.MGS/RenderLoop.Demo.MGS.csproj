@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\SharedAssemblyProperties.props" />
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
@@ -17,5 +18,9 @@
   <ItemGroup>
     <ProjectReference Include="..\RenderLoop\RenderLoop.csproj" />
     <ProjectReference Include="..\RenderLoop.SilkRenderer\RenderLoop.SilkRenderer.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="stylecop.json" />
+    <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>
 </Project>

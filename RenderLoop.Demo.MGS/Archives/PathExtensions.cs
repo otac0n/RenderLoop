@@ -1,4 +1,6 @@
-﻿namespace RenderLoop.Demo.MGS.Archives
+﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
+
+namespace RenderLoop.Demo.MGS.Archives
 {
     using System.Linq;
     using System.Text.RegularExpressions;
