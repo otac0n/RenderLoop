@@ -252,51 +252,50 @@ namespace RenderLoop.Demo.MiddleEarth
         protected sealed override void AdvanceFrame(TimeSpan elapsed)
         {
             var moveVector = Vector2.Zero;
-            var right = 0.0;
-            var up = 0.0;
+            var right = 0.0f;
+            var up = 0.0f;
 
-            var bindings = new Bindings<Action<double>>();
+            static float DeadZone(float v) => InputShapes.DeadZone(0.1f, 1.0f, v);
+
+            var bindings = new Bindings<Action<float>>();
+
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X", v => (v - 0.5) * 2)],
-                v => moveVector.X += (float)v);
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X", InputShapes.Signed)],
+                v => moveVector.X += v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y", v => (v - 0.5) * 2)],
-                v => moveVector.Y += (float)v);
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y", InputShapes.Signed)],
+                v => moveVector.Y += v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry", v => (v - 0.5) * 2)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry", InputShapes.Signed)],
                 v => up -= v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", v => (v - 0.5) * 2)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", InputShapes.Signed)],
                 v => right -= v);
 
             this.controlChangeTracker.ProcessChanges(bindings);
 
-            var moveScale = InputShapes.ShapeDeadZone(moveVector.Length(), 0.1f, 1.0f);
+            var moveScale = DeadZone(moveVector.Length());
             moveVector *= moveScale;
             if (moveVector != Vector2.Zero)
             {
                 this.Camera.Position += (this.Camera.Right * moveVector.X - this.Camera.Direction * moveVector.Y) * (float)(elapsed.TotalSeconds * BakeSize.Width / 10);
             }
 
-            var xyScale = InputShapes.ShapeDeadZone(right, 0.1f, 1.0f);
+            var xyScale = DeadZone(right);
             right *= xyScale;
             if (right != 0)
             {
-                right *= elapsed.TotalSeconds / 3 * Math.Tau;
-
-                var (sin, cos) = Math.SinCos(right);
+                var (sin, cos) = Math.SinCos(right * elapsed.TotalSeconds / 3 * Math.Tau);
                 var v = this.Camera.Direction;
                 var k = this.Camera.Up;
                 this.Camera.Direction = v * (float)cos + Vector3.Cross(k, v) * (float)sin + k * Vector3.Dot(k, v) * (float)(1 - cos);
             }
 
-            var zScale = InputShapes.ShapeDeadZone(up, 0.1f, 1.0f);
+            var zScale = DeadZone(up);
             up *= zScale;
             if (up != 0)
             {
-                up *= elapsed.TotalSeconds / 3 * Math.Tau;
-
-                var (sin, cos) = Math.SinCos(up);
+                var (sin, cos) = Math.SinCos(up * elapsed.TotalSeconds / 3 * Math.Tau);
                 var v = this.Camera.Direction;
                 var k = this.Camera.Right;
                 this.Camera.Direction = v * (float)cos + Vector3.Cross(k, v) * (float)sin + k * Vector3.Dot(k, v) * (float)(1 - cos);

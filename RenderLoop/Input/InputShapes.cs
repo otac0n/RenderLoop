@@ -1,24 +1,20 @@
 ﻿namespace RenderLoop.Input
 {
-    using System;
     using System.Numerics;
 
     public static class InputShapes
     {
-        public static Func<double, double> Clamp(double min, double max) =>
-            x => Math.Clamp(x, min, max);
-
-        public static Func<float, float> Clamp(float min, float max) =>
-            x => Math.Clamp(x, min, max);
-
-        public static Func<T, T> Clamp<T>(T min, T max)
+        public static T Clamp<T>(T min, T max, T value)
             where T : IFloatingPoint<T> =>
-                x =>
-                    x < min ? min :
-                    x > max ? max :
-                    x;
+                value < min ? min :
+                value > max ? max :
+                value;
 
-        public static T ShapeDeadZone<T>(T value, T deadZone, T max)
+        public static T Signed<T>(T value)
+            where T : IFloatingPoint<T> =>
+                value + value - T.One;
+
+        public static T DeadZone<T>(T deadZone, T max, T value)
             where T : IFloatingPoint<T>
         {
             value = T.Abs(value);

@@ -5,6 +5,7 @@ namespace RenderLoop.Input
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Numerics;
     using System.Reactive.Linq;
     using DevDecoder.HIDDevices;
     using DynamicData;
@@ -85,13 +86,14 @@ namespace RenderLoop.Input
             return list;
         }
 
-        public void ProcessChanges(Bindings<Action<double>> bindings)
+        public void ProcessChanges<T>(Bindings<Action<T>> bindings)
+            where T : IFloatingPoint<T>
         {
-            foreach (var (_, value, binding) in this.ProcessChanges<Action<double>>(bindings))
+            foreach (var (_, value, binding) in this.ProcessChanges<Action<T>>(bindings))
             {
                 if (!double.IsNaN(value))
                 {
-                    binding(value);
+                    binding(T.CreateChecked(value));
                 }
             }
         }
