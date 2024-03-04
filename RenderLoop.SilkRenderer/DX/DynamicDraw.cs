@@ -2,7 +2,6 @@
 
 namespace RenderLoop.SilkRenderer.DX
 {
-    using System.Runtime.CompilerServices;
     using Silk.NET.Core.Native;
     using Silk.NET.Direct3D11;
     using Silk.NET.DXGI;
@@ -11,29 +10,9 @@ namespace RenderLoop.SilkRenderer.DX
     {
         public static unsafe void PaintFrame(this DxWindow dx, Action paint)
         {
-            var backgroundColour = new[] { 0.0f, 0.0f, 0.0f, 1.0f };
-
-            using var framebuffer = dx.SwapChain.GetBuffer<ID3D11Texture2D>(0);
-            ComPtr<ID3D11RenderTargetView> renderTargetView = default;
-            try
-            {
-                SilkMarshal.ThrowHResult(dx.Device.CreateRenderTargetView(framebuffer, null, ref renderTargetView));
-
-                var size = dx.Window.FramebufferSize;
-                var viewport = new Viewport(0, 0, size.X, size.Y, 0, 1);
-
-                var dc = dx.DeviceContext;
-                dc.RSSetViewports(1, in viewport);
-                dc.OMSetRenderTargets(1, ref renderTargetView, ref Unsafe.NullRef<ID3D11DepthStencilView>());
-                dc.ClearRenderTargetView(renderTargetView, ref backgroundColour[0]);
-
-                paint();
-                dx.SwapChain.Present(1, 0);
-            }
-            finally
-            {
-                renderTargetView.Dispose();
-            }
+            dx.Clear([0.0f, 0.0f, 0.0f, 1.0f], 1.0f);
+            paint();
+            dx.Present();
         }
 
         public static unsafe void DrawStrip<TVertex>(this DxWindow dx, TVertex[] vertices, ShaderHandle<TVertex> shader)
