@@ -7,31 +7,38 @@ namespace RenderLoop.Demo.MiddleEarth
     using System.Drawing.Imaging;
     using System.IO.Compression;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using RenderLoop.Input;
-    using RenderLoop.SoftwareRenderer;
+    using RenderLoop.SilkRenderer.DX;
+    using Silk.NET.Core.Native;
+    using Silk.NET.Direct3D11;
+    using Silk.NET.DXGI;
+    using Silk.NET.Windowing;
 
     internal partial class FlyBy : GameLoop
     {
-        private readonly Display display;
+        private readonly IWindow display;
+        protected DxWindow dx;
         private readonly ControlChangeTracker controlChangeTracker;
         private readonly ILogger<FlyBy> logger;
         private readonly ZipArchive archive;
         private readonly Camera Camera = new();
         private Task loading;
-
+        private ConstantBuffer<Matrix4x4> cbuffer;
+        protected ShaderHandle<Vector3> shader;
+        private Buffer<Vector3> vertexBuffer;
+        private Buffer<uint> indexBuffer;
+        private ComPtr<ID3D11Texture2D> albedo;
+        private ComPtr<ID3D11ShaderResourceView> albedoResourceView;
+        private ComPtr<ID3D11SamplerState> textureSampler;
         private static readonly Size BakeSize = new(8192, 8192);
         private static readonly Size TextureSize = new(8128, 5764);
-        private static readonly Size MapSize = new(8192, 8192);
-        private int skip = 32;
-        private int[,] colorMap;
-        private float[,] heightMap;
-        private int[,] normalMap;
 
-        public FlyBy(Display display, ControlChangeTracker controlChangeTracker, Program.Options options, IServiceProvider serviceProvider, ILogger<FlyBy> logger)
+        public FlyBy([FromKeyedServices("Direct3D")] IWindow display, ControlChangeTracker controlChangeTracker, Program.Options options, IServiceProvider serviceProvider, ILogger<FlyBy> logger)
             : base(display)
         {
             this.display = display;
@@ -40,14 +47,93 @@ namespace RenderLoop.Demo.MiddleEarth
             this.archive = serviceProvider.GetRequiredKeyedService<ZipArchive>(options.File);
         }
 
-        protected override void Initialize()
+        protected override unsafe void Initialize()
         {
-            Bitmap Resize(Image image, Size size) => new Bitmap(image, size);
-            T[,] Remap<T>(Bitmap bitmap, Func<int, int, int, T> getValue)
+            this.dx = new DxWindow(this.display, CreateDeviceFlag.Debug, this.logger);
+
+            this.cbuffer = new ConstantBuffer<Matrix4x4>(this.dx.Device, Matrix4x4.Identity);
+            this.cbuffer.Bind(this.dx.DeviceContext);
+
+            this.shader = new ShaderHandle<Vector3>(
+                this.dx.Device,
+                [
+                    ("POS", 0, Format.FormatR32G32B32Float),
+                ],
+                "vs_main",
+                "ps_main",
+                () => """
+                    #pragma pack_matrix(row_major)
+                    Texture2D albedo: register(t0);
+
+                    SamplerState AlbedoSampler
+                    {
+                        Filter = MIN_MAG_MIP_LINEAR;
+                        AddressU = Border;
+                        AddressV = Border;
+                    };
+
+                    cbuffer camera : register(b0)
+                    {
+                        float4x4 camera_matrix;
+                    };
+
+                    struct vs_in {
+                        float3 position : POS;
+                    };
+
+                    struct vs_out {
+                        float4 position_clip : SV_POSITION;
+                        float2 textureCoords : TEXCOORD0;
+                    };
+
+                    vs_out vs_main(vs_in input) {
+                        vs_out output;
+                        output.position_clip = mul(float4(input.position, 1.0), camera_matrix);
+                        float2 tx = float2(input.position.x, input.position.y * 8128.0 / 5764) / 8192;
+                        output.textureCoords = float2(1 - tx.x, tx.y + (1 - 8128.0 / 5764) / 2);
+                        return output;
+                    }
+
+                    float4 ps_main(vs_out input) : SV_TARGET {
+                        return albedo.Sample(AlbedoSampler, input.textureCoords);
+                    }
+                """);
+
+            // Create a sampler.
+            var samplerDesc = new SamplerDesc
             {
-                LogMessages.RemappingResource(this.logger);
-                var remapped = new T[bitmap.Width, bitmap.Height];
-                var bmp = bitmap.LockBits(new Rectangle(Point.Empty, bitmap.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                Filter = Filter.MinMagMipLinear,
+                AddressU = TextureAddressMode.Border,
+                AddressV = TextureAddressMode.Border,
+                AddressW = TextureAddressMode.Clamp,
+                MipLODBias = 0,
+                MaxAnisotropy = 1,
+                MinLOD = float.MinValue,
+                MaxLOD = float.MaxValue,
+            };
+            samplerDesc.BorderColor[0] = 1.0f;
+            samplerDesc.BorderColor[1] = 1.0f;
+            samplerDesc.BorderColor[2] = 1.0f;
+            samplerDesc.BorderColor[3] = 1.0f;
+
+            SilkMarshal.ThrowHResult(this.dx.Device.CreateSamplerState(in samplerDesc, ref this.textureSampler));
+            this.dx.DeviceContext.PSSetSamplers(0, 1, this.textureSampler);
+
+            Bitmap LoadImage(string path)
+            {
+                LogMessages.LoadingImage(this.logger, path);
+                return new(this.archive.GetEntry(path)!.Open());
+            }
+
+            this.loading = Task.Factory.StartNew(() =>
+            {
+                using var heightBmp = LoadImage("Raw_Bakes/Final Height.png");
+
+                var i = 0;
+
+                LogMessages.BuildingVertices(this.logger);
+                var vertices = new Vector3[BakeSize.Width * BakeSize.Height];
+                var bmp = heightBmp.LockBits(new Rectangle(Point.Empty, BakeSize), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 try
                 {
                     var single = new int[1];
@@ -56,36 +142,111 @@ namespace RenderLoop.Demo.MiddleEarth
                         for (var x = 0; x < bmp.Width; x++)
                         {
                             Marshal.Copy(bmp.Scan0 + y * bmp.Stride + x * sizeof(int), single, 0, single.Length);
-                            remapped[bmp.Width - 1 - x, y] = getValue(x, y, single[0]);
+                            vertices[i++] = new Vector3(bmp.Width - 1 - x, y, (single[0] & 0xFF00) >> 8);
                         }
                     }
                 }
                 finally
                 {
-                    bitmap.UnlockBits(bmp);
+                    heightBmp.UnlockBits(bmp);
                 }
 
-                LogMessages.RemappingDone(this.logger);
-                return remapped;
-            }
+                LogMessages.VerticesDone(this.logger, vertices.LongLength);
 
-            Image LoadImage(string path)
-            {
-                LogMessages.LoadingImage(this.logger, path);
-                return Image.FromStream(this.archive.GetEntry(path)!.Open());
-            }
+                uint GetIndex(int x, int y) => (uint)(y * BakeSize.Width + x);
 
-            this.loading = Task.Factory.StartNew(() =>
-            {
-                this.heightMap = Remap(Resize(LoadImage("Raw_Bakes/Final Height.png"), MapSize), (x, y, color) => Color.FromArgb(color).R / 256f * MapSize.Width / 32);
-                this.colorMap = Remap(Resize(LoadImage("Textured/ME_Terrain_albedo.png"), MapSize), (x, y, color) => color);
-                this.normalMap = Remap(Resize(LoadImage("Raw_Bakes/Normal Map.png"), MapSize), (x, y, color) => color);
+                i = 0;
+
+                LogMessages.BuildingIndices(this.logger);
+                var indices = new uint[(BakeSize.Width - 1) * (BakeSize.Height - 1) * 6];
+                for (var y = 0; y < BakeSize.Height - 1; y++)
+                {
+                    var topLeft = GetIndex(0, y);
+                    var bottomLeft = GetIndex(0, y + 1);
+
+                    for (var x = 1; x < BakeSize.Width; x++)
+                    {
+                        var topRight = GetIndex(x, y);
+                        var bottomRight = GetIndex(x, y + 1);
+
+                        indices[i++] = topLeft;
+                        indices[i++] = topRight;
+                        indices[i++] = bottomLeft;
+                        indices[i++] = topRight;
+                        indices[i++] = bottomRight;
+                        indices[i++] = bottomLeft;
+
+                        topLeft = topRight;
+                        bottomLeft = bottomRight;
+                    }
+                }
+
+                LogMessages.IndicesDone(this.logger, indices.LongLength);
+
+                this.vertexBuffer = new Buffer<Vector3>(this.dx.Device, vertices, BindFlag.VertexBuffer);
+                this.indexBuffer = new Buffer<uint>(this.dx.Device, indices, BindFlag.IndexBuffer);
+
+                using var albedoBmp = LoadImage("Textured/ME_Terrain_albedo.png");
+
+                LogMessages.InstallingTexture(this.logger);
+                bmp = albedoBmp.LockBits(new Rectangle(Point.Empty, albedoBmp.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    var textureDesc = new Texture2DDesc
+                    {
+                        Width = (uint)bmp.Width,
+                        Height = (uint)bmp.Height,
+                        Format = Format.FormatB8G8R8A8Unorm,
+                        MipLevels = 1,
+                        BindFlags = (uint)BindFlag.ShaderResource,
+                        Usage = Usage.Default,
+                        CPUAccessFlags = 0,
+                        MiscFlags = (uint)ResourceMiscFlag.None,
+                        SampleDesc = new SampleDesc(1, 0),
+                        ArraySize = 1,
+                    };
+
+                    SilkMarshal.ThrowHResult(this.dx.Device.CreateTexture2D(in textureDesc, Unsafe.NullRef<SubresourceData>(), ref this.albedo));
+
+                    var subresourceData = new SubresourceData
+                    {
+                        PSysMem = (void*)bmp.Scan0,
+                        SysMemPitch = (uint)bmp.Stride,
+                        SysMemSlicePitch = (uint)(bmp.Stride * bmp.Height),
+                    };
+
+                    SilkMarshal.ThrowHResult(this.dx.Device.CreateTexture2D(in textureDesc, in subresourceData, ref this.albedo));
+
+                    var srvDesc = new ShaderResourceViewDesc
+                    {
+                        Format = textureDesc.Format,
+                        ViewDimension = D3DSrvDimension.D3DSrvDimensionTexture2D,
+                        Anonymous = new ShaderResourceViewDescUnion
+                        {
+                            Texture2D =
+                            {
+                                MostDetailedMip = 0,
+                                MipLevels = 1,
+                            },
+                        },
+                    };
+
+                    SilkMarshal.ThrowHResult(this.dx.Device.CreateShaderResourceView(this.albedo, in srvDesc, ref this.albedoResourceView));
+
+                    this.dx.DeviceContext.PSSetShaderResources(0, 1, ref this.albedoResourceView);
+                }
+                finally
+                {
+                    albedoBmp.UnlockBits(bmp);
+                }
+
+                LogMessages.LoadComplete(this.logger);
             });
 
-            this.Camera.Position = new Vector3(MapSize.Width / 2, MapSize.Height, MapSize.Width / 4);
+            this.Camera.Position = new Vector3(BakeSize.Width / 4, 2 * BakeSize.Height / 3, BakeSize.Width / 12);
             this.Camera.Up = new Vector3(0, 0, 1);
-            this.Camera.Direction = new Vector3(MapSize.Width / 2, 0, 0) - this.Camera.Position;
-            this.Camera.FarPlane = 1024;
+            this.Camera.Direction = new Vector3(BakeSize.Width / 2, 0, 0) - this.Camera.Position;
+            this.Camera.FarPlane = Math.Max(BakeSize.Width, BakeSize.Height);
         }
 
         protected sealed override void AdvanceFrame(TimeSpan elapsed)
@@ -108,13 +269,6 @@ namespace RenderLoop.Demo.MiddleEarth
                 [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", v => (v - 0.5) * 2)],
                 v => right -= v);
 
-            bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 4")],
-                v => this.skip = Math.Max(this.skip / 2, 1));
-            bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 5")],
-                v => this.skip = Math.Min(this.skip * 2, MapSize.Width / 2));
-
             this.controlChangeTracker.ProcessChanges(bindings);
 
             var moveLength = moveVector.Length();
@@ -125,7 +279,7 @@ namespace RenderLoop.Demo.MiddleEarth
                     : (moveLength - 0.1f) / (0.9f * moveLength);
 
                 moveVector *= scale;
-                this.Camera.Position += (this.Camera.Right * moveVector.X - this.Camera.Direction * moveVector.Y) * (float)(elapsed.TotalSeconds * MapSize.Width / 10);
+                this.Camera.Position += (this.Camera.Right * moveVector.X - this.Camera.Direction * moveVector.Y) * (float)(elapsed.TotalSeconds * BakeSize.Width / 10);
             }
 
             if (Math.Abs(right) > 0.1)
@@ -151,91 +305,44 @@ namespace RenderLoop.Demo.MiddleEarth
 
         protected override void DrawScene(TimeSpan elapsed)
         {
-            this.display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
+            var debugPoints = new Vector3[]
             {
-                this.Camera.Width = buffer.Width;
-                this.Camera.Height = buffer.Height;
+                Vector3.Zero,
+                Vector3.UnitX * BakeSize.Width,
+                Vector3.UnitY * BakeSize.Height,
+                Vector3.UnitX * BakeSize.Width + Vector3.UnitY * BakeSize.Height,
+            };
 
-                if (this.heightMap != null)
+            this.dx.PaintFrame(() =>
+            {
+                this.Camera.Width = this.display.FramebufferSize.X;
+                this.Camera.Height = this.display.FramebufferSize.Y;
+
+                var transformed = Array.ConvertAll(debugPoints, this.Camera.TransformToClipSpace);
+
+                this.cbuffer.Update(this.dx.DeviceContext, this.Camera.Matrix);
+
+                if (this.vertexBuffer != null && this.indexBuffer != null)
                 {
-                    var w = this.heightMap.GetLength(0);
-                    var h = this.heightMap.GetLength(1);
-
-                    var white = Color.White.ToArgb();
-                    Func<int, int, int> getColor;
-                    if (this.colorMap != null)
-                    {
-                        var tw = this.colorMap.GetLength(0);
-                        var th = this.colorMap.GetLength(1);
-                        var q = (TextureSize.Width - TextureSize.Height) / 2f * tw / TextureSize.Height;
-                        var sx = (double)tw / w;
-                        var sy = (double)th * TextureSize.Width / (h * TextureSize.Height);
-
-                        getColor = (x, y) =>
-                        {
-                            var tx = (int)(x * sx);
-                            var ty = (int)(y * sy - q);
-                            if (tx >= 0 && tx < tw &&
-                                ty >= 0 && ty < th)
-                            {
-                                return this.colorMap[tx, ty];
-                            }
-
-                            return white;
-                        };
-                    }
-                    else
-                    {
-                        getColor = (_, _) => white;
-                    }
-
-                    Vector3 GetPoint(int x, int y) => new(x, y, this.heightMap[x, y]);
-
-                    var bitmapData = buffer.LockBits(new Rectangle(Point.Empty, buffer.Size), ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb);
-
-                    for (var y = 0; y < h - this.skip; y += this.skip)
-                    {
-                        var topLeft = this.Camera.TransformToScreenSpace(GetPoint(0, y));
-                        var bottomLeft = this.Camera.TransformToScreenSpace(GetPoint(0, y + this.skip));
-                        for (var x = this.skip; x < w; x += this.skip)
-                        {
-                            var topRight = this.Camera.TransformToScreenSpace(GetPoint(x, y));
-                            var bottomRight = this.Camera.TransformToScreenSpace(GetPoint(x, y + this.skip));
-
-                            var c = getColor(x - this.skip, y);
-                            Display.FillTriangle(bitmapData, depthBuffer, [topLeft, topRight, bottomLeft], BackfaceCulling.None, _ => c);
-                            Display.FillTriangle(bitmapData, depthBuffer, [topRight, bottomRight, bottomLeft], BackfaceCulling.None, _ => c);
-
-                            topLeft = topRight;
-                            bottomLeft = bottomRight;
-                        }
-                    }
-
-                    buffer.UnlockBits(bitmapData);
-                }
-
-                using (var textBrush = new SolidBrush(this.display.ForeColor))
-                {
-                    var status = this.loading.Status;
-                    switch (status)
-                    {
-                        case TaskStatus.RanToCompletion:
-                            break;
-
-                        default:
-                            var statusText = status switch
-                            {
-                                TaskStatus.Running => "Loading...",
-                                TaskStatus.Faulted => this.loading.Exception.Message,
-                                _ => status.ToString(),
-                            };
-
-                            g.DrawString(statusText, this.display.Font, textBrush, PointF.Empty);
-
-                            break;
-                    }
+                    this.dx.DrawTriangles(this.vertexBuffer, this.indexBuffer, this.shader);
                 }
             });
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                this.textureSampler.Dispose();
+                this.albedoResourceView.Dispose();
+                this.albedo.Dispose();
+                this.vertexBuffer?.Dispose();
+                this.indexBuffer?.Dispose();
+                this.shader.Dispose();
+                this.dx.Dispose();
+            }
+
+            base.Dispose(disposing);
         }
 
         private static partial class LogMessages
@@ -243,11 +350,23 @@ namespace RenderLoop.Demo.MiddleEarth
             [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Loading '{ImagePath}'...")]
             public static partial void LoadingImage(ILogger logger, string imagePath);
 
-            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Remapping...")]
-            public static partial void RemappingResource(ILogger logger);
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Building vertices...")]
+            public static partial void BuildingVertices(ILogger logger);
 
-            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Done.")]
-            public static partial void RemappingDone(ILogger logger);
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Building indices...")]
+            public static partial void BuildingIndices(ILogger logger);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Done. ({Vertices} vertices)")]
+            public static partial void VerticesDone(ILogger logger, long vertices);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Done. ({Indices} indices)")]
+            public static partial void IndicesDone(ILogger logger, long indices);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Installing texture...")]
+            public static partial void InstallingTexture(ILogger logger);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Load Complete.")]
+            public static partial void LoadComplete(ILogger logger);
         }
     }
 }
