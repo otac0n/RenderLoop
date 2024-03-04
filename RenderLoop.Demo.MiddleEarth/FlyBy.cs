@@ -271,20 +271,18 @@ namespace RenderLoop.Demo.MiddleEarth
 
             this.controlChangeTracker.ProcessChanges(bindings);
 
-            var moveLength = moveVector.Length();
-            if (moveLength > 0.1)
+            var moveScale = InputShapes.ShapeDeadZone(moveVector.Length(), 0.1f, 1.0f);
+            moveVector *= moveScale;
+            if (moveVector != Vector2.Zero)
             {
-                var scale = moveLength >= 1
-                    ? 1f / moveLength
-                    : (moveLength - 0.1f) / (0.9f * moveLength);
-
-                moveVector *= scale;
                 this.Camera.Position += (this.Camera.Right * moveVector.X - this.Camera.Direction * moveVector.Y) * (float)(elapsed.TotalSeconds * BakeSize.Width / 10);
             }
 
-            if (Math.Abs(right) > 0.1)
+            var xyScale = InputShapes.ShapeDeadZone(right, 0.1f, 1.0f);
+            right *= xyScale;
+            if (right != 0)
             {
-                right *= elapsed.TotalSeconds / 10 * Math.Tau;
+                right *= elapsed.TotalSeconds / 3 * Math.Tau;
 
                 var (sin, cos) = Math.SinCos(right);
                 var v = this.Camera.Direction;
@@ -292,9 +290,11 @@ namespace RenderLoop.Demo.MiddleEarth
                 this.Camera.Direction = v * (float)cos + Vector3.Cross(k, v) * (float)sin + k * Vector3.Dot(k, v) * (float)(1 - cos);
             }
 
-            if (Math.Abs(up) > 0.1)
+            var zScale = InputShapes.ShapeDeadZone(up, 0.1f, 1.0f);
+            up *= zScale;
+            if (up != 0)
             {
-                up *= elapsed.TotalSeconds / 10 * Math.Tau;
+                up *= elapsed.TotalSeconds / 3 * Math.Tau;
 
                 var (sin, cos) = Math.SinCos(up);
                 var v = this.Camera.Direction;
