@@ -304,20 +304,10 @@ namespace RenderLoop.Demo.MiddleEarth
 
         protected override void DrawScene(TimeSpan elapsed)
         {
-            var debugPoints = new Vector3[]
-            {
-                Vector3.Zero,
-                Vector3.UnitX * BakeSize.Width,
-                Vector3.UnitY * BakeSize.Height,
-                Vector3.UnitX * BakeSize.Width + Vector3.UnitY * BakeSize.Height,
-            };
-
             this.dx.PaintFrame(() =>
             {
                 this.Camera.Width = this.display.FramebufferSize.X;
                 this.Camera.Height = this.display.FramebufferSize.Y;
-
-                var transformed = Array.ConvertAll(debugPoints, this.Camera.TransformToClipSpace);
 
                 this.cbuffer.Update(this.dx.DeviceContext, this.Camera.Matrix);
 
