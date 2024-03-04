@@ -45,6 +45,11 @@ namespace RenderLoop.Demo.MiddleEarth
             this.controlChangeTracker = controlChangeTracker;
             this.logger = logger;
             this.archive = serviceProvider.GetRequiredKeyedService<ZipArchive>(options.File);
+            this.display.FramebufferResize += newSize =>
+            {
+                this.Camera.Width = newSize.X;
+                this.Camera.Height = newSize.Y;
+            };
         }
 
         protected override unsafe void Initialize()
@@ -306,9 +311,6 @@ namespace RenderLoop.Demo.MiddleEarth
         {
             this.dx.PaintFrame(() =>
             {
-                this.Camera.Width = this.display.FramebufferSize.X;
-                this.Camera.Height = this.display.FramebufferSize.Y;
-
                 this.cbuffer.Update(this.dx.DeviceContext, this.Camera.Matrix);
 
                 if (this.vertexBuffer != null && this.indexBuffer != null)
