@@ -42,17 +42,17 @@ namespace RenderLoop
 
         public GameLoop(Display display)
         {
-            void FrameTimer_FirstTick(object? sender, EventArgs e)
+            void FirstTick()
             {
                 this.Initialize();
                 var now = Stopwatch.GetTimestamp();
                 this.timestamp = now;
-                display.FrameTimer.Tick -= FrameTimer_FirstTick;
-                display.FrameTimer.Tick += FrameTimer_Tick;
+                display.Tick -= FirstTick;
+                display.Tick += Tick;
                 this.Tick(TimeSpan.Zero);
             }
 
-            void FrameTimer_Tick(object? sender, EventArgs e)
+            void Tick()
             {
                 var now = Stopwatch.GetTimestamp();
                 var elapsed = Stopwatch.GetElapsedTime(this.timestamp, now);
@@ -60,7 +60,7 @@ namespace RenderLoop
                 this.Tick(elapsed);
             }
 
-            display.FrameTimer.Tick += FrameTimer_FirstTick;
+            display.Tick += FirstTick;
 
             this.run = (CancellationToken cancel) =>
             {

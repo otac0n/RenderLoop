@@ -8,23 +8,62 @@ namespace RenderLoop.SoftwareRenderer
 
     public sealed partial class Display : Form
     {
+        private static int ToPaint;
+
         private Bitmap buffer;
         private float[,] depthBuffer;
         private double fps;
         private bool sizeValid;
 
+        static Display()
+        {
+            Application.Idle += Application_Idle;
+        }
+
         public Display()
         {
             this.InitializeComponent();
+            Idle += this.Display_Idle;
         }
+
+        private static event Action Idle;
+
+        public event Action Tick;
 
         public bool ShowFps { get; set; } = true;
 
+        private static void Application_Idle(object? sender, EventArgs e)
+        {
+            var toPaint = Interlocked.Exchange(ref ToPaint, 0);
+
+            Idle?.Invoke();
+        }
+
+        private void Display_Idle() => this.Tick?.Invoke();
+
+        protected override void OnClosed(EventArgs e)
+        {
+            Idle -= this.Display_Idle;
+            base.OnClosed(e);
+        }
+
         protected override void OnPaint(PaintEventArgs e)
         {
+            if (ToPaint <= 0)
+            {
+                return;
+            }
+
             if (this.buffer != null)
             {
                 e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
+            }
+
+            var toPaint = Interlocked.Decrement(ref ToPaint);
+            if (toPaint <= 0)
+            {
+                ToPaint = 0;
+                Idle?.Invoke();
             }
         }
 
@@ -76,6 +115,7 @@ namespace RenderLoop.SoftwareRenderer
                 this.DrawFps(g, this.buffer);
             }
 
+            var toPaint = Interlocked.Increment(ref ToPaint);
             this.Invalidate();
         }
 

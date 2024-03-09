@@ -28,14 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.FrameTimer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
-            // 
-            // FrameTimer
-            // 
-            this.FrameTimer.Enabled = true;
-            this.FrameTimer.Interval = 15;
             // 
             // Display
             // 
@@ -52,7 +45,5 @@
         }
 
         #endregion
-
-        public System.Windows.Forms.Timer FrameTimer;
     }
 }

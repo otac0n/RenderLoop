@@ -26,7 +26,7 @@ namespace RenderLoop.Demo
             location.Y += 100;
             this.display2.StartPosition = FormStartPosition.Manual;
             this.display2.Location = location;
-            this.display2.Show(this.display);
+            this.display2.Show();
         }
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)
