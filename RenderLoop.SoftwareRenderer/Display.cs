@@ -28,6 +28,10 @@ namespace RenderLoop.SoftwareRenderer
             }
         }
 
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+        }
+
         private void DrawFps(Graphics g, Bitmap buffer)
         {
             if (this.ShowFps)

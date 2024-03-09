@@ -39,14 +39,13 @@
             // 
             // Display
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.BackColor = System.Drawing.Color.Black;
-            this.ClientSize = new System.Drawing.Size(800, 450);
-            this.DoubleBuffered = true;
-            this.ForeColor = System.Drawing.Color.White;
+            this.AutoScaleDimensions = new SizeF(10F, 25F);
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.BackColor = Color.Black;
+            this.ClientSize = new Size(800, 450);
+            this.ForeColor = Color.White;
             this.Name = "Display";
-            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
+            this.StartPosition = FormStartPosition.CenterScreen;
             this.Text = "Renderer";
             this.SizeChanged += this.Renderer_SizeChanged;
             this.ResumeLayout(false);
