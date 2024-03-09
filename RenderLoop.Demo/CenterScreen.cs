@@ -52,8 +52,8 @@ namespace RenderLoop.Demo
                     foreach (var face in Shapes)
                     {
                         var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                        Display.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                            Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
+                        DynamicDraw.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
+                            DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
                     }
                 });
             }

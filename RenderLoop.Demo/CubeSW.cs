@@ -13,14 +13,14 @@ namespace RenderLoop.Demo
     {
         protected readonly Display display;
 
-        protected readonly Display.FragmentShader<(uint index, Vector2 uv)> shader;
+        protected readonly DynamicDraw.FragmentShader<(uint index, Vector2 uv)> shader;
 
         public CubeSW(Display display)
             : base(display)
         {
             this.display = display;
 
-            this.shader = Display.MakeFragmentShader<(uint index, Vector2 uv)>(
+            this.shader = DynamicDraw.MakeFragmentShader<(uint index, Vector2 uv)>(
                 x => x.uv,
                 uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
                     ? Color.White
@@ -39,8 +39,8 @@ namespace RenderLoop.Demo
                 foreach (var face in Shapes)
                 {
                     var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                    Display.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                        Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
+                    DynamicDraw.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
+                        DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
                 }
             });
         }
