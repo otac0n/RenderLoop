@@ -5,13 +5,17 @@ namespace RenderLoop.SoftwareRenderer
     using System;
     using System.Drawing;
     using System.Windows.Forms;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Abstractions;
 
     public sealed partial class Display : Form
     {
+        private static ILogger<Display> StaticLogger = new Logger<Display>(NullLoggerFactory.Instance);
         private static int ToPaint;
 
         private Bitmap buffer;
         private float[,] depthBuffer;
+        private ILogger<Display> logger;
         private double fps;
         private bool sizeValid;
 
@@ -20,8 +24,9 @@ namespace RenderLoop.SoftwareRenderer
             Application.Idle += Application_Idle;
         }
 
-        public Display()
+        public Display(ILogger<Display> logger)
         {
+            this.logger = logger;
             this.InitializeComponent();
             Idle += this.Display_Idle;
         }
@@ -34,7 +39,12 @@ namespace RenderLoop.SoftwareRenderer
 
         private static void Application_Idle(object? sender, EventArgs e)
         {
+            StaticLogger.LogInformation("Rescuing from idle...");
             var toPaint = Interlocked.Exchange(ref ToPaint, 0);
+            if (toPaint > 0)
+            {
+                StaticLogger.LogInformation("Unpainted: {ToPaint}", toPaint);
+            }
 
             Idle?.Invoke();
         }
@@ -51,18 +61,23 @@ namespace RenderLoop.SoftwareRenderer
         {
             if (ToPaint <= 0)
             {
+                logger.LogInformation("Skipping {Form}, To Paint: {ToPaint}", this.Text, ToPaint);
                 return;
             }
 
+            logger.LogInformation("Painting {Form}...", this.Text);
             if (this.buffer != null)
             {
                 e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
             }
 
             var toPaint = Interlocked.Decrement(ref ToPaint);
+            logger.LogInformation("To Paint: {ToPaint}", toPaint);
+
             if (toPaint <= 0)
             {
                 ToPaint = 0;
+                logger.LogInformation("Firing Idle Handler...");
                 Idle?.Invoke();
             }
         }
@@ -116,6 +131,7 @@ namespace RenderLoop.SoftwareRenderer
             }
 
             var toPaint = Interlocked.Increment(ref ToPaint);
+            logger.LogInformation("Invalidating {Form}, To Paint: {ToPaint}", this.Text, toPaint);
             this.Invalidate();
         }
 

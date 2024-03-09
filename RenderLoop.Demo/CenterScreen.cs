@@ -6,17 +6,22 @@ namespace RenderLoop.Demo
     using System.Drawing;
     using System.Linq;
     using System.Windows.Forms;
+    using Microsoft.Extensions.Logging;
     using RenderLoop.SoftwareRenderer;
     using static Geometry;
 
     internal class CenterScreen : CubeSW
     {
         private readonly Display display2;
+        private ILogger<CenterScreen> logger;
 
-        public CenterScreen(Display display1, Display display2)
+        public CenterScreen(Display display1, Display display2, ILogger<CenterScreen> logger)
             : base(display1)
         {
             this.display2 = display2;
+            display1.Text = "Display 1";
+            display2.Text = "Display 2";
+            this.logger = logger;
         }
 
         protected override void Initialize()
@@ -31,10 +36,12 @@ namespace RenderLoop.Demo
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)
         {
+            this.logger.LogInformation("Rendering Scene...");
             foreach (var display in new[] { this.display, this.display2 }.Where(d => !d.IsDisposed))
             {
                 display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
                 {
+                    this.logger.LogInformation("Rendering {Display}", display.Text);
                     var screen = Screen.FromControl(display);
                     this.Camera.Width = screen.Bounds.Width;
                     this.Camera.Height = screen.Bounds.Height;
