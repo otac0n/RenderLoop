@@ -3,7 +3,6 @@
 namespace RenderLoop
 {
     using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.SoftwareRenderer;
     using Silk.NET.Windowing;
 
     public class ServiceRegistration
@@ -12,7 +11,7 @@ namespace RenderLoop
         {
             services.AddTransient(_ => Window.Create(WindowOptions.Default));
             services.AddKeyedTransient("Direct3D", (_, _) => Window.Create(WindowOptions.Default with { API = GraphicsAPI.None }));
-            services.AddTransient<Display>();
+            SoftwareRenderer.ServiceRegistration.Register(services);
             Input.ServiceRegistration.Register(services);
         }
     }
