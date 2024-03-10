@@ -15,16 +15,22 @@ namespace RenderLoop.Demo
 
         protected readonly DynamicDraw.FragmentShader<(uint index, Vector2 uv)> shader;
 
-        public CubeSW(Display display)
-            : base(display)
+        public CubeSW(CooperativeIdleApplicationContext context)
+            : base(context)
         {
-            this.display = display;
+            this.display = context.CreateDisplay();
 
             this.shader = DynamicDraw.MakeFragmentShader<(uint index, Vector2 uv)>(
                 x => x.uv,
                 uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
                     ? Color.White
                     : Color.Gray);
+        }
+
+        protected override void Initialize()
+        {
+            base.Initialize();
+            this.display.Show();
         }
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)

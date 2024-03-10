@@ -8,48 +8,43 @@ namespace RenderLoop.SoftwareRenderer
 
     public sealed partial class Display : Form
     {
-        private static int ToPaint;
+        private CooperativeIdleApplicationContext? cooperativeIdleContext;
 
         private Bitmap buffer;
         private float[,] depthBuffer;
         private double fps;
         private bool sizeValid;
 
-        static Display()
-        {
-            Application.Idle += Application_Idle;
-        }
-
         public Display()
         {
             this.InitializeComponent();
-            Idle += this.Display_Idle;
         }
-
-        private static event Action Idle;
-
-        public event Action Tick;
 
         public bool ShowFps { get; set; } = true;
 
-        private static void Application_Idle(object? sender, EventArgs e)
+        public CooperativeIdleApplicationContext? CooperativeIdleContext
         {
-            var toPaint = Interlocked.Exchange(ref ToPaint, 0);
-
-            Idle?.Invoke();
+            get => this.cooperativeIdleContext;
+            set
+            {
+                if (this.cooperativeIdleContext != value)
+                {
+                    this.cooperativeIdleContext?.RemoveDisplay(this);
+                    this.cooperativeIdleContext = value;
+                    this.cooperativeIdleContext?.AddDisplay(this);
+                }
+            }
         }
-
-        private void Display_Idle() => this.Tick?.Invoke();
 
         protected override void OnClosed(EventArgs e)
         {
-            Idle -= this.Display_Idle;
             base.OnClosed(e);
+            this.CooperativeIdleContext = null;
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            if (ToPaint <= 0)
+            if (this.CooperativeIdleContext?.PendingOperations <= 0)
             {
                 return;
             }
@@ -59,12 +54,7 @@ namespace RenderLoop.SoftwareRenderer
                 e.Graphics.DrawImageUnscaled(this.buffer, Point.Empty);
             }
 
-            var toPaint = Interlocked.Decrement(ref ToPaint);
-            if (toPaint <= 0)
-            {
-                ToPaint = 0;
-                Idle?.Invoke();
-            }
+            this.CooperativeIdleContext?.CompleteOperation();
         }
 
         protected override void OnPaintBackground(PaintEventArgs e)
@@ -115,7 +105,7 @@ namespace RenderLoop.SoftwareRenderer
                 this.DrawFps(g, this.buffer);
             }
 
-            var toPaint = Interlocked.Increment(ref ToPaint);
+            this.CooperativeIdleContext?.AddPendingOperation();
             this.Invalidate();
         }
 

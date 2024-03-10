@@ -8,6 +8,7 @@ namespace RenderLoop.SoftwareRenderer
     {
         public static void Register(IServiceCollection services)
         {
+            services.AddTransient<CooperativeIdleApplicationContext>();
             services.AddTransient<Display>();
         }
     }

@@ -13,14 +13,16 @@ namespace RenderLoop.Demo
     {
         private readonly Display display2;
 
-        public CenterScreen(Display display1, Display display2)
-            : base(display1)
+        public CenterScreen(CooperativeIdleApplicationContext context)
+            : base(context)
         {
-            this.display2 = display2;
+            this.display2 = context.CreateDisplay();
         }
 
         protected override void Initialize()
         {
+            base.Initialize();
+
             var location = this.display.Location;
             location.X += 100;
             location.Y += 100;
