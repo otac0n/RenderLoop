@@ -1,8 +1,7 @@
 ﻿namespace RenderLoop.SoftwareRenderer
 {
-    public class CooperativeIdleApplicationContext : ApplicationContext
+    public class CooperativeIdleApplicationContext : MultiFormApplicationContext
     {
-        private int displayCount;
         private int pendingOperations;
 
         public CooperativeIdleApplicationContext()
@@ -48,20 +47,6 @@
         {
             Interlocked.Exchange(ref this.pendingOperations, 0);
             this.Idle?.Invoke();
-        }
-
-        internal void AddDisplay(Display display)
-        {
-            Interlocked.Increment(ref this.displayCount);
-        }
-
-        internal void RemoveDisplay(Display display)
-        {
-            var remaining = Interlocked.Decrement(ref this.displayCount);
-            if (remaining <= 0)
-            {
-                this.ExitThread();
-            }
         }
     }
 }
