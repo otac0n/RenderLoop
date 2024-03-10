@@ -13,18 +13,23 @@ namespace RenderLoop.Demo
     {
         protected readonly Display display;
 
-        protected readonly DynamicDraw.FragmentShader<(uint index, Vector2 uv)> shader;
+        protected readonly (Vector3 position, Vector2 uv)[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (Vertices[i], UV[j])).ToArray());
+
+        private readonly DynamicDraw.Shader<(Vector3 position, Vector2 uv), (Vector4 position, Vector2 uv)> shader;
 
         public CubeSW(CooperativeIdleApplicationContext context)
             : base(context)
         {
             this.display = context.CreateDisplay();
 
-            this.shader = DynamicDraw.MakeFragmentShader<(uint index, Vector2 uv)>(
-                x => x.uv,
-                uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
-                    ? Color.White
-                    : Color.Gray);
+            this.shader = DynamicDraw.MakeShader<(Vector3 position, Vector2 uv), (Vector4 position, Vector2 uv)>(
+                x => (this.Camera.TransformToScreenSpace(x.position), x.uv),
+                x => x.position,
+                DynamicDraw.MakeFragmentShader<(Vector4 position, Vector2 uv)>(
+                    x => x.uv,
+                    uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
+                        ? Color.White
+                        : Color.Gray));
         }
 
         protected override void Initialize()
@@ -40,13 +45,9 @@ namespace RenderLoop.Demo
                 this.Camera.Width = buffer.Width;
                 this.Camera.Height = buffer.Height;
 
-                var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
-
-                foreach (var face in Shapes)
+                foreach (var face in shapes)
                 {
-                    var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                    DynamicDraw.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                        DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
+                    DynamicDraw.DrawStrip(buffer, depthBuffer, face, BackfaceCulling.CullCounterClockwise, this.shader);
                 }
             });
         }
