@@ -278,6 +278,19 @@ namespace RenderLoop.SoftwareRenderer
             g.DrawLine(Pens.White, p[2], p[0]);
         }
 
+        public static Shader<TData, TVertex, TFragment> MakeShader<TData, TVertex, TFragment>(TData initialData, Func<TData, TVertex, TFragment> shader, Func<TFragment, Vector4> getPosition, FragmentShader<TFragment> fragmentShader)
+        {
+            Shader<TData, TVertex, TFragment>? result = null;
+            result = new(initialData, MakeVertexShader<TVertex, TFragment>(v => shader(result!.Data, v), getPosition), fragmentShader);
+            return result;
+        }
+
+        public static Shader<TVertex, TFragment> MakeShader<TVertex, TFragment>(Converter<TVertex, TFragment> shader, Func<TFragment, Vector4> getPosition, FragmentShader<TFragment> fragmentShader) =>
+            new(MakeVertexShader(shader, getPosition), fragmentShader);
+
+        public static VertexShader<TVertex, TFragment> MakeVertexShader<TVertex, TFragment>(Converter<TVertex, TFragment> shader, Func<TFragment, Vector4> getPosition) =>
+            new(Shader: shader, GetPosition: getPosition);
+
         public static FragmentShader<TVertex> MakeFragmentShader<TVertex>(Converter<TVertex, Vector2> getTextureCoordinate, Func<Vector2, Color> shader) =>
             (vertices, perspective) => shader(MapCoordinates(perspective, Array.ConvertAll(vertices, getTextureCoordinate))).ToArgb();
 
@@ -295,6 +308,14 @@ namespace RenderLoop.SoftwareRenderer
 
         public static Vector2 MapCoordinates(Vector3 barycenter, Vector2[] coordinates) =>
             (barycenter.X * coordinates[0] + barycenter.Y * coordinates[1] + barycenter.Z * coordinates[2]) / (barycenter.X + barycenter.Y + barycenter.Z);
+
+        public static void DrawStrip<TVertex, TFragment>(Bitmap bitmap, float[,] depthBuffer, TVertex[] vertices, BackfaceCulling culling, Shader<TVertex, TFragment> shader)
+        {
+            var (vx, pos) = shader.VertexShader;
+            var transformed = Array.ConvertAll(vertices, vx);
+            DrawStrip(transformed, pos, (v, vs) =>
+                FillTriangle(bitmap, depthBuffer, vs, culling, perspective => shader.FragmentShader(v, perspective)));
+        }
 
         public static void FillTriangle(Bitmap bitmap, float[,] depthBuffer, Vector4[] vertices, BackfaceCulling culling, Func<Vector3, int> getArgb)
         {
@@ -541,6 +562,21 @@ namespace RenderLoop.SoftwareRenderer
                     Marshal.Copy(colorData, 0, scan + sizeof(int) * startX, xLen);
                 }
             }
+        }
+
+        public record struct VertexShader<TVertex, TFragment>(Converter<TVertex, TFragment> Shader, Func<TFragment, Vector4> GetPosition);
+
+        public record class Shader<TVertex, TFragment>(VertexShader<TVertex, TFragment> VertexShader, FragmentShader<TFragment> FragmentShader);
+
+        public record class Shader<TData, TVertex, TFragment> : Shader<TVertex, TFragment>
+        {
+            public Shader(TData initialData, VertexShader<TVertex, TFragment> vertexShader, FragmentShader<TFragment> fragmentShader)
+                : base(vertexShader, fragmentShader)
+            {
+                this.Data = initialData;
+            }
+
+            public TData Data { get; set; }
         }
     }
 }
