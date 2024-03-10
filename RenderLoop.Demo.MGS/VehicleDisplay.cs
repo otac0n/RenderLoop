@@ -515,7 +515,7 @@ namespace RenderLoop.Demo.MGS
         protected override void DrawScene(TimeSpan elapsed)
         {
             Bitmap? texture = null;
-            var shader = Display.MakeFragmentShader<(uint index, Vector2 uv)>(
+            var shader = DynamicDraw.MakeFragmentShader<(uint index, Vector2 uv)>(
                 x => x.uv,
                 uv =>
                 {
@@ -553,8 +553,8 @@ namespace RenderLoop.Demo.MGS
                             this.textureLookup.TryGetValue(face.TextureId, out texture);
 
                             var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
-                            Display.DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
-                                Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective => shader(v, perspective)));
+                            DynamicDraw.DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
+                                DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective => shader(v, perspective)));
                         }
                     }
                 }

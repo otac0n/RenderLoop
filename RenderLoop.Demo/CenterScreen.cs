@@ -13,20 +13,22 @@ namespace RenderLoop.Demo
     {
         private readonly Display display2;
 
-        public CenterScreen(Display display1, Display display2)
-            : base(display1)
+        public CenterScreen(CooperativeIdleApplicationContext context)
+            : base(context)
         {
-            this.display2 = display2;
+            this.display2 = context.CreateDisplay();
         }
 
         protected override void Initialize()
         {
+            base.Initialize();
+
             var location = this.display.Location;
             location.X += 100;
             location.Y += 100;
             this.display2.StartPosition = FormStartPosition.Manual;
             this.display2.Location = location;
-            this.display2.Show(this.display);
+            this.display2.Show();
         }
 
         protected override void DrawScene(AppState state, TimeSpan elapsed)
@@ -52,8 +54,8 @@ namespace RenderLoop.Demo
                     foreach (var face in Shapes)
                     {
                         var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                        Display.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                            Display.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
+                        DynamicDraw.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
+                            DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
                     }
                 });
             }

@@ -16,6 +16,12 @@ namespace RenderLoop
             this.state = initialState;
         }
 
+        public GameLoop(CooperativeIdleApplicationContext context, TState initialState)
+            : base(context)
+        {
+            this.state = initialState;
+        }
+
         public GameLoop(Display display, TState initialState)
             : base(display)
         {

@@ -41,18 +41,31 @@ namespace RenderLoop
         }
 
         public GameLoop(Display display)
+            : this(display.CooperativeIdleContext = new CooperativeIdleApplicationContext())
         {
-            void FrameTimer_FirstTick(object? sender, EventArgs e)
+            var context = display.CooperativeIdleContext;
+            var run = this.run;
+            this.run = cancel =>
+            {
+                display.Show();
+                run(cancel);
+                context.Dispose();
+            };
+        }
+
+        protected GameLoop(CooperativeIdleApplicationContext context)
+        {
+            void FirstTick()
             {
                 this.Initialize();
                 var now = Stopwatch.GetTimestamp();
                 this.timestamp = now;
-                display.FrameTimer.Tick -= FrameTimer_FirstTick;
-                display.FrameTimer.Tick += FrameTimer_Tick;
+                context.Idle -= FirstTick;
+                context.Idle += Tick;
                 this.Tick(TimeSpan.Zero);
             }
 
-            void FrameTimer_Tick(object? sender, EventArgs e)
+            void Tick()
             {
                 var now = Stopwatch.GetTimestamp();
                 var elapsed = Stopwatch.GetElapsedTime(this.timestamp, now);
@@ -60,11 +73,10 @@ namespace RenderLoop
                 this.Tick(elapsed);
             }
 
-            display.FrameTimer.Tick += FrameTimer_FirstTick;
+            context.Idle += FirstTick;
 
             this.run = (CancellationToken cancel) =>
             {
-                var context = new ApplicationContext(display);
                 cancel.Register(context.ExitThread);
                 Application.Run(context);
             };

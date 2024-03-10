@@ -13,6 +13,8 @@ namespace RenderLoop.Demo
 
         protected CameraSpinner(IWindow window) : base(window, new AppState(0)) { }
 
+        protected CameraSpinner(CooperativeIdleApplicationContext context) : base(context, new AppState(0)) { }
+
         protected CameraSpinner(Display display) : base(display, new AppState(0)) { }
 
         protected Camera Camera { get; } = new();
