@@ -5,28 +5,29 @@ namespace RenderLoop.Demo
     using System;
     using System.Drawing;
     using System.Linq;
-    using System.Numerics;
     using RenderLoop.SoftwareRenderer;
     using static Geometry;
+    using Fragment = (System.Numerics.Vector4 Position, System.Numerics.Vector2 UV);
+    using Vertex = (System.Numerics.Vector3 Position, System.Numerics.Vector2 UV);
 
     internal class CubeSW : CameraSpinner
     {
         protected readonly Display display;
 
-        protected readonly (Vector3 position, Vector2 uv)[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (Vertices[i], UV[j])).ToArray());
+        protected readonly Vertex[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (Vertices[i], UV[j])).ToArray());
 
-        private readonly DynamicDraw.Shader<(Vector3 position, Vector2 uv), (Vector4 position, Vector2 uv)> shader;
+        private readonly DynamicDraw.Shader<Vertex, Fragment> shader;
 
         public CubeSW(CooperativeIdleApplicationContext context)
             : base(context)
         {
             this.display = context.CreateDisplay();
 
-            this.shader = DynamicDraw.MakeShader<(Vector3 position, Vector2 uv), (Vector4 position, Vector2 uv)>(
-                x => (this.Camera.TransformToScreenSpace(x.position), x.uv),
-                x => x.position,
-                DynamicDraw.MakeFragmentShader<(Vector4 position, Vector2 uv)>(
-                    x => x.uv,
+            this.shader = DynamicDraw.MakeShader<Vertex, Fragment>(
+                x => (this.Camera.TransformToScreenSpace(x.Position), x.UV),
+                x => x.Position,
+                DynamicDraw.MakeFragmentShader<Fragment>(
+                    x => x.UV,
                     uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
                         ? Color.White
                         : Color.Gray));
@@ -45,7 +46,7 @@ namespace RenderLoop.Demo
                 this.Camera.Width = buffer.Width;
                 this.Camera.Height = buffer.Height;
 
-                foreach (var face in shapes)
+                foreach (var face in this.shapes)
                 {
                     DynamicDraw.DrawStrip(buffer, depthBuffer, face, BackfaceCulling.CullCounterClockwise, this.shader);
                 }
