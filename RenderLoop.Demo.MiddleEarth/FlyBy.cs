@@ -6,10 +6,12 @@ namespace RenderLoop.Demo.MiddleEarth
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO.Compression;
+    using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
+    using DevDecoder.HIDDevices.Usages;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using RenderLoop.Input;
@@ -286,16 +288,16 @@ namespace RenderLoop.Demo.MiddleEarth
             var bindings = new Bindings<Action<float>>();
 
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.X), InputShapes.Signed)],
                 v => moveVector.X += v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Y), InputShapes.Signed)],
                 v => moveVector.Y += v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Ry), InputShapes.Signed)],
                 v => up -= v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Rx), InputShapes.Signed)],
                 v => right -= v);
 
             this.controlChangeTracker.ProcessChanges(bindings);
