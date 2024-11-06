@@ -9,8 +9,8 @@
   <ItemGroup>
     <PackageReference Include="HIDDevices" Version="4.0.2" />
     <PackageReference Include="HIDDevices.Usages" Version="4.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.2" />
     <PackageReference Include="Whisk" Version="0.5.0-alpha0001" />
   </ItemGroup>
   <ItemGroup>
