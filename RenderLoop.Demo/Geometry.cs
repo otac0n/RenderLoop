@@ -7,10 +7,10 @@ namespace RenderLoop.Demo
     public static class Geometry
     {
         /// <remarks>
-        /// 0 -- 1<br/>
+        /// 0 -- 2<br/>
         /// |  / |<br/>
         /// | /  |<br/>
-        /// 2 -- 3
+        /// 1 -- 3
         /// </remarks>
         public static readonly Vector2[] UV = [
             new(0, 0),
@@ -31,7 +31,7 @@ namespace RenderLoop.Demo
         ];
 
         /// <remarks>
-        /// Same order as <see cref="UV"/>
+        /// Same order as <see cref="UV"/>.
         /// </remarks>
         public static readonly uint[][] Shapes = [
             [0, 1, 3, 2], // TOP
