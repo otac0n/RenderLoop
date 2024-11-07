@@ -5,26 +5,32 @@ namespace RenderLoop.Demo
     using System;
     using System.Drawing;
     using System.Linq;
-    using System.Numerics;
     using RenderLoop.SoftwareRenderer;
     using static Geometry;
+    using Fragment = (System.Numerics.Vector4 Position, System.Numerics.Vector2 UV);
+    using Vertex = (System.Numerics.Vector3 Position, System.Numerics.Vector2 UV);
 
     internal class CubeSW : CameraSpinner
     {
         protected readonly Display display;
 
-        protected readonly DynamicDraw.FragmentShader<(uint index, Vector2 uv)> shader;
+        protected readonly Vertex[][] shapes = Array.ConvertAll(Shapes, shape => shape.Select((i, j) => (Vertices[i], UV[j])).ToArray());
+
+        private readonly DynamicDraw.Shader<Vertex, Fragment> shader;
 
         public CubeSW(CooperativeIdleApplicationContext context)
             : base(context)
         {
             this.display = context.CreateDisplay();
 
-            this.shader = DynamicDraw.MakeFragmentShader<(uint index, Vector2 uv)>(
-                x => x.uv,
-                uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
-                    ? Color.White
-                    : Color.Gray);
+            this.shader = DynamicDraw.MakeShader<Vertex, Fragment>(
+                x => (this.Camera.TransformToScreenSpace(x.Position), x.UV),
+                x => x.Position,
+                DynamicDraw.MakeFragmentShader<Fragment>(
+                    x => x.UV,
+                    uv => ((int)(uv.X * 4) + (int)(uv.Y * 4)) % 2 == 0
+                        ? Color.White
+                        : Color.Gray));
         }
 
         protected override void Initialize()
@@ -40,13 +46,9 @@ namespace RenderLoop.Demo
                 this.Camera.Width = buffer.Width;
                 this.Camera.Height = buffer.Height;
 
-                var transformed = Array.ConvertAll(Vertices, this.Camera.TransformToScreenSpace);
-
-                foreach (var face in Shapes)
+                foreach (var face in this.shapes)
                 {
-                    var indices = face.Select((i, j) => (index: i, uv: UV[j])).ToArray();
-                    DynamicDraw.DrawStrip(indices, i => transformed[i.index], (v, vertices) =>
-                        DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.CullCounterClockwise, perspective => this.shader(v, perspective)));
+                    DynamicDraw.DrawStrip(buffer, depthBuffer, face, BackfaceCulling.CullCounterClockwise, this.shader);
                 }
             });
         }

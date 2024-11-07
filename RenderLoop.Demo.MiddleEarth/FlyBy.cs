@@ -6,10 +6,12 @@ namespace RenderLoop.Demo.MiddleEarth
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO.Compression;
+    using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Threading.Tasks;
+    using DevDecoder.HIDDevices.Usages;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using RenderLoop.Input;
@@ -29,8 +31,8 @@ namespace RenderLoop.Demo.MiddleEarth
         private readonly Camera Camera = new();
         private Task loading;
         private ConstantBuffer<Matrix4x4> cbuffer;
-        protected ShaderHandle<Vector3> shader;
-        private Buffer<Vector3> vertexBuffer;
+        protected ShaderHandle<(Vector3, Vector3)> shader;
+        private Buffer<(Vector3, Vector3)> vertexBuffer;
         private Buffer<uint> indexBuffer;
         private ComPtr<ID3D11Texture2D> albedo;
         private ComPtr<ID3D11ShaderResourceView> albedoResourceView;
@@ -59,10 +61,11 @@ namespace RenderLoop.Demo.MiddleEarth
             this.cbuffer = new ConstantBuffer<Matrix4x4>(this.dx.Device, Matrix4x4.Identity);
             this.cbuffer.Bind(this.dx.DeviceContext);
 
-            this.shader = new ShaderHandle<Vector3>(
+            this.shader = new ShaderHandle<(Vector3, Vector3)>(
                 this.dx.Device,
                 [
                     ("POS", 0, Format.FormatR32G32B32Float),
+                    ("NORMAL", 0, Format.FormatR32G32B32Float),
                 ],
                 "vs_main",
                 "ps_main",
@@ -84,23 +87,31 @@ namespace RenderLoop.Demo.MiddleEarth
 
                     struct vs_in {
                         float3 position : POS;
+                        float3 normal : NORMAL0;
                     };
 
                     struct vs_out {
                         float4 position_clip : SV_POSITION;
+                        float3 normal : NORMAL0;
                         float2 textureCoords : TEXCOORD0;
                     };
 
                     vs_out vs_main(vs_in input) {
                         vs_out output;
                         output.position_clip = mul(float4(input.position, 1.0), camera_matrix);
+                        output.normal = input.normal;
                         float2 tx = float2(input.position.x, input.position.y * 8128.0 / 5764) / 8192;
                         output.textureCoords = float2(1 - tx.x, tx.y + (1 - 8128.0 / 5764) / 2);
                         return output;
                     }
 
                     float4 ps_main(vs_out input) : SV_TARGET {
-                        return albedo.Sample(AlbedoSampler, input.textureCoords);
+                        float3 sun = float3(1.0, 1.0, 0.9);
+                        float3 sunDir = normalize(float3(1, 1, 1));
+                        float3 ambient = float3(0.1, 0.1, 0.2);
+                        float3 diffuse = max(dot(normalize(input.normal), sunDir), 0.0) * sun;
+                        float3 color = albedo.Sample(AlbedoSampler, input.textureCoords);
+                        return float4((ambient + diffuse) * color, 1);
                     }
                 """);
 
@@ -132,39 +143,51 @@ namespace RenderLoop.Demo.MiddleEarth
 
             this.loading = Task.Factory.StartNew(() =>
             {
-                using var heightBmp = LoadImage("Raw_Bakes/Final Height.png");
+                (Vector3 Position, Vector3 Normal)[] vertices;
 
-                var i = 0;
-
-                LogMessages.BuildingVertices(this.logger);
-                var vertices = new Vector3[BakeSize.Width * BakeSize.Height];
-                var bmp = heightBmp.LockBits(new Rectangle(Point.Empty, BakeSize), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                try
+                using (var heightBmp = LoadImage("Raw_Bakes/Final Height.png"))
+                using (var normalBmp = LoadImage("Raw_Bakes/Normal Map.png"))
                 {
-                    var single = new int[1];
-                    for (var y = 0; y < bmp.Height; y++)
+                    var i = 0;
+
+                    LogMessages.BuildingVertices(this.logger);
+                    vertices = new (Vector3, Vector3)[BakeSize.Width * BakeSize.Height];
+                    var hBmp = heightBmp.LockBits(new Rectangle(Point.Empty, BakeSize), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                    var nBmp = normalBmp.LockBits(new Rectangle(Point.Empty, BakeSize), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                    try
                     {
-                        for (var x = 0; x < bmp.Width; x++)
+                        var single = new int[1];
+                        for (var y = 0; y < hBmp.Height; y++)
                         {
-                            Marshal.Copy(bmp.Scan0 + y * bmp.Stride + x * sizeof(int), single, 0, single.Length);
-                            vertices[i++] = new Vector3(bmp.Width - 1 - x, y, (single[0] & 0xFF00) >> 8);
+                            for (var x = 0; x < hBmp.Width; x++)
+                            {
+                                Marshal.Copy(hBmp.Scan0 + y * hBmp.Stride + x * sizeof(int), single, 0, single.Length);
+                                vertices[i].Position = new Vector3(hBmp.Width - 1 - x, y, single[0] & 0xFF);
+
+                                Marshal.Copy(nBmp.Scan0 + y * nBmp.Stride + x * sizeof(int), single, 0, single.Length);
+                                vertices[i].Normal = new Vector3(
+                                    ((single[0] & 0xFF0000) >> 16) / 255.0f * 2 - 1,
+                                    ((single[0] & 0xFF00) >> 8) / 255.0f * 2 - 1,
+                                    ((single[0] & 0xFF) >> 0) / 255.0f * 2 - 1);
+
+                                i++;
+                            }
                         }
                     }
-                }
-                finally
-                {
-                    heightBmp.UnlockBits(bmp);
-                }
+                    finally
+                    {
+                        heightBmp.UnlockBits(hBmp);
+                        normalBmp.UnlockBits(nBmp);
+                    }
 
-                LogMessages.VerticesDone(this.logger, vertices.LongLength);
+                    LogMessages.VerticesDone(this.logger, vertices.LongLength);
+                }
 
                 uint GetIndex(int x, int y) => (uint)(y * BakeSize.Width + x);
 
-                i = 0;
-
                 LogMessages.BuildingIndices(this.logger);
                 var indices = new uint[(BakeSize.Width - 1) * (BakeSize.Height - 1) * 6];
-                for (var y = 0; y < BakeSize.Height - 1; y++)
+                for (int y = 0, i = 0; y < BakeSize.Height - 1; y++)
                 {
                     var topLeft = GetIndex(0, y);
                     var bottomLeft = GetIndex(0, y + 1);
@@ -188,13 +211,13 @@ namespace RenderLoop.Demo.MiddleEarth
 
                 LogMessages.IndicesDone(this.logger, indices.LongLength);
 
-                this.vertexBuffer = new Buffer<Vector3>(this.dx.Device, vertices, BindFlag.VertexBuffer);
+                this.vertexBuffer = new Buffer<(Vector3, Vector3)>(this.dx.Device, vertices, BindFlag.VertexBuffer);
                 this.indexBuffer = new Buffer<uint>(this.dx.Device, indices, BindFlag.IndexBuffer);
 
                 using var albedoBmp = LoadImage("Textured/ME_Terrain_albedo.png");
 
                 LogMessages.InstallingTexture(this.logger);
-                bmp = albedoBmp.LockBits(new Rectangle(Point.Empty, albedoBmp.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                var bmp = albedoBmp.LockBits(new Rectangle(Point.Empty, albedoBmp.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 try
                 {
                     var textureDesc = new Texture2DDesc
@@ -265,16 +288,16 @@ namespace RenderLoop.Demo.MiddleEarth
             var bindings = new Bindings<Action<float>>();
 
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.X), InputShapes.Signed)],
                 v => moveVector.X += v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Y), InputShapes.Signed)],
                 v => moveVector.Y += v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Ry), InputShapes.Signed)],
                 v => up -= v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", InputShapes.Signed)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Rx), InputShapes.Signed)],
                 v => right -= v);
 
             this.controlChangeTracker.ProcessChanges(bindings);
