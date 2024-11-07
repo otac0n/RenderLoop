@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RenderLoop.Demo", "RenderLo
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RenderLoop.Demo.MiddleEarth", "RenderLoop.Demo.MiddleEarth\RenderLoop.Demo.MiddleEarth.csproj", "{C536FB78-06D3-4F5B-84FF-B1A6D4ED38A3}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RenderLoop.Material", "RenderLoop.Material\RenderLoop.Material.csproj", "{DF209432-626D-46CD-9158-D27C6AFC3458}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RenderLoop.SilkRenderer", "RenderLoop.SilkRenderer\RenderLoop.SilkRenderer.csproj", "{C27B765D-1932-4999-81AE-D355ACD16927}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RenderLoop.SoftwareRenderer", "RenderLoop.SoftwareRenderer\RenderLoop.SoftwareRenderer.csproj", "{B534BEF3-81D9-4D85-9B3A-9A95DC191EA2}"
@@ -41,6 +43,10 @@ Global
 		{C536FB78-06D3-4F5B-84FF-B1A6D4ED38A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C536FB78-06D3-4F5B-84FF-B1A6D4ED38A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C536FB78-06D3-4F5B-84FF-B1A6D4ED38A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DF209432-626D-46CD-9158-D27C6AFC3458}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DF209432-626D-46CD-9158-D27C6AFC3458}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DF209432-626D-46CD-9158-D27C6AFC3458}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DF209432-626D-46CD-9158-D27C6AFC3458}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C27B765D-1932-4999-81AE-D355ACD16927}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C27B765D-1932-4999-81AE-D355ACD16927}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C27B765D-1932-4999-81AE-D355ACD16927}.Release|Any CPU.ActiveCfg = Release|Any CPU
