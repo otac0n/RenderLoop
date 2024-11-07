@@ -7,6 +7,7 @@ namespace RenderLoop.Demo.MGS
     using System.Drawing;
     using System.Linq;
     using System.Numerics;
+    using DevDecoder.HIDDevices.Usages;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Input;
     using RenderLoop.SoftwareRenderer;
@@ -117,27 +118,27 @@ namespace RenderLoop.Demo.MGS
 
             var bindings = new Bindings<Action<double>>();
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "X", v => (v - 0.5) * 2)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.X), v => (v - 0.5) * 2)],
                 v => moveVector.X += (float)v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Y", v => (v - 0.5) * 2)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Y), v => (v - 0.5) * 2)],
                 v => moveVector.Y += (float)v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Ry", v => (v - 0.5) * 2)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Ry), v => (v - 0.5) * 2)],
                 v => up -= v);
             bindings.BindCurrent(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Rx", v => (v - 0.5) * 2)],
+                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)GenericDesktopPage.Rx), v => (v - 0.5) * 2)],
                 v => right -= v);
 
             bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 1")],
+                [c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)ButtonPage.Button1)],
                 v => this.flying = false);
 
             bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 4")],
+                [c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)ButtonPage.Button4)],
                 v => this.activeModel--);
             bindings.BindEach(
-                [(c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Name == "Button 5")],
+                [c => c.Device.Name == "Controller (Xbox One For Windows)" && c.Usages.Any(u => u == (uint)ButtonPage.Button5)],
                 v => this.activeModel++);
 
             this.controlChangeTracker.ProcessChanges(bindings);
