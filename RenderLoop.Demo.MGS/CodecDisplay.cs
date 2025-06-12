@@ -50,7 +50,12 @@ namespace RenderLoop.Demo.MGS
 
             public AvatarState(VoiceGender voiceGender, VoiceAge voiceAge, CultureInfo culture)
             {
-                this.synth.SelectVoiceByHints(voiceGender, voiceAge, 0, culture);
+                var voice = (from v in this.synth.GetInstalledVoices()
+                             orderby v.VoiceInfo.Gender == voiceGender descending,
+                                     v.VoiceInfo.Culture.LCID == culture.LCID descending,
+                                     v.VoiceInfo.Age == voiceAge descending
+                             select v).First();
+                this.synth.SelectVoice(voice.VoiceInfo.Name);
                 this.synth.VisemeReached += this.Synth_VisemeReached;
             }
 
@@ -208,11 +213,11 @@ namespace RenderLoop.Demo.MGS
         {
             { "Solid Snake", (VoiceGender.Male, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-US")) },
             { "Roy Campbell", (VoiceGender.Male, VoiceAge.Senior, CultureInfo.GetCultureInfo("en-US")) },
-            { "Naomi Hunter", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-US")) },
+            { "Naomi Hunter", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-GB")) },
             { "Mei Ling", (VoiceGender.Female, VoiceAge.Teen, CultureInfo.GetCultureInfo("ja-JP")) },
             { "Hal Emmerich", (VoiceGender.Male, VoiceAge.Teen, CultureInfo.GetCultureInfo("en-US")) },
             { "Liquid Snake", (VoiceGender.Male, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-GB")) },
-            { "Nastasha Romanenko", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("uk-UA")) },
+            { "Nastasha Romanenko", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("ru-RU")) }, // Correct is CultureInfo.GetCultureInfo("uk-UA"), but not available in Microsoft TTS voices.
             { "Meryl Silverburgh", (VoiceGender.Female, VoiceAge.Teen, CultureInfo.GetCultureInfo("en-US")) },
             { "Sniper Wolf", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("ar-IQ")) },
             { "Jim Houseman", (VoiceGender.Male, VoiceAge.Senior, CultureInfo.GetCultureInfo("en-US")) },
