@@ -2,26 +2,254 @@
 
 namespace RenderLoop.Demo.MGS
 {
+    using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
-    using AnimatedGif;
-    using System.Windows.Forms;
-    using System.Collections.Immutable;
-    using System.Drawing.Imaging;
     using System.Runtime.InteropServices;
-    using System;
+    using System.Windows.Forms;
+    using AnimatedGif;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
 
     internal class CodecDisplay : Form
     {
+        private static class BlinkBehavior
+        {
+            private static readonly double MinSeconds = 2.0;
+            private static readonly double MaxSeconds = 8.0;
+            private static readonly double AttentionExponent = 2.0;
+
+            public static bool StartAutomaticBlink(DateTime now, DateTime? lastBlinkTime, double attention)
+            {
+                if (lastBlinkTime == null)
+                {
+                    return true;
+                }
+
+                attention = Math.Clamp(attention, 0.0, 1.0);
+
+                var blinkInterval = TimeSpan.FromSeconds(double.Lerp(MinSeconds, MaxSeconds, Math.Pow(1.0 - attention, AttentionExponent)));
+                blinkInterval *= double.Lerp(0.95, 1.05, Random.Shared.NextDouble());
+
+                return now - lastBlinkTime >= blinkInterval;
+            }
+        }
+
+        private static class ChatterBehavior
+        {
+            public static readonly TimeSpan LetterTime = TimeSpan.FromSeconds(0.2);
+            private static readonly double MinSeconds = 1.0;
+            private static readonly double MaxSeconds = 2.0;
+            private static readonly double AttentionExponent = 0.8;
+
+            public static bool StartIdleChatter(DateTime now, DateTime? lastConversationTime, double attention)
+            {
+                if (lastConversationTime == null)
+                {
+                    return true;
+                }
+
+                attention = Math.Clamp(attention, 0.0, 1.0);
+
+                var chatterInterval = TimeSpan.FromSeconds(double.Lerp(MinSeconds, MaxSeconds, Math.Pow(attention, AttentionExponent)));
+                chatterInterval *= double.Lerp(0.95, 1.05, Random.Shared.NextDouble());
+
+                return now - lastConversationTime >= chatterInterval;
+            }
+
+            public static string GenerateIdleChatter()
+            {
+                return string.Concat(Enumerable.Range(0, Random.Shared.Next(1, 6)).Select(_ => Random.Shared.Next(4) switch
+                {
+                    0 => "AAA ",
+                    1 => "AEA ",
+                    2 => " E ",
+                    3 => "A",
+                    _ => string.Empty,
+                }));
+            }
+        }
+
+        private class AvatarState
+        {
+            private int eyeState;
+            private DateTime? lastBlinkTime;
+            private string? sayQueue;
+            private DateTime? letterTime;
+            private DateTime? lastConversationTime;
+
+            public event EventHandler<EventArgs>? Updated;
+
+            public double Attention { get; set; } = 0.5;
+
+            public string? Eyes => this.eyeState == 0 ? null : this.eyeState % 2 == 0 ? "eyes-blink" : "eyes-droop";
+
+            public string? Mouth => sayQueue?[0] switch { 'A' => "mouth-a", 'E' => "mouth-e", _ => null };
+
+            public void Update()
+            {
+                var now = DateTime.Now;
+                var updated = false;
+
+                if (this.eyeState == 0)
+                {
+                    if (BlinkBehavior.StartAutomaticBlink(now, this.lastBlinkTime, this.Attention))
+                    {
+                        this.eyeState = 1;
+                        updated = true;
+                    }
+                }
+                else
+                {
+                    this.eyeState = (this.eyeState + 1) % 4;
+                    this.lastBlinkTime = now;
+                    updated = true;
+                }
+
+                if (this.sayQueue == null)
+                {
+                    if (ChatterBehavior.StartIdleChatter(now, this.lastConversationTime, this.Attention))
+                    {
+                        if (Random.Shared.NextDouble() < this.Attention)
+                        {
+                            this.sayQueue += ChatterBehavior.GenerateIdleChatter();
+                        }
+                        else
+                        {
+                            this.lastConversationTime = now;
+                        }
+                    }
+                }
+
+                if (this.sayQueue != null)
+                {
+                    this.lastConversationTime = now;
+                    var interval = ChatterBehavior.LetterTime * double.Lerp(0.95, 1.05, Random.Shared.NextDouble());
+                    if (this.letterTime == null)
+                    {
+                        this.letterTime = now + interval;
+                        updated = true;
+                    }
+                    else if (now > this.letterTime)
+                    {
+                        this.sayQueue = this.sayQueue.Length == 1 ? null : this.sayQueue[1..];
+                        this.letterTime = this.sayQueue == null ? null : now + interval;
+                        updated = true;
+                    }
+                }
+
+                if (updated)
+                {
+                    this.Updated?.Invoke(this, new());
+                }
+            }
+        }
+
+        private Timer updateTimer;
+
+        private static Dictionary<string, string> IdLookup = new()
+        {
+            { "f73b", "Solid Snake" },
+            { "ae23", "Solid Snake" },
+            { "a2ca", "Solid Snake" },
+            { "3e2d", "Solid Snake" },
+            { "7228", "Solid Snake" },
+            { "3108", "Solid Snake" },
+            { "3078", "Solid Snake" },
+            { "2272", "Solid Snake" },
+            { "0b7e", "Solid Snake" },
+            { "c265", "Solid Snake" },
+            { "e6eb", "Solid Snake" },
+            { "36b4", "Solid Snake" },
+            { "2089", "Solid Snake" },
+            { "59f8", "Solid Snake" },
+            { "da69", "Solid Snake" },
+            { "1c7e", "Solid Snake" },
+            { "0d84", "Solid Snake" },
+            { "bc7b", "Solid Snake" },
+            { "3320", "Roy Campbell" },
+            { "ae0c", "Roy Campbell" },
+            { "7a11", "Roy Campbell" },
+            { "5e56", "Roy Campbell" },
+            { "1a37", "Roy Campbell" },
+            { "a927", "Roy Campbell" },
+            { "a472", "Roy Campbell" },
+            { "bb69", "Roy Campbell" },
+            { "21f3", "Naomi Hunter" },
+            { "9cdf", "Naomi Hunter" },
+            { "68e4", "Naomi Hunter" },
+            { "b96e", "Naomi Hunter" },
+            { "fd17", "Naomi Hunter" },
+            { "b176", "Naomi Hunter" },
+            { "de08", "Naomi Hunter" },
+            { "f1aa", "Naomi Hunter" },
+            { "2118", "Naomi Hunter" },
+            { "7c87", "Naomi Hunter" },
+            { "25a1", "Naomi Hunter" },
+            { "f0ef", "Naomi Hunter" },
+            { "6f74", "Naomi Hunter" },
+            { "5347", "Mei Ling" },
+            { "6244", "Mei Ling" },
+            { "ce33", "Mei Ling" },
+            { "7e7d", "Mei Ling" },
+            { "2c6a", "Mei Ling" },
+            { "1091", "Mei Ling" },
+            { "dcf4", "Mei Ling" },
+            { "c60f", "Mei Ling" },
+            { "fe9f", "Mei Ling" },
+            { "40b0", "Mei Ling" },
+            { "ad5d", "Hal Emmerich" },
+            { "ec59", "Hal Emmerich" },
+            { "284a", "Hal Emmerich" },
+            { "9c70", "Hal Emmerich" },
+            { "3069", "Hal Emmerich" },
+            { "74a7", "Hal Emmerich" },
+            { "9cc0", "Liquid Snake" },
+            { "17ad", "Liquid Snake" },
+            { "d6ef", "Liquid Snake" },
+            { "6a21", "Liquid Snake" },
+            { "99c1", "Liquid Snake" },
+            { "80d8", "Liquid Snake" },
+            { "2f79", "Liquid Snake" },
+            { "158d", "Nastasha Romanenko" },
+            { "1e41", "Nastasha Romanenko" },
+            { "9079", "Nastasha Romanenko" },
+            { "40c3", "Nastasha Romanenko" },
+            { "7702", "Meryl Silverburgh" },
+            { "7d66", "Meryl Silverburgh" },
+            { "39c3", "Meryl Silverburgh" },
+            { "6d84", "Meryl Silverburgh" },
+            { "b4af", "Meryl Silverburgh" },
+            { "1162", "Meryl Silverburgh" },
+            { "0cc2", "Meryl Silverburgh" },
+            { "64f9", "Meryl Silverburgh" },
+            { "3d59", "Meryl Silverburgh" },
+            { "8d32", "Meryl Silverburgh" },
+            { "dce9", "Meryl Silverburgh" },
+            { "3d63", "Sniper Wolf" },
+            { "b84f", "Sniper Wolf" },
+            { "124a", "Sniper Wolf" },
+            { "6899", "Sniper Wolf" },
+            { "a83c", "Sniper Wolf" },
+            { "93f9", "Jim Houseman" },
+            { "bf2f", "Jim Houseman" },
+        };
+
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = UnpackFaces(facesStream);
+
+            this.updateTimer = new Timer()
+            {
+                Interval = 1000 / 30,
+            };
+            this.updateTimer.Enabled = true;
 
             var parent = new FlowLayoutPanel()
             {
@@ -33,7 +261,9 @@ namespace RenderLoop.Demo.MGS
                 AutoScroll = true,
             };
 
-            foreach (var group in source.GroupBy(i => i.id, i => i.images))
+            var byRawId = source.GroupBy(i => i.id, i => i.images);
+
+            foreach (var group in byRawId.GroupBy(g => IdLookup.TryGetValue(g.Key, out var id) ? id : g.Key, g => g.First()))
             {
                 var panel = new FlowLayoutPanel()
                 {
@@ -48,65 +278,47 @@ namespace RenderLoop.Demo.MGS
                     AutoSize = true,
                 });
 
+                var avatarState = new AvatarState();
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
                 {
-                    var gifStream = new MemoryStream();
-                    using (var gif = new AnimatedGifCreator(gifStream))
+                    var images = set.images;
+
+                    var maxX = images.Values.Max(v => v.x + v.image.Width);
+                    var maxY = images.Values.Max(v => v.y + v.image.Height);
+                    var display = new PictureBox
                     {
-                        var animation = set.images;
+                        Size = new Size(maxX * 2, maxY * 2),
+                        SizeMode = PictureBoxSizeMode.Zoom,
+                    };
 
-                        var maxX = animation.Values.Max(v => v.x + v.image.Width);
-                        var maxY = animation.Values.Max(v => v.y + v.image.Height);
-                        var surface = new Bitmap(maxX, maxY);
-                        using var g = Graphics.FromImage(surface);
-
-                        if (animation.TryGetValue("base", out var baseImage))
+                    if (images.TryGetValue("base", out var baseImage))
+                    {
+                        if (images.Count == 1)
                         {
-                            var frames = new List<string>()
-                            {
-                                "mouth1",
-                                "eyes1",
-                                "eyes2",
-                                "mouth2",
-                            };
-                            frames.RemoveAll(f => !animation.ContainsKey(f));
-
-                            g.DrawImageUnscaled(baseImage.image, new Point(baseImage.x, baseImage.y));
-                            gif.AddFrame(surface);
-
-                            foreach (var frame in frames)
-                            {
-                                var frameImage = animation[frame];
-                                g.DrawImageUnscaled(frameImage.image, new Point(frameImage.x, frameImage.y));
-                                gif.AddFrame(surface);
-                                g.DrawImageUnscaled(baseImage.image, new Point(baseImage.x, baseImage.y));
-                                gif.AddFrame(surface);
-                            }
+                            display.Image = baseImage.image;
                         }
                         else
                         {
-                            var shown = 0;
-                            for (var f = 0; shown < animation.Count; f++)
+                            var surface = new Bitmap(maxX, maxY);
+                            var g = Graphics.FromImage(surface);
+
+                            void Render(object? sender, EventArgs args)
                             {
-                                if (animation.TryGetValue($"frame{f}", out var frameImage))
-                                {
-                                    g.DrawImageUnscaled(frameImage.image, new Point(frameImage.x, frameImage.y));
-                                    gif.AddFrame(surface);
-                                    shown++;
-                                }
+                                this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
+                                display.Invalidate();
                             }
+
+                            avatarState.Updated += Render;
+                            this.updateTimer.Tick += (e, a) => avatarState.Update();
+                            display.Image = surface;
                         }
                     }
-
-                    gifStream.Seek(0, SeekOrigin.Begin);
-                    var outputImage = Image.FromStream(gifStream);
-
-                    panel.Controls.Add(new PictureBox
+                    else
                     {
-                        Image = outputImage,
-                        Size = outputImage.Size * 2,
-                        SizeMode = PictureBoxSizeMode.Zoom,
-                    });
+                        display.Image = RenderAnimation(images);
+                    }
+
+                    panel.Controls.Add(display);
                 }
 
                 parent.Controls.Add(panel);
@@ -115,13 +327,57 @@ namespace RenderLoop.Demo.MGS
             this.Controls.Add(parent);
         }
 
+        private void RenderFace(Graphics g, ImmutableDictionary<string, (int x, int y, Bitmap image)> components, string? eyes = null, string? mouth = null)
+        {
+            if (components.TryGetValue("base", out var baseComponent))
+            {
+                g.DrawImageUnscaled(baseComponent.image, baseComponent.x, baseComponent.y);
+            }
+
+            if (eyes != null && components.TryGetValue(eyes, out var eyesComponent))
+            {
+                g.DrawImageUnscaled(eyesComponent.image, eyesComponent.x, eyesComponent.y);
+            }
+
+            if (mouth != null && components.TryGetValue(mouth, out var mouthComponent))
+            {
+                g.DrawImageUnscaled(mouthComponent.image, mouthComponent.x, mouthComponent.y);
+            }
+        }
+
+        private Image RenderAnimation(ImmutableDictionary<string, (int x, int y, Bitmap image)> frames)
+        {
+            var gifStream = new MemoryStream();
+
+            var maxX = frames.Values.Max(v => v.x + v.image.Width);
+            var maxY = frames.Values.Max(v => v.y + v.image.Height);
+            using var surface = new Bitmap(maxX, maxY);
+            using var g = Graphics.FromImage(surface);
+            using var gif = new AnimatedGifCreator(gifStream, delay: 100);
+            {
+                var shown = 0;
+                for (var f = 0; shown < frames.Count; f++)
+                {
+                    if (frames.TryGetValue($"frame{f}", out var frameImage))
+                    {
+                        g.DrawImageUnscaled(frameImage.image, new Point(frameImage.x, frameImage.y));
+                        gif.AddFrame(surface);
+                        shown++;
+                    }
+                }
+            }
+
+            gifStream.Seek(0, SeekOrigin.Begin);
+            return Image.FromStream(gifStream);
+        }
+
         public static IEnumerable<(string id, ImmutableDictionary<string, (int x, int y, Bitmap image)> images)> UnpackFaces(Stream source)
         {
             const int PALETTE_SIZE = 256;
 
             var buffer = new byte[PALETTE_SIZE * 2];
             var palette = new Color[PALETTE_SIZE];
-            var imageKeys = new[] { "base", "eyes1", "eyes2", null, "mouth1", "mouth2" };
+            var imageKeys = new[] { "base", "eyes-droop", "eyes-blink", "unknown", "mouth-e", "mouth-a" };
 
             for (var ix = 0; source.Position < source.Length; ix++)
             {
@@ -267,7 +523,6 @@ namespace RenderLoop.Demo.MGS
 
                             builder.Add($"frame{f}", GetBitmap(frame.frameOffset));
                         }
-
                     }
 
                     yield return (header.id, builder.ToImmutable());
