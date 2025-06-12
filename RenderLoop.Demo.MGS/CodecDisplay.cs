@@ -7,9 +7,11 @@ namespace RenderLoop.Demo.MGS
     using System.Collections.Immutable;
     using System.Drawing;
     using System.Drawing.Imaging;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
+    using System.Speech.Synthesis;
     using System.Windows.Forms;
     using AnimatedGif;
     using DiscUtils.Streams;
@@ -39,48 +41,18 @@ namespace RenderLoop.Demo.MGS
             }
         }
 
-        private static class ChatterBehavior
+        private sealed class AvatarState : IDisposable
         {
-            public static readonly TimeSpan LetterTime = TimeSpan.FromSeconds(0.2);
-            private static readonly double MinSeconds = 1.0;
-            private static readonly double MaxSeconds = 2.0;
-            private static readonly double AttentionExponent = 0.8;
-
-            public static bool StartIdleChatter(DateTime now, DateTime? lastConversationTime, double attention)
-            {
-                if (lastConversationTime == null)
-                {
-                    return true;
-                }
-
-                attention = Math.Clamp(attention, 0.0, 1.0);
-
-                var chatterInterval = TimeSpan.FromSeconds(double.Lerp(MinSeconds, MaxSeconds, Math.Pow(attention, AttentionExponent)));
-                chatterInterval *= double.Lerp(0.95, 1.05, Random.Shared.NextDouble());
-
-                return now - lastConversationTime >= chatterInterval;
-            }
-
-            public static string GenerateIdleChatter()
-            {
-                return string.Concat(Enumerable.Range(0, Random.Shared.Next(1, 6)).Select(_ => Random.Shared.Next(4) switch
-                {
-                    0 => "AAA ",
-                    1 => "AEA ",
-                    2 => " E ",
-                    3 => "A",
-                    _ => string.Empty,
-                }));
-            }
-        }
-
-        private class AvatarState
-        {
+            private readonly SpeechSynthesizer synth = new();
             private int eyeState;
             private DateTime? lastBlinkTime;
-            private string? sayQueue;
-            private DateTime? letterTime;
-            private DateTime? lastConversationTime;
+            private int lastViseme;
+
+            public AvatarState(VoiceGender voiceGender, VoiceAge voiceAge, CultureInfo culture)
+            {
+                this.synth.SelectVoiceByHints(voiceGender, voiceAge, 0, culture);
+                this.synth.VisemeReached += this.Synth_VisemeReached;
+            }
 
             public event EventHandler<EventArgs>? Updated;
 
@@ -88,7 +60,17 @@ namespace RenderLoop.Demo.MGS
 
             public string? Eyes => this.eyeState == 0 ? null : this.eyeState % 2 == 0 ? "eyes-blink" : "eyes-droop";
 
-            public string? Mouth => sayQueue?[0] switch { 'A' => "mouth-a", 'E' => "mouth-e", _ => null };
+            public string? Mouth => this.lastViseme switch
+            {
+                1 or 2 or 3 or 4 or 5 or 6 or 15 or 16 => "mouth-a",
+                8 or 9 or 10 or 11 or 12 or 13 or 14 or 17 or 20 => "mouth-e",
+                0 or 7 or 18 or 19 or 21 => null,
+            };
+
+            public void Say(string text)
+            {
+                this.synth.SpeakAsync(text);
+            }
 
             public void Update()
             {
@@ -110,39 +92,22 @@ namespace RenderLoop.Demo.MGS
                     updated = true;
                 }
 
-                if (this.sayQueue == null)
-                {
-                    if (ChatterBehavior.StartIdleChatter(now, this.lastConversationTime, this.Attention))
-                    {
-                        if (Random.Shared.NextDouble() < this.Attention)
-                        {
-                            this.sayQueue += ChatterBehavior.GenerateIdleChatter();
-                        }
-                        else
-                        {
-                            this.lastConversationTime = now;
-                        }
-                    }
-                }
-
-                if (this.sayQueue != null)
-                {
-                    this.lastConversationTime = now;
-                    var interval = ChatterBehavior.LetterTime * double.Lerp(0.95, 1.05, Random.Shared.NextDouble());
-                    if (this.letterTime == null)
-                    {
-                        this.letterTime = now + interval;
-                        updated = true;
-                    }
-                    else if (now > this.letterTime)
-                    {
-                        this.sayQueue = this.sayQueue.Length == 1 ? null : this.sayQueue[1..];
-                        this.letterTime = this.sayQueue == null ? null : now + interval;
-                        updated = true;
-                    }
-                }
-
                 if (updated)
+                {
+                    this.Updated?.Invoke(this, new());
+                }
+            }
+
+            public void Dispose()
+            {
+                this.synth.Dispose();
+            }
+
+            private void Synth_VisemeReached(object? sender, VisemeReachedEventArgs e)
+            {
+                var shape = this.Mouth;
+                this.lastViseme = e.Viseme;
+                if (this.Mouth != shape)
                 {
                     this.Updated?.Invoke(this, new());
                 }
@@ -239,11 +204,28 @@ namespace RenderLoop.Demo.MGS
             { "bf2f", "Jim Houseman" },
         };
 
+        private static Dictionary<string, (VoiceGender Gender, VoiceAge Age, CultureInfo? Culture)> VoiceData = new()
+        {
+            { "Solid Snake", (VoiceGender.Male, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-US")) },
+            { "Roy Campbell", (VoiceGender.Male, VoiceAge.Senior, CultureInfo.GetCultureInfo("en-US")) },
+            { "Naomi Hunter", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-US")) },
+            { "Mei Ling", (VoiceGender.Female, VoiceAge.Teen, CultureInfo.GetCultureInfo("ja-JP")) },
+            { "Hal Emmerich", (VoiceGender.Male, VoiceAge.Teen, CultureInfo.GetCultureInfo("en-US")) },
+            { "Liquid Snake", (VoiceGender.Male, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-GB")) },
+            { "Nastasha Romanenko", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("uk-UA")) },
+            { "Meryl Silverburgh", (VoiceGender.Female, VoiceAge.Teen, CultureInfo.GetCultureInfo("en-US")) },
+            { "Sniper Wolf", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("ar-IQ")) },
+            { "Jim Houseman", (VoiceGender.Male, VoiceAge.Senior, CultureInfo.GetCultureInfo("en-US")) },
+        };
+
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = UnpackFaces(facesStream);
+
+            this.Width = 1200;
+            this.Height = 800;
 
             this.updateTimer = new Timer()
             {
@@ -260,6 +242,21 @@ namespace RenderLoop.Demo.MGS
                 WrapContents = false,
                 AutoScroll = true,
             };
+
+            var inputsPanel = new FlowLayoutPanel()
+            {
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = true,
+            };
+
+            var speechBox = new TextBox()
+            {
+                Text = "Hey, snake! Get your head in the game.",
+                Width = 300,
+            };
+            inputsPanel.Controls.Add(speechBox);
+            parent.Controls.Add(inputsPanel);
 
             var byRawId = source.GroupBy(i => i.id, i => i.images);
 
@@ -278,7 +275,9 @@ namespace RenderLoop.Demo.MGS
                     AutoSize = true,
                 });
 
-                var avatarState = new AvatarState();
+                VoiceData.TryGetValue(group.Key, out var voiceData);
+
+                var avatarState = new AvatarState(voiceData.Gender, voiceData.Age, voiceData.Culture);
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
                 {
                     var images = set.images;
@@ -320,6 +319,14 @@ namespace RenderLoop.Demo.MGS
 
                     panel.Controls.Add(display);
                 }
+
+                var speakButton = new Button()
+                {
+                    Text = "Speak",
+                    AutoSize = true,
+                };
+                speakButton.Click += (e, a) => avatarState.Say(speechBox.Text);
+                panel.Controls.Add(speakButton);
 
                 parent.Controls.Add(panel);
             }
