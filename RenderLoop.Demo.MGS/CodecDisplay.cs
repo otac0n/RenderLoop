@@ -11,10 +11,12 @@ namespace RenderLoop.Demo.MGS
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
-    using System.Speech.Synthesis;
+    using System.Threading.Tasks;
     using System.Windows.Forms;
     using AnimatedGif;
     using DiscUtils.Streams;
+    using Microsoft.CognitiveServices.Speech;
+    using Microsoft.CognitiveServices.Speech.Audio;
     using Microsoft.Extensions.DependencyInjection;
 
     internal class CodecDisplay : Form
@@ -43,20 +45,20 @@ namespace RenderLoop.Demo.MGS
 
         private sealed class AvatarState : IDisposable
         {
-            private readonly SpeechSynthesizer synth = new();
+            private static readonly string SpeechKey = Environment.GetEnvironmentVariable("SPEECH_KEY");
+            private static readonly string SpeechEndpoint = Environment.GetEnvironmentVariable("SPEECH_ENDPOINT");
+
+            private readonly SpeechSynthesizer synth;
             private int eyeState;
             private DateTime? lastBlinkTime;
-            private int lastViseme;
+            private uint lastViseme;
 
-            public AvatarState(VoiceGender voiceGender, VoiceAge voiceAge, CultureInfo culture)
+            public AvatarState(string voiceName)
             {
-                var voice = (from v in this.synth.GetInstalledVoices()
-                             orderby v.VoiceInfo.Gender == voiceGender descending,
-                                     v.VoiceInfo.Culture.LCID == culture.LCID descending,
-                                     v.VoiceInfo.Age == voiceAge descending
-                             select v).First();
-                this.synth.SelectVoice(voice.VoiceInfo.Name);
-                this.synth.VisemeReached += this.Synth_VisemeReached;
+                var speechConfig = SpeechConfig.FromEndpoint(new Uri(SpeechEndpoint), SpeechKey);
+                speechConfig.SpeechSynthesisVoiceName = voiceName;
+                this.synth = new(speechConfig);
+                this.synth.VisemeReceived += this.Synth_VisemeReceived;
             }
 
             public event EventHandler<EventArgs>? Updated;
@@ -72,9 +74,9 @@ namespace RenderLoop.Demo.MGS
                 0 or 7 or 18 or 19 or 21 => null,
             };
 
-            public void Say(string text)
+            public async Task SayAsync(string text)
             {
-                this.synth.SpeakAsync(text);
+                await this.synth.SpeakTextAsync(text).ConfigureAwait(true);
             }
 
             public void Update()
@@ -108,10 +110,10 @@ namespace RenderLoop.Demo.MGS
                 this.synth.Dispose();
             }
 
-            private void Synth_VisemeReached(object? sender, VisemeReachedEventArgs e)
+            private void Synth_VisemeReceived(object? sender, SpeechSynthesisVisemeEventArgs e)
             {
                 var shape = this.Mouth;
-                this.lastViseme = e.Viseme;
+                this.lastViseme = e.VisemeId;
                 if (this.Mouth != shape)
                 {
                     this.Updated?.Invoke(this, new());
@@ -209,18 +211,18 @@ namespace RenderLoop.Demo.MGS
             { "bf2f", "Jim Houseman" },
         };
 
-        private static Dictionary<string, (VoiceGender Gender, VoiceAge Age, CultureInfo? Culture)> VoiceData = new()
+        private static Dictionary<string, string> VoiceData = new()
         {
-            { "Solid Snake", (VoiceGender.Male, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-US")) },
-            { "Roy Campbell", (VoiceGender.Male, VoiceAge.Senior, CultureInfo.GetCultureInfo("en-US")) },
-            { "Naomi Hunter", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-GB")) },
-            { "Mei Ling", (VoiceGender.Female, VoiceAge.Teen, CultureInfo.GetCultureInfo("ja-JP")) },
-            { "Hal Emmerich", (VoiceGender.Male, VoiceAge.Teen, CultureInfo.GetCultureInfo("en-US")) },
-            { "Liquid Snake", (VoiceGender.Male, VoiceAge.Adult, CultureInfo.GetCultureInfo("en-GB")) },
-            { "Nastasha Romanenko", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("ru-RU")) }, // Correct is CultureInfo.GetCultureInfo("uk-UA"), but not available in Microsoft TTS voices.
-            { "Meryl Silverburgh", (VoiceGender.Female, VoiceAge.Teen, CultureInfo.GetCultureInfo("en-US")) },
-            { "Sniper Wolf", (VoiceGender.Female, VoiceAge.Adult, CultureInfo.GetCultureInfo("ar-IQ")) },
-            { "Jim Houseman", (VoiceGender.Male, VoiceAge.Senior, CultureInfo.GetCultureInfo("en-US")) },
+            { "Solid Snake", "en-US-DerekMultilingualNeural" },
+            { "Roy Campbell", "en-US-LewisMultilingualNeural" },
+            { "Naomi Hunter", "en-US-LunaNeural" },
+            { "Mei Ling", "en-US-AmberNeural" },
+            { "Hal Emmerich", "en-US-TonyNeural" },
+            { "Liquid Snake", "en-US-AndrewMultilingualNeural" },
+            { "Nastasha Romanenko", "en-US-CoraNeural" },
+            { "Meryl Silverburgh", "en-US-AvaNeural" },
+            { "Sniper Wolf", "en-US-NancyNeural" },
+            { "Jim Houseman", "en-US-DavisNeural" },
         };
 
         public CodecDisplay(IServiceProvider serviceProvider)
@@ -229,8 +231,8 @@ namespace RenderLoop.Demo.MGS
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = UnpackFaces(facesStream);
 
-            this.Width = 1200;
-            this.Height = 800;
+            this.Width = 2200;
+            this.Height = 2000;
 
             this.updateTimer = new Timer()
             {
@@ -282,7 +284,7 @@ namespace RenderLoop.Demo.MGS
 
                 VoiceData.TryGetValue(group.Key, out var voiceData);
 
-                var avatarState = new AvatarState(voiceData.Gender, voiceData.Age, voiceData.Culture);
+                var avatarState = new AvatarState(voiceData!);
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
                 {
                     var images = set.images;
@@ -330,7 +332,7 @@ namespace RenderLoop.Demo.MGS
                     Text = "Speak",
                     AutoSize = true,
                 };
-                speakButton.Click += (e, a) => avatarState.Say(speechBox.Text);
+                speakButton.Click += (e, a) => avatarState.SayAsync(speechBox.Text);
                 panel.Controls.Add(speakButton);
 
                 parent.Controls.Add(panel);
