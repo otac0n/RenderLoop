@@ -310,8 +310,15 @@ namespace RenderLoop.Demo.MGS
 
                             void Render(object? sender, EventArgs args)
                             {
-                                this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
-                                display.Invalidate();
+                                if (!this.InvokeRequired)
+                                {
+                                    this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
+                                    display.Invalidate();
+                                }
+                                else
+                                {
+                                    this.Invoke(() => Render(sender, args));
+                                }
                             }
 
                             avatarState.Updated += Render;
