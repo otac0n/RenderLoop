@@ -8,7 +8,7 @@ namespace RenderLoop.Demo.MGS.Codec
 
     internal sealed class AvatarState : IDisposable
     {
-        private Voice? voice;
+        private Voice voice;
         private int eyeState;
         private DateTime? lastBlinkTime;
         private uint lastViseme;
@@ -16,10 +16,7 @@ namespace RenderLoop.Demo.MGS.Codec
         public AvatarState(CodecOptions options, string voiceName)
         {
             this.voice = Voice.GetVoice(options, voiceName);
-            if (this.voice != null)
-            {
-                this.voice.MouthMoved += this.Voice_MouthMoved;
-            }
+            this.voice.MouthMoved += this.Voice_MouthMoved;
         }
 
         public event EventHandler<EventArgs>? Updated;
@@ -37,10 +34,7 @@ namespace RenderLoop.Demo.MGS.Codec
 
         public async Task SayAsync(string text)
         {
-            if (this.voice != null)
-            {
-                await this.voice.SayAsync(text).ConfigureAwait(true);
-            }
+            await this.voice.SayAsync(text).ConfigureAwait(true);
         }
 
         public void Update()
