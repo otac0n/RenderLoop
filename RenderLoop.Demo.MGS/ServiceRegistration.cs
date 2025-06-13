@@ -2,12 +2,12 @@
 
 namespace RenderLoop.Demo.MGS
 {
-    using System.IO.Abstractions;
     using System.IO;
+    using System.IO.Abstractions;
+    using DiscUtils.Complete;
     using DiscUtils.Iso9660;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
-    using DiscUtils.Complete;
     using RenderLoop.Demo.MGS.Archives;
 
     internal class ServiceRegistration
@@ -33,7 +33,7 @@ namespace RenderLoop.Demo.MGS
             RegisterCD(WellKnownPaths.CD1Path);
             RegisterCD(WellKnownPaths.CD2Path);
 
-            services.AddTransient<CodecDisplay>();
+            services.AddTransient<Codec.CodecDisplay>();
             services.AddTransient<ModelDisplay>();
             services.AddTransient<VehicleDisplay>();
         }

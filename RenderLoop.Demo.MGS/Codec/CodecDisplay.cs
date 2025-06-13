@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS
+namespace RenderLoop.Demo.MGS.Codec
 {
     using System;
     using System.Collections.Generic;
@@ -223,7 +223,7 @@ namespace RenderLoop.Demo.MGS
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
-            var codecOptions = serviceProvider.GetRequiredService<Program.CodecOptions>();
+            var codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = UnpackFaces(facesStream);
 

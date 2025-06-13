@@ -80,7 +80,7 @@ namespace RenderLoop.Demo.MGS
                         File = context.ParseResult.GetValueForOption(fileOption)!,
                         Key = context.ParseResult.GetValueForOption(keyOption)!,
                     };
-                    var codecOptions = new CodecOptions
+                    var codecOptions = new Codec.CodecOptions
                     {
                         SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
                         SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
@@ -98,7 +98,7 @@ namespace RenderLoop.Demo.MGS
 
                     using var host = builder.Build();
                     await Task.Yield();
-                    Application.Run(host.Services.GetService<CodecDisplay>()!);
+                    Application.Run(host.Services.GetService<Codec.CodecDisplay>()!);
                 });
 
             return await rootCommand.InvokeAsync(args).ConfigureAwait(true);
@@ -109,13 +109,6 @@ namespace RenderLoop.Demo.MGS
             public required string File { get; set; }
 
             public required string Key { get; set; }
-        }
-
-        internal class CodecOptions
-        {
-            public required string? SpeechEndpoint { get; set; }
-
-            public required string? SpeechKey { get; set; }
         }
     }
 }
