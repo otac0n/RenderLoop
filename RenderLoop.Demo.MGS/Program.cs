@@ -2,7 +2,9 @@
 
 namespace RenderLoop.Demo.MGS
 {
+    using System;
     using System.Threading.Tasks;
+    using System.Windows.Forms;
     using CommandLine;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
@@ -32,11 +34,22 @@ namespace RenderLoop.Demo.MGS
                 services.AddSingleton(options);
                 ServiceRegistration.Register(services, options);
 
+                services.AddTransient<CodecDisplay>();
                 services.AddHostedService<GameLoopApplication<VehicleDisplay>>();
             });
 
             using var host = builder.Build();
-            await host.RunAsync().ConfigureAwait(true);
+
+            if (options.Display == "codec")
+            {
+                await Task.Yield();
+                Application.Run(host.Services.GetService<CodecDisplay>()!);
+            }
+            else
+            {
+                await host.RunAsync().ConfigureAwait(true);
+            }
+
             return 0;
         }
 
@@ -48,12 +61,27 @@ namespace RenderLoop.Demo.MGS
             [Option("key", Required = true, HelpText = "The key to the alldata.bin file.")]
             public required string Key { get; set; }
 
+            [Option("display", Required = false, HelpText = "The display to show.")]
+            public string? Display { get; set; }
+
+            [Option("speechEndpoint", Required = false, HelpText = "The Azure Speech API to use for avatars.")]
+            public string? SpeechEndpoint { get; set; }
+
+            [Option("speechKey", Required = false, HelpText = "The Azure Speech API key.")]
+            public string? SpeechKey { get; set; }
+
             public static void PopulateDefaults(Options options)
             {
                 if (options.File == null)
                 {
                     // TODO: Get default path.
                 }
+
+                options.Display ??= "model";
+
+                options.SpeechEndpoint ??= Environment.GetEnvironmentVariable("SPEECH_ENDPOINT");
+
+                options.SpeechKey ??= Environment.GetEnvironmentVariable("SPEECH_KEY");
             }
         }
     }

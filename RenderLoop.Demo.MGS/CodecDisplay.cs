@@ -7,7 +7,6 @@ namespace RenderLoop.Demo.MGS
     using System.Collections.Immutable;
     using System.Drawing;
     using System.Drawing.Imaging;
-    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -16,7 +15,6 @@ namespace RenderLoop.Demo.MGS
     using AnimatedGif;
     using DiscUtils.Streams;
     using Microsoft.CognitiveServices.Speech;
-    using Microsoft.CognitiveServices.Speech.Audio;
     using Microsoft.Extensions.DependencyInjection;
 
     internal class CodecDisplay : Form
@@ -45,17 +43,14 @@ namespace RenderLoop.Demo.MGS
 
         private sealed class AvatarState : IDisposable
         {
-            private static readonly string SpeechKey = Environment.GetEnvironmentVariable("SPEECH_KEY");
-            private static readonly string SpeechEndpoint = Environment.GetEnvironmentVariable("SPEECH_ENDPOINT");
-
             private readonly SpeechSynthesizer synth;
             private int eyeState;
             private DateTime? lastBlinkTime;
             private uint lastViseme;
 
-            public AvatarState(string voiceName)
+            public AvatarState(string speechEndpoint, string speechKey, string voiceName)
             {
-                var speechConfig = SpeechConfig.FromEndpoint(new Uri(SpeechEndpoint), SpeechKey);
+                var speechConfig = SpeechConfig.FromEndpoint(new Uri(speechEndpoint), speechKey);
                 speechConfig.SpeechSynthesisVoiceName = voiceName;
                 this.synth = new(speechConfig);
                 this.synth.VisemeReceived += this.Synth_VisemeReceived;
@@ -284,7 +279,7 @@ namespace RenderLoop.Demo.MGS
 
                 VoiceData.TryGetValue(group.Key, out var voiceData);
 
-                var avatarState = new AvatarState(voiceData!);
+                var avatarState = new AvatarState(options.SpeechEndpoint!, options.SpeechKey!, voiceData!);
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
                 {
                     var images = set.images;
