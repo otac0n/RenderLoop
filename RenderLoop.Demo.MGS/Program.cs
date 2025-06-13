@@ -4,6 +4,7 @@ namespace RenderLoop.Demo.MGS
 {
     using System;
     using System.CommandLine;
+    using System.CommandLine.Invocation;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
@@ -48,23 +49,26 @@ namespace RenderLoop.Demo.MGS
 
             rootCommand.Add(codecCommand);
 
+            void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
+            {
+                var options = new Options
+                {
+                    File = context.ParseResult.GetValueForOption(fileOption)!,
+                    Key = context.ParseResult.GetValueForOption(keyOption)!,
+                };
+
+                ApplicationConfiguration.Initialize();
+                services.AddSingleton(options);
+                ServiceRegistration.Register(services, options);
+            }
+
             rootCommand.SetHandler(
                 async context =>
                 {
-                    var options = new Options
-                    {
-                        File = context.ParseResult.GetValueForOption(fileOption)!,
-                        Key = context.ParseResult.GetValueForOption(keyOption)!,
-                    };
-
                     var builder = Host.CreateDefaultBuilder(args);
                     builder.ConfigureServices(services =>
                     {
-                        ApplicationConfiguration.Initialize();
-
-                        services.AddSingleton(options);
-                        ServiceRegistration.Register(services, options);
-
+                        InstallSharedConfiguration(context, services);
                         services.AddHostedService<GameLoopApplication<VehicleDisplay>>();
                     });
 
@@ -75,11 +79,6 @@ namespace RenderLoop.Demo.MGS
             codecCommand.SetHandler(
                 async context =>
                 {
-                    var options = new Options
-                    {
-                        File = context.ParseResult.GetValueForOption(fileOption)!,
-                        Key = context.ParseResult.GetValueForOption(keyOption)!,
-                    };
                     var codecOptions = new Codec.CodecOptions
                     {
                         SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
@@ -89,11 +88,8 @@ namespace RenderLoop.Demo.MGS
                     var builder = Host.CreateDefaultBuilder(args);
                     builder.ConfigureServices(services =>
                     {
-                        ApplicationConfiguration.Initialize();
-
-                        services.AddSingleton(options);
+                        InstallSharedConfiguration(context, services);
                         services.AddSingleton(codecOptions);
-                        ServiceRegistration.Register(services, options);
                     });
 
                     using var host = builder.Build();
