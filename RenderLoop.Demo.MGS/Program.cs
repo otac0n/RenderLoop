@@ -3,9 +3,9 @@
 namespace RenderLoop.Demo.MGS
 {
     using System;
+    using System.CommandLine;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    using CommandLine;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
@@ -16,73 +16,106 @@ namespace RenderLoop.Demo.MGS
         /// </summary>
         public static async Task<int> Main(string[] args)
         {
-            Options? options = null;
-            Parser.Default
-                .ParseArguments<Options>(args)
-                .WithParsed(o => Options.PopulateDefaults(options = o));
+            var rootCommand = new RootCommand();
 
-            if (options == null)
-            {
-                return 1;
-            }
+            var fileOption = new Option<string>(
+                name: "--file",
+                description: "The path of the alldata.bin file.");
+            fileOption.IsRequired = true;
 
-            var builder = Host.CreateDefaultBuilder(args);
-            builder.ConfigureServices(services =>
-            {
-                ApplicationConfiguration.Initialize();
+            var keyOption = new Option<string>(
+                name: "--key",
+                description: "The key to the alldata.bin file.");
+            keyOption.IsRequired = true;
 
-                services.AddSingleton(options);
-                ServiceRegistration.Register(services, options);
+            rootCommand.AddGlobalOption(fileOption);
+            rootCommand.AddGlobalOption(keyOption);
 
-                services.AddTransient<CodecDisplay>();
-                services.AddHostedService<GameLoopApplication<VehicleDisplay>>();
-            });
+            var codecCommand = new Command("codec", "Display Codec");
 
-            using var host = builder.Build();
+            var speechEndpointOption = new Option<string?>(
+                name: "--speechEndpoint",
+                description: "The Azure Speech API to use for avatars.",
+                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_ENDPOINT"));
 
-            if (options.Display == "codec")
-            {
-                await Task.Yield();
-                Application.Run(host.Services.GetService<CodecDisplay>()!);
-            }
-            else
-            {
-                await host.RunAsync().ConfigureAwait(true);
-            }
+            var speechKeyOption = new Option<string?>(
+                name: "--speechKey",
+                description: "The Azure Speech API key.",
+                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
 
-            return 0;
+            codecCommand.AddOption(speechEndpointOption);
+            codecCommand.AddOption(speechKeyOption);
+
+            rootCommand.Add(codecCommand);
+
+            rootCommand.SetHandler(
+                async context =>
+                {
+                    var options = new Options
+                    {
+                        File = context.ParseResult.GetValueForOption(fileOption)!,
+                        Key = context.ParseResult.GetValueForOption(keyOption)!,
+                    };
+
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        ApplicationConfiguration.Initialize();
+
+                        services.AddSingleton(options);
+                        ServiceRegistration.Register(services, options);
+
+                        services.AddHostedService<GameLoopApplication<VehicleDisplay>>();
+                    });
+
+                    using var host = builder.Build();
+                    await host.RunAsync().ConfigureAwait(true);
+                });
+
+            codecCommand.SetHandler(
+                async context =>
+                {
+                    var options = new Options
+                    {
+                        File = context.ParseResult.GetValueForOption(fileOption)!,
+                        Key = context.ParseResult.GetValueForOption(keyOption)!,
+                    };
+                    var codecOptions = new CodecOptions
+                    {
+                        SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
+                        SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
+                    };
+
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        ApplicationConfiguration.Initialize();
+
+                        services.AddSingleton(options);
+                        services.AddSingleton(codecOptions);
+                        ServiceRegistration.Register(services, options);
+                    });
+
+                    using var host = builder.Build();
+                    await Task.Yield();
+                    Application.Run(host.Services.GetService<CodecDisplay>()!);
+                });
+
+            return await rootCommand.InvokeAsync(args).ConfigureAwait(true);
         }
 
         internal class Options
         {
-            [Option("file", Required = true, HelpText = "The path of the alldata.bin file.")]
             public required string File { get; set; }
 
-            [Option("key", Required = true, HelpText = "The key to the alldata.bin file.")]
             public required string Key { get; set; }
+        }
 
-            [Option("display", Required = false, HelpText = "The display to show.")]
-            public string? Display { get; set; }
+        internal class CodecOptions
+        {
+            public required string? SpeechEndpoint { get; set; }
 
-            [Option("speechEndpoint", Required = false, HelpText = "The Azure Speech API to use for avatars.")]
-            public string? SpeechEndpoint { get; set; }
-
-            [Option("speechKey", Required = false, HelpText = "The Azure Speech API key.")]
-            public string? SpeechKey { get; set; }
-
-            public static void PopulateDefaults(Options options)
-            {
-                if (options.File == null)
-                {
-                    // TODO: Get default path.
-                }
-
-                options.Display ??= "model";
-
-                options.SpeechEndpoint ??= Environment.GetEnvironmentVariable("SPEECH_ENDPOINT");
-
-                options.SpeechKey ??= Environment.GetEnvironmentVariable("SPEECH_KEY");
-            }
+            public required string? SpeechKey { get; set; }
         }
     }
 }

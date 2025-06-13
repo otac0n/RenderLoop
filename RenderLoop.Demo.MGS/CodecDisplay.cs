@@ -223,6 +223,7 @@ namespace RenderLoop.Demo.MGS
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
+            var codecOptions = serviceProvider.GetRequiredService<Program.CodecOptions>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = UnpackFaces(facesStream);
 
@@ -279,7 +280,7 @@ namespace RenderLoop.Demo.MGS
 
                 VoiceData.TryGetValue(group.Key, out var voiceData);
 
-                var avatarState = new AvatarState(options.SpeechEndpoint!, options.SpeechKey!, voiceData!);
+                var avatarState = new AvatarState(codecOptions.SpeechEndpoint!, codecOptions.SpeechKey!, voiceData!);
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
                 {
                     var images = set.images;
