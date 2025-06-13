@@ -4,21 +4,22 @@ namespace RenderLoop.Demo.MGS.Codec
 {
     using System;
     using System.Threading.Tasks;
-    using Microsoft.CognitiveServices.Speech;
+    using RenderLoop.Demo.MGS.Codec.Voices;
 
     internal sealed class AvatarState : IDisposable
     {
-        private readonly SpeechSynthesizer synth;
+        private Voice? voice;
         private int eyeState;
         private DateTime? lastBlinkTime;
         private uint lastViseme;
 
-        public AvatarState(string speechEndpoint, string speechKey, string voiceName)
+        public AvatarState(CodecOptions options, string voiceName)
         {
-            var speechConfig = SpeechConfig.FromEndpoint(new Uri(speechEndpoint), speechKey);
-            speechConfig.SpeechSynthesisVoiceName = voiceName;
-            this.synth = new(speechConfig);
-            this.synth.VisemeReceived += this.Synth_VisemeReceived;
+            this.voice = Voice.GetVoice(options, voiceName);
+            if (this.voice != null)
+            {
+                this.voice.MouthMoved += this.Voice_MouthMoved;
+            }
         }
 
         public event EventHandler<EventArgs>? Updated;
@@ -36,7 +37,10 @@ namespace RenderLoop.Demo.MGS.Codec
 
         public async Task SayAsync(string text)
         {
-            await this.synth.SpeakTextAsync(text).ConfigureAwait(true);
+            if (this.voice != null)
+            {
+                await this.voice.SayAsync(text).ConfigureAwait(true);
+            }
         }
 
         public void Update()
@@ -67,10 +71,10 @@ namespace RenderLoop.Demo.MGS.Codec
 
         public void Dispose()
         {
-            this.synth.Dispose();
+            (this.voice as IDisposable)?.Dispose();
         }
 
-        private void Synth_VisemeReceived(object? sender, SpeechSynthesisVisemeEventArgs e)
+        private void Voice_MouthMoved(object? sender, Voice.MouthMovedEventArgs e)
         {
             var shape = this.Mouth;
             this.lastViseme = e.VisemeId;

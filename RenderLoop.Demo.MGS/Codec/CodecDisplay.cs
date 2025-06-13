@@ -107,20 +107,6 @@ namespace RenderLoop.Demo.MGS.Codec
             { "bf2f", "Jim Houseman" },
         };
 
-        private static Dictionary<string, string> VoiceData = new()
-        {
-            { "Solid Snake", "en-US-DerekMultilingualNeural" },
-            { "Roy Campbell", "en-US-LewisMultilingualNeural" },
-            { "Naomi Hunter", "en-US-LunaNeural" },
-            { "Mei Ling", "en-US-AmberNeural" },
-            { "Hal Emmerich", "en-US-TonyNeural" },
-            { "Liquid Snake", "en-US-AndrewMultilingualNeural" },
-            { "Nastasha Romanenko", "en-US-CoraNeural" },
-            { "Meryl Silverburgh", "en-US-AvaNeural" },
-            { "Sniper Wolf", "en-US-NancyNeural" },
-            { "Jim Houseman", "en-US-DavisNeural" },
-        };
-
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
@@ -179,9 +165,7 @@ namespace RenderLoop.Demo.MGS.Codec
                     AutoSize = true,
                 });
 
-                VoiceData.TryGetValue(group.Key, out var voiceData);
-
-                var avatarState = new AvatarState(codecOptions.SpeechEndpoint!, codecOptions.SpeechKey!, voiceData!);
+                var avatarState = new AvatarState(codecOptions, group.Key);
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
                 {
                     var images = set.images;
