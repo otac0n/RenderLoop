@@ -14,10 +14,9 @@ namespace RenderLoop.Demo.MGS.Codec
     using RenderLoop.Demo.MGS.Codec.Conversation;
     using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
 
-    internal class CodecDisplay : Form
+    internal partial class CodecDisplay : Form
     {
         private ConversationModel conversationModel;
-        private Timer updateTimer;
 
         private static Dictionary<string, string> IdLookup = new()
         {
@@ -109,99 +108,21 @@ namespace RenderLoop.Demo.MGS.Codec
 
         public CodecDisplay(IServiceProvider serviceProvider)
         {
+            this.InitializeComponent();
+
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = ImageLoader.LoadImages(facesStream);
-
-            this.Width = 500;
-            this.Height = 500;
-
-            var captionLabel = new Label()
-            {
-                Text = "",
-                AutoSize = true,
-                ForeColor = Color.White,
-                Font = new Font(this.Font, FontStyle.Bold),
-            };
-
-            this.updateTimer = new Timer
-            {
-                Interval = 1000 / 30,
-                Enabled = true,
-            };
-
-            var parent = new FlowLayoutPanel()
-            {
-                BackColor = Color.Black,
-                ForeColor = Color.Green,
-                Dock = DockStyle.Fill,
-                FlowDirection = FlowDirection.TopDown,
-                WrapContents = false,
-                AutoScroll = true,
-            };
-
-            var inputsPanel = new FlowLayoutPanel()
-            {
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                AutoSize = true,
-            };
-
-            var speechBox = new TextBox()
-            {
-                Text = "Hey, snake! Get your head in the game.",
-                Width = 300,
-            };
-
-            var sayButton = new Button()
-            {
-                Text = "Say",
-                AutoSize = true,
-            };
-
-            sayButton.Click += (s, e) =>
-            {
-                this.conversationModel.AddUserMessage(speechBox.Text);
-            };
-
-            inputsPanel.Controls.Add(speechBox);
-            inputsPanel.Controls.Add(sayButton);
-            parent.Controls.Add(inputsPanel);
 
             var maxX = source.Values.SelectMany(x => x.Values.Select(v => v.X + v.Image.Width)).Max();
             var maxY = source.Values.SelectMany(x => x.Values.Select(v => v.Y + v.Image.Height)).Max();
 
             var surface = new Bitmap(maxX, maxY);
             var g = Graphics.FromImage(surface);
-            var display = new PictureBox
-            {
-                Size = new Size(maxX * 2, maxY * 2),
-                SizeMode = PictureBoxSizeMode.Zoom,
-                Image = surface,
-            };
+            this.display.Image = surface;
 
-            var panel = new FlowLayoutPanel()
-            {
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                AutoSize = true,
-            };
-
-            string? activeCharacter = "Hal Emmerich";
-            var nameLabel = new Label()
-            {
-                Text = activeCharacter,
-                AutoSize = true,
-            };
-
-            panel.Controls.Add(display);
-            panel.Controls.Add(nameLabel);
-
-            parent.Controls.Add(panel);
-            parent.Controls.Add(captionLabel);
-
-            this.Controls.Add(parent);
+            string? activeCharacter = this.nameLabel.Text;
 
             var reverseLookup = IdLookup.ToLookup(p => p.Value, p => p.Key);
             var avatars = new Dictionary<string, (AvatarState State, ImageSet Images)>();
@@ -213,7 +134,7 @@ namespace RenderLoop.Demo.MGS.Codec
                     if (activeCharacter != null && avatars.TryGetValue(activeCharacter, out var avatar))
                     {
                         this.RenderFace(g, avatar.Images, avatar.State.Eyes, avatar.State.Mouth);
-                        display.Invalidate();
+                        this.display.Invalidate();
                     }
                 }
                 else
@@ -226,8 +147,8 @@ namespace RenderLoop.Demo.MGS.Codec
             {
                 if (!this.InvokeRequired)
                 {
-                    nameLabel.Text = activeCharacter = name;
-                    captionLabel.Text = caption;
+                    this.nameLabel.Text = activeCharacter = name;
+                    this.captionLabel.Text = caption;
                     Render();
                 }
                 else
@@ -266,6 +187,11 @@ namespace RenderLoop.Demo.MGS.Codec
                     }
                 });
             }
+        }
+
+        private void SayButton_Click(object sender, EventArgs e)
+        {
+            this.conversationModel.AddUserMessage(this.speechBox.Text);
         }
 
         private void RenderFace(Graphics g, ImageSet components, string? eyes = null, string? mouth = null)
