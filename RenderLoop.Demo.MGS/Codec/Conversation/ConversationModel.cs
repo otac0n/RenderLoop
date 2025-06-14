@@ -9,7 +9,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal class ConversationModel(CodecOptions codecOptions, Func<CharacterResponse, Task> speechFunction) : IDisposable
+    internal class ConversationModel(CodecOptions codecOptions, Func<CharacterResponse, Task> speechFunction, Func<CodeResponse, Task<string>> codeFunction) : IDisposable
     {
         private static readonly JsonDocument Configuration;
         private static readonly JsonSerializerOptions JsonOptions;
@@ -31,10 +31,7 @@
             { "Nastasha", "Nastasha Romanenko" },
         };
 
-        private readonly List<Message> messages =
-        [
-            new("system", Configuration.RootElement.GetProperty("inference_params").GetProperty("pre_prompt").GetString() + Configuration.RootElement.GetProperty("inference_params").GetProperty("pre_prompt_suffix").GetString()),
-        ];
+        private readonly List<Message> messages = [];
 
         public event EventHandler<MessageReceivedArgs> MessageReceived;
 
@@ -71,25 +68,67 @@
 
         public async Task ProcessNextResponses(CancellationToken cancel)
         {
-            var response = await this.GetNextResponse(cancel);
-            var parsed = new ConversationParser().Parse(response);
-            foreach (var item in parsed)
+            var getNextResponse = true;
+            while (getNextResponse)
             {
-                switch (item)
+                var response = await this.GetNextResponse(cancel).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(response))
                 {
-                    case CharacterResponse characterResponse:
-                        lock (this.messages)
-                        {
-                            this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}\n"));
-                        }
+                    continue;
+                }
 
-                        if (Aliases.TryGetValue(characterResponse.Name, out var name))
-                        {
-                            characterResponse = characterResponse with { Name = name };
-                        }
+                IList<Response> parsed;
+                try
+                {
+                    parsed = new ConversationParser().Parse(response);
+                    getNextResponse = false;
+                }
+                catch (FormatException)
+                {
+                    continue;
+                }
 
-                        await speechFunction(characterResponse);
-                        break;
+                foreach (var item in parsed)
+                {
+                    switch (item)
+                    {
+                        case CharacterResponse characterResponse:
+                            lock (this.messages)
+                            {
+                                this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}\n"));
+                            }
+
+                            if (Aliases.TryGetValue(characterResponse.Name, out var name))
+                            {
+                                characterResponse = characterResponse with { Name = name };
+                            }
+
+                            await speechFunction(characterResponse).ConfigureAwait(false);
+                            break;
+
+                        case CodeResponse codeResponse:
+                            getNextResponse = true;
+
+                            lock (this.messages)
+                            {
+                                this.messages.Add(new Message("assistant", $"```csharp\n{codeResponse.Code.Trim()}\n```\n"));
+                            }
+
+                            string output;
+                            try
+                            {
+                                output = await codeFunction(codeResponse).ConfigureAwait(false);
+                                output = $"{output.Trim()}\nSystem: Task Status Completed";
+                            }
+                            catch (Exception ex)
+                            {
+                                output = $"{ex.ToString().Trim()}\nSystem: Task Status Faulted";
+                            }
+
+                            this.messages.Add(new Message("assistant", $"{output}\n"));
+
+                            break;
+                    }
                 }
             }
         }

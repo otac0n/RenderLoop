@@ -15,9 +15,11 @@ mood = "[" m:("" [^\]]+) "]" { m }
 
 text = "" (!codeStart [^\n])*
 
-codeResponse <CodeResponse> = codeStart code:("" .+) { new CodeResponse(code) }
+codeResponse <CodeResponse>
+    = "```" lang? EOL code:("" (!"```" .)*) "```"? EOL? { new CodeResponse(code) }
+    / "[code]" code:("" (!"[/code]" .)*) "[/code]?" EOL? { new CodeResponse(code) }
 
-codeStart = "```" lang / "[code]"
+codeStart = ("```" lang? EOL) / "[code]"
 
 lang = [a-z]+
 

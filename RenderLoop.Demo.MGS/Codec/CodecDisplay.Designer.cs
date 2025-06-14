@@ -36,8 +36,10 @@
             this.speechBox = new System.Windows.Forms.TextBox();
             this.sayButton = new System.Windows.Forms.Button();
             this.display = new System.Windows.Forms.PictureBox();
+            this.volumeMeter = new System.Windows.Forms.PictureBox();
             this.inputsPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)this.display).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)this.volumeMeter).BeginInit();
             this.SuspendLayout();
             // 
             // updateTimer
@@ -59,9 +61,10 @@
             // nameLabel
             // 
             this.nameLabel.AutoSize = true;
-            this.nameLabel.Location = new System.Drawing.Point(168, 103);
+            this.nameLabel.Font = new System.Drawing.Font("Lucida Console", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
+            this.nameLabel.Location = new System.Drawing.Point(245, 125);
             this.nameLabel.Name = "nameLabel";
-            this.nameLabel.Size = new System.Drawing.Size(121, 25);
+            this.nameLabel.Size = new System.Drawing.Size(140, 18);
             this.nameLabel.TabIndex = 1;
             this.nameLabel.Text = "Hal Emmerich";
             // 
@@ -111,6 +114,15 @@
             this.display.TabIndex = 3;
             this.display.TabStop = false;
             // 
+            // volumeMeter
+            // 
+            this.volumeMeter.Location = new System.Drawing.Point(176, 82);
+            this.volumeMeter.Name = "volumeMeter";
+            this.volumeMeter.Size = new System.Drawing.Size(200, 100);
+            this.volumeMeter.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.volumeMeter.TabIndex = 4;
+            this.volumeMeter.TabStop = false;
+            // 
             // CodecDisplay
             // 
             this.BackColor = System.Drawing.Color.Black;
@@ -119,11 +131,13 @@
             this.Controls.Add(this.inputsPanel);
             this.Controls.Add(this.nameLabel);
             this.Controls.Add(this.captionLabel);
+            this.Controls.Add(this.volumeMeter);
             this.ForeColor = System.Drawing.Color.Green;
             this.Name = "CodecDisplay";
             this.inputsPanel.ResumeLayout(false);
             this.inputsPanel.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)this.display).EndInit();
+            ((System.ComponentModel.ISupportInitialize)this.volumeMeter).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
         }
@@ -137,5 +151,6 @@
         private System.Windows.Forms.TextBox speechBox;
         private System.Windows.Forms.Button sayButton;
         private System.Windows.Forms.PictureBox display;
+        private System.Windows.Forms.PictureBox volumeMeter;
     }
 }

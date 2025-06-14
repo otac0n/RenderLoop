@@ -54,6 +54,8 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             return new SystemSpeechVoice(VoiceGender.NotSet, VoiceAge.NotSet, voiceCulture: null);
         }
 
+        protected static string ApplyPhoneticReplacements(string text) => text.Replace("Otacon", "Awtacon", StringComparison.CurrentCultureIgnoreCase);
+
         public abstract Task SayAsync(string text);
 
         protected void InvokeMouthMoved(uint visemeId)

@@ -29,7 +29,19 @@ namespace RenderLoop.Demo.MGS.Codec
         {
             1 or 2 or 3 or 4 or 5 or 6 or 15 or 16 => "mouth-a",
             8 or 9 or 10 or 11 or 12 or 13 or 14 or 17 or 20 => "mouth-e",
-            0 or 7 or 18 or 19 or 21 => null,
+            _ => null,
+        };
+
+        public double Volume => this.lastViseme switch
+        {
+            12 => 0.3,
+            7 or 8 => 0.4,
+            1 or 2 or 3 or 4 or 5 or 9 or 13 or 14 => 0.5,
+            6 or 10 or 11 or 15 => 0.6,
+            16 or 17 or 18 or 19 => 0.7,
+            20 => 0.9,
+            21 => 1.0,
+            _ => 0,
         };
 
         public async Task SayAsync(string text)

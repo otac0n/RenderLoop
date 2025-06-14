@@ -20,7 +20,7 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
 
         public void Dispose() => this.synth.Dispose();
 
-        public override Task SayAsync(string text) => this.synth.SpeakTextAsync(text);
+        public override Task SayAsync(string text) => this.synth.SpeakTextAsync(ApplyPhoneticReplacements(text));
 
         private void Synth_VisemeReceived(object? sender, SpeechSynthesisVisemeEventArgs e)
         {
