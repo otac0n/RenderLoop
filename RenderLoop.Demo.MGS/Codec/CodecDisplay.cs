@@ -4,17 +4,15 @@ namespace RenderLoop.Demo.MGS.Codec
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Drawing;
-    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
-    using System.Runtime.InteropServices;
     using System.Windows.Forms;
     using AnimatedGif;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.Codec.Conversation;
+    using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
 
     internal class CodecDisplay : Form
     {
@@ -114,7 +112,7 @@ namespace RenderLoop.Demo.MGS.Codec
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
-            var source = UnpackFaces(facesStream);
+            var source = ImageLoader.LoadImages(facesStream);
 
             this.Width = 500;
             this.Height = 500;
@@ -208,7 +206,7 @@ namespace RenderLoop.Demo.MGS.Codec
             inputsPanel.Controls.Add(sayButton);
             parent.Controls.Add(inputsPanel);
 
-            var byRawId = source.GroupBy(i => i.id, i => i.images);
+            var byRawId = source.GroupBy(i => i.Key, i => i.Value);
 
             foreach (var group in byRawId.GroupBy(g => IdLookup.TryGetValue(g.Key, out var id) ? id : g.Key, g => g.First()))
             {
@@ -220,12 +218,12 @@ namespace RenderLoop.Demo.MGS.Codec
                 };
 
                 var avatarState = new AvatarState(codecOptions, group.Key);
-                foreach (var set in group.Select((s, i) => (images: s, index: i)))
+                foreach (var set in group.Select((s, i) => (Images: s, Index: i)).OrderByDescending(x => x.Images.ContainsKey("base")).ThenByDescending(x => x.Images.Count).Take(1))
                 {
-                    var images = set.images;
+                    var images = set.Images;
 
-                    var maxX = images.Values.Max(v => v.x + v.image.Width);
-                    var maxY = images.Values.Max(v => v.y + v.image.Height);
+                    var maxX = images.Values.Max(v => v.X + v.Image.Width);
+                    var maxY = images.Values.Max(v => v.Y + v.Image.Height);
                     var display = new PictureBox
                     {
                         Size = new Size(maxX * 2, maxY * 2),
@@ -236,7 +234,7 @@ namespace RenderLoop.Demo.MGS.Codec
                     {
                         if (images.Count == 1)
                         {
-                            display.Image = baseImage.image;
+                            display.Image = baseImage.Image;
                         }
                         else
                         {
@@ -267,15 +265,13 @@ namespace RenderLoop.Demo.MGS.Codec
                     }
 
                     panel.Controls.Add(display);
-
-                    panel.Controls.Add(new Label()
-                    {
-                        Text = group.Key,
-                        AutoSize = true,
-                    });
-
-                    break;
                 }
+
+                panel.Controls.Add(new Label()
+                {
+                    Text = group.Key,
+                    AutoSize = true,
+                });
 
                 parent.Controls.Add(panel);
                 avatars.Add(group.Key, (avatarState, panel));
@@ -286,30 +282,30 @@ namespace RenderLoop.Demo.MGS.Codec
             this.Controls.Add(parent);
         }
 
-        private void RenderFace(Graphics g, ImmutableDictionary<string, (int x, int y, Bitmap image)> components, string? eyes = null, string? mouth = null)
+        private void RenderFace(Graphics g, ImageSet components, string? eyes = null, string? mouth = null)
         {
             if (components.TryGetValue("base", out var baseComponent))
             {
-                g.DrawImageUnscaled(baseComponent.image, baseComponent.x, baseComponent.y);
+                g.DrawImageUnscaled(baseComponent.Image, baseComponent.X, baseComponent.Y);
             }
 
             if (eyes != null && components.TryGetValue(eyes, out var eyesComponent))
             {
-                g.DrawImageUnscaled(eyesComponent.image, eyesComponent.x, eyesComponent.y);
+                g.DrawImageUnscaled(eyesComponent.Image, eyesComponent.X, eyesComponent.Y);
             }
 
             if (mouth != null && components.TryGetValue(mouth, out var mouthComponent))
             {
-                g.DrawImageUnscaled(mouthComponent.image, mouthComponent.x, mouthComponent.y);
+                g.DrawImageUnscaled(mouthComponent.Image, mouthComponent.X, mouthComponent.Y);
             }
         }
 
-        private Image RenderAnimation(ImmutableDictionary<string, (int x, int y, Bitmap image)> frames)
+        private Image RenderAnimation(ImageSet frames)
         {
             var gifStream = new MemoryStream();
 
-            var maxX = frames.Values.Max(v => v.x + v.image.Width);
-            var maxY = frames.Values.Max(v => v.y + v.image.Height);
+            var maxX = frames.Values.Max(v => v.X + v.Image.Width);
+            var maxY = frames.Values.Max(v => v.Y + v.Image.Height);
             using var surface = new Bitmap(maxX, maxY);
             using var g = Graphics.FromImage(surface);
             using var gif = new AnimatedGifCreator(gifStream, delay: 100);
@@ -319,7 +315,7 @@ namespace RenderLoop.Demo.MGS.Codec
                 {
                     if (frames.TryGetValue($"frame{f}", out var frameImage))
                     {
-                        g.DrawImageUnscaled(frameImage.image, new Point(frameImage.x, frameImage.y));
+                        g.DrawImageUnscaled(frameImage.Image, new Point(frameImage.X, frameImage.Y));
                         gif.AddFrame(surface);
                         shown++;
                     }
@@ -328,173 +324,6 @@ namespace RenderLoop.Demo.MGS.Codec
 
             gifStream.Seek(0, SeekOrigin.Begin);
             return Image.FromStream(gifStream);
-        }
-
-        public static IEnumerable<(string id, ImmutableDictionary<string, (int x, int y, Bitmap image)> images)> UnpackFaces(Stream source)
-        {
-            const int PALETTE_SIZE = 256;
-
-            var buffer = new byte[PALETTE_SIZE * 2];
-            var palette = new Color[PALETTE_SIZE];
-            var imageKeys = new[] { "base", "eyes-droop", "eyes-blink", "unknown", "mouth-e", "mouth-a" };
-
-            for (var ix = 0; source.Position < source.Length; ix++)
-            {
-                source.ReadExactly(buffer, 4);
-                var total = BitConverter.ToInt32(buffer, 0);
-
-                var position = source.Position;
-                var headers = new (string id, uint size, uint offset, bool animation)[total];
-                for (var h = 0; h < total; h++)
-                {
-                    source.ReadExactly(buffer, 12);
-
-                    var animation = BitConverter.ToUInt16(buffer, 0);
-                    var id = BitConverter.ToUInt16(buffer, 2).ToString("x4");
-                    var size = BitConverter.ToUInt32(buffer, 4);
-                    var offset = BitConverter.ToUInt32(buffer, 8);
-
-                    headers[h] = (id, size, offset, animation > 0);
-                }
-
-                int Intensity(int c) =>
-                    ((c & 0b00010000) >> 4) * 80 +
-                    ((c & 0b00001000) >> 3) * 40 +
-                    ((c & 0b00000100) >> 2) * 20 +
-                    ((c & 0b00000010) >> 1) * 10 +
-                    ((c & 0b00000001) >> 0) * 8 +
-                    16;
-
-                for (var h = 0; h < total; h++)
-                {
-                    var header = headers[h];
-
-                    void ReadPalette(uint paletteOffset)
-                    {
-                        source.Seek(position + header.offset + paletteOffset, SeekOrigin.Begin);
-                        source.ReadExactly(buffer, palette.Length * 2);
-                        for (var i = 0; i < palette.Length; i++)
-                        {
-                            var color = BitConverter.ToUInt16(buffer, i * 2);
-                            var r = Intensity((color & 0b0000000000011111) >> 0);
-                            var g = Intensity((color & 0b0000001111100000) >> 5);
-                            var b = Intensity((color & 0b1111110000000000) >> 10);
-                            palette[i] = Color.FromArgb(r, g, b);
-                        }
-                    }
-
-                    (int x, int y, Bitmap image) GetBitmap(uint offset)
-                    {
-                        source.Seek(position + header.offset + offset, SeekOrigin.Begin);
-                        source.ReadExactly(buffer, 4);
-                        var u = (sbyte)buffer[0];
-                        var v = (sbyte)buffer[1];
-                        var w = (sbyte)buffer[2];
-                        var h = (sbyte)buffer[3];
-
-                        if (buffer.Length < w)
-                        {
-                            Array.Resize(ref buffer, w);
-                        }
-
-                        var bmp = new Bitmap(w, h, PixelFormat.Format8bppIndexed);
-
-                        var p = bmp.Palette;
-                        for (var i = 0; i < palette.Length; i++)
-                        {
-                            p.Entries[i] = palette[i];
-                        }
-                        bmp.Palette = p;
-
-                        var bmpData = bmp.LockBits(new Rectangle(0, 0, w, h), ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
-                        try
-                        {
-                            var scan = bmpData.Scan0;
-                            for (var y = 0; y < h; y++, scan += bmpData.Stride)
-                            {
-                                source.ReadExactly(buffer, w);
-                                Marshal.Copy(buffer, 0, scan, w);
-                            }
-                        }
-                        finally
-                        {
-                            bmp.UnlockBits(bmpData);
-                        }
-
-                        return (u, v, bmp);
-                    }
-
-                    var builder = ImmutableDictionary.CreateBuilder<string, (int u, int v, Bitmap image)>();
-
-                    source.Seek(position + header.offset, SeekOrigin.Begin);
-                    source.ReadExactly(buffer, 4);
-
-                    if (!header.animation)
-                    {
-                        var paletteOffset = BitConverter.ToUInt32(buffer, 0);
-
-                        source.ReadExactly(buffer, 28);
-                        var images = new uint[imageKeys.Length];
-                        for (var i = 0; i < images.Length; i++)
-                        {
-                            if (imageKeys[i] != null)
-                            {
-                                images[i] = BitConverter.ToUInt32(buffer, i * 4);
-                            }
-                        }
-
-                        ReadPalette(paletteOffset);
-
-                        for (var i = 0; i < images.Length; i++)
-                        {
-                            if (images[i] != 0)
-                            {
-                                builder.Add(imageKeys[i]!, GetBitmap(images[i]));
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var frames = BitConverter.ToUInt32(buffer, 0);
-
-                        var frameHeaders = new (uint paletteOffset, uint frameOffset, uint unknown)[frames];
-                        for (var f = 0; f < frames; f++)
-                        {
-                            source.ReadExactly(buffer, 12);
-
-                            var paletteOffset = BitConverter.ToUInt32(buffer, 0);
-                            var frameOffset = BitConverter.ToUInt32(buffer, 4);
-                            var unknown = BitConverter.ToUInt32(buffer, 8);
-
-                            frameHeaders[f] = (paletteOffset, frameOffset, unknown);
-                        }
-
-                        for (var f = 0; f < frames; f++)
-                        {
-                            var frame = frameHeaders[f];
-
-                            if (frame.paletteOffset == 0 || frame.frameOffset == 0)
-                            {
-                                continue;
-                            }
-
-                            ReadPalette(frame.paletteOffset);
-
-                            builder.Add($"frame{f}", GetBitmap(frame.frameOffset));
-                        }
-                    }
-
-                    yield return (header.id, builder.ToImmutable());
-                }
-
-                position = position + headers.Max(h => h.offset + h.size);
-                if (position % 2048 != 0)
-                {
-                    position += 2048 - position % 2048;
-                }
-
-                source.Position = position;
-            }
         }
     }
 }
