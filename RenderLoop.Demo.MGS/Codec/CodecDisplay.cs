@@ -14,9 +14,11 @@ namespace RenderLoop.Demo.MGS.Codec
     using AnimatedGif;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
+    using RenderLoop.Demo.MGS.Codec.Conversation;
 
     internal class CodecDisplay : Form
     {
+        private ConversationModel conversationModel;
         private Timer updateTimer;
 
         private static Dictionary<string, string> IdLookup = new()
@@ -114,8 +116,53 @@ namespace RenderLoop.Demo.MGS.Codec
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = UnpackFaces(facesStream);
 
-            this.Width = 2200;
-            this.Height = 2000;
+            this.Width = 500;
+            this.Height = 500;
+
+            var avatars = new Dictionary<string, (AvatarState State, Control Control)>();
+
+            var captionLabel = new Label()
+            {
+                Text = "",
+                AutoSize = true,
+                ForeColor = Color.White,
+                Font = new Font(this.Font, FontStyle.Bold),
+            };
+
+            if (codecOptions.LMEndpoint != null)
+            {
+                this.conversationModel = new ConversationModel(codecOptions, async response =>
+                {
+                    var character = response.Name;
+                    if (avatars.TryGetValue(character, out var avatar))
+                    {
+                        ShowAvatar(character, response.Text);
+
+                        // TODO: Set Mood.
+                        await avatar.State.SayAsync(response.Text).ConfigureAwait(false);
+                    }
+                });
+            }
+
+            void ShowAvatar(string name, string caption)
+            {
+                if (!this.InvokeRequired)
+                {
+                    if (avatars.TryGetValue(name, out var selected))
+                    {
+                        foreach (var avatar in avatars.Values)
+                        {
+                            avatar.Control.Visible = avatar.Control == selected.Control;
+                        }
+                    }
+
+                    captionLabel.Text = caption;
+                }
+                else
+                {
+                    this.Invoke(() => ShowAvatar(name, caption));
+                }
+            }
 
             this.updateTimer = new Timer()
             {
@@ -145,7 +192,20 @@ namespace RenderLoop.Demo.MGS.Codec
                 Text = "Hey, snake! Get your head in the game.",
                 Width = 300,
             };
+
+            var sayButton = new Button()
+            {
+                Text = "Say",
+                AutoSize = true,
+            };
+
+            sayButton.Click += (s, e) =>
+            {
+                this.conversationModel.AddUserMessage(speechBox.Text);
+            };
+
             inputsPanel.Controls.Add(speechBox);
+            inputsPanel.Controls.Add(sayButton);
             parent.Controls.Add(inputsPanel);
 
             var byRawId = source.GroupBy(i => i.id, i => i.images);
@@ -158,12 +218,6 @@ namespace RenderLoop.Demo.MGS.Codec
                     WrapContents = false,
                     AutoSize = true,
                 };
-
-                panel.Controls.Add(new Label()
-                {
-                    Text = group.Key,
-                    AutoSize = true,
-                });
 
                 var avatarState = new AvatarState(codecOptions, group.Key);
                 foreach (var set in group.Select((s, i) => (images: s, index: i)))
@@ -213,18 +267,21 @@ namespace RenderLoop.Demo.MGS.Codec
                     }
 
                     panel.Controls.Add(display);
+
+                    panel.Controls.Add(new Label()
+                    {
+                        Text = group.Key,
+                        AutoSize = true,
+                    });
+
+                    break;
                 }
 
-                var speakButton = new Button()
-                {
-                    Text = "Speak",
-                    AutoSize = true,
-                };
-                speakButton.Click += (e, a) => avatarState.SayAsync(speechBox.Text);
-                panel.Controls.Add(speakButton);
-
                 parent.Controls.Add(panel);
+                avatars.Add(group.Key, (avatarState, panel));
             }
+
+            parent.Controls.Add(captionLabel);
 
             this.Controls.Add(parent);
         }

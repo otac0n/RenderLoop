@@ -1,0 +1,30 @@
+@namespace RenderLoop.Demo.MGS.Codec.Conversation
+@classname ConversationParser
+@accessibility internal
+@using System.Linq
+
+conversation <IList<Response>> = r:response* EOF { r }
+
+response <Response> = characterResponse / codeResponse
+
+characterResponse <CharacterResponse> = n:("" name<1,2,WS>) _ m:mood? _ ":" _ t:text EOL? { new CharacterResponse(n, m.SingleOrDefault(), t) }
+
+name = "" [^\[\]:` \t\n]+
+
+mood = "[" m:("" [^\]]+) "]" { m }
+
+text = "" (!codeStart [^\n])*
+
+codeResponse <CodeResponse> = codeStart code:("" .+) { new CodeResponse(code) }
+
+codeStart = "```" lang / "[code]"
+
+lang = [a-z]+
+
+WS = "" [ \t]+
+
+EOL = "" "\n"*
+
+_ = "" WS?
+
+EOF = !. / #ERROR{ "Could not parse response." }

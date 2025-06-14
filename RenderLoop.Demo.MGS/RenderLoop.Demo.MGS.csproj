@@ -13,6 +13,7 @@
     <PackageReference Include="Magick.NET.SystemDrawing" Version="8.0.0" />
     <PackageReference Include="Magick.NET-Q8-x64" Version="14.0.0" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.44.0" />
+    <PackageReference Include="Pegasus" Version="4.1.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="System.Speech" Version="9.0.6" />
     <PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="20.0.15" />
@@ -22,6 +23,10 @@
     <ProjectReference Include="..\RenderLoop.SilkRenderer\RenderLoop.SilkRenderer.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Remove="Codec\Conversation\ConversationParser.peg" />
+    <PegGrammar Include="Codec\Conversation\ConversationParser.peg" />
+    <None Remove="Codec\Conversation\model_config.json" />
+    <EmbeddedResource Include="Codec\Conversation\model_config.json" />
     <None Remove="stylecop.json" />
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>

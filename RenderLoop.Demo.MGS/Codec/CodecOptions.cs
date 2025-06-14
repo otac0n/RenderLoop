@@ -7,5 +7,9 @@ namespace RenderLoop.Demo.MGS.Codec
         public required string? SpeechEndpoint { get; set; }
 
         public required string? SpeechKey { get; set; }
+
+        public required string? LMEndpoint { get; set; }
+
+        public required string? LanguageModel { get; set; }
     }
 }

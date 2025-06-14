@@ -44,8 +44,20 @@ namespace RenderLoop.Demo.MGS
                 description: "The Azure Speech API key.",
                 getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
 
+            var lmEndpointOption = new Option<string?>(
+                name: "--lmEndpoint",
+                description: "The LM Studio API to use for conversation.",
+                getDefaultValue: () => "http://localhost:5000");
+
+            var languageModelOption = new Option<string?>(
+                name: "--languageModel",
+                description: "The language model to request for conversation.",
+                getDefaultValue: () => "mradermacher/QwQ-LCoT-14B-Conversational-i1-GGUF");
+
             codecCommand.AddOption(speechEndpointOption);
             codecCommand.AddOption(speechKeyOption);
+            codecCommand.AddOption(lmEndpointOption);
+            codecCommand.AddOption(languageModelOption);
 
             rootCommand.Add(codecCommand);
 
@@ -83,6 +95,8 @@ namespace RenderLoop.Demo.MGS
                     {
                         SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
                         SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
+                        LMEndpoint = context.ParseResult.GetValueForOption(lmEndpointOption),
+                        LanguageModel = context.ParseResult.GetValueForOption(languageModelOption),
                     };
 
                     var builder = Host.CreateDefaultBuilder(args);
