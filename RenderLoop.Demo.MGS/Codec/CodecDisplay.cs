@@ -117,8 +117,6 @@ namespace RenderLoop.Demo.MGS.Codec
             this.Width = 500;
             this.Height = 500;
 
-            var avatars = new Dictionary<string, (AvatarState State, Control Control)>();
-
             var captionLabel = new Label()
             {
                 Text = "",
@@ -127,46 +125,11 @@ namespace RenderLoop.Demo.MGS.Codec
                 Font = new Font(this.Font, FontStyle.Bold),
             };
 
-            if (codecOptions.LMEndpoint != null)
-            {
-                this.conversationModel = new ConversationModel(codecOptions, async response =>
-                {
-                    var character = response.Name;
-                    if (avatars.TryGetValue(character, out var avatar))
-                    {
-                        ShowAvatar(character, response.Text);
-
-                        // TODO: Set Mood.
-                        await avatar.State.SayAsync(response.Text).ConfigureAwait(false);
-                    }
-                });
-            }
-
-            void ShowAvatar(string name, string caption)
-            {
-                if (!this.InvokeRequired)
-                {
-                    if (avatars.TryGetValue(name, out var selected))
-                    {
-                        foreach (var avatar in avatars.Values)
-                        {
-                            avatar.Control.Visible = avatar.Control == selected.Control;
-                        }
-                    }
-
-                    captionLabel.Text = caption;
-                }
-                else
-                {
-                    this.Invoke(() => ShowAvatar(name, caption));
-                }
-            }
-
-            this.updateTimer = new Timer()
+            this.updateTimer = new Timer
             {
                 Interval = 1000 / 30,
+                Enabled = true,
             };
-            this.updateTimer.Enabled = true;
 
             var parent = new FlowLayoutPanel()
             {
@@ -206,80 +169,103 @@ namespace RenderLoop.Demo.MGS.Codec
             inputsPanel.Controls.Add(sayButton);
             parent.Controls.Add(inputsPanel);
 
-            var byRawId = source.GroupBy(i => i.Key, i => i.Value);
+            var maxX = source.Values.SelectMany(x => x.Values.Select(v => v.X + v.Image.Width)).Max();
+            var maxY = source.Values.SelectMany(x => x.Values.Select(v => v.Y + v.Image.Height)).Max();
 
-            foreach (var group in byRawId.GroupBy(g => IdLookup.TryGetValue(g.Key, out var id) ? id : g.Key, g => g.First()))
+            var surface = new Bitmap(maxX, maxY);
+            var g = Graphics.FromImage(surface);
+            var display = new PictureBox
             {
-                var panel = new FlowLayoutPanel()
-                {
-                    FlowDirection = FlowDirection.LeftToRight,
-                    WrapContents = false,
-                    AutoSize = true,
-                };
+                Size = new Size(maxX * 2, maxY * 2),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Image = surface,
+            };
 
-                var avatarState = new AvatarState(codecOptions, group.Key);
-                foreach (var set in group.Select((s, i) => (Images: s, Index: i)).OrderByDescending(x => x.Images.ContainsKey("base")).ThenByDescending(x => x.Images.Count).Take(1))
-                {
-                    var images = set.Images;
+            var panel = new FlowLayoutPanel()
+            {
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoSize = true,
+            };
 
-                    var maxX = images.Values.Max(v => v.X + v.Image.Width);
-                    var maxY = images.Values.Max(v => v.Y + v.Image.Height);
-                    var display = new PictureBox
-                    {
-                        Size = new Size(maxX * 2, maxY * 2),
-                        SizeMode = PictureBoxSizeMode.Zoom,
-                    };
+            string? activeCharacter = "Hal Emmerich";
+            var nameLabel = new Label()
+            {
+                Text = activeCharacter,
+                AutoSize = true,
+            };
 
-                    if (images.TryGetValue("base", out var baseImage))
-                    {
-                        if (images.Count == 1)
-                        {
-                            display.Image = baseImage.Image;
-                        }
-                        else
-                        {
-                            var surface = new Bitmap(maxX, maxY);
-                            var g = Graphics.FromImage(surface);
+            panel.Controls.Add(display);
+            panel.Controls.Add(nameLabel);
 
-                            void Render(object? sender, EventArgs args)
-                            {
-                                if (!this.InvokeRequired)
-                                {
-                                    this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
-                                    display.Invalidate();
-                                }
-                                else
-                                {
-                                    this.Invoke(() => Render(sender, args));
-                                }
-                            }
-
-                            avatarState.Updated += Render;
-                            this.updateTimer.Tick += (e, a) => avatarState.Update();
-                            display.Image = surface;
-                        }
-                    }
-                    else
-                    {
-                        display.Image = RenderAnimation(images);
-                    }
-
-                    panel.Controls.Add(display);
-                }
-
-                panel.Controls.Add(new Label()
-                {
-                    Text = group.Key,
-                    AutoSize = true,
-                });
-
-                parent.Controls.Add(panel);
-                avatars.Add(group.Key, (avatarState, panel));
-            }
-
+            parent.Controls.Add(panel);
             parent.Controls.Add(captionLabel);
 
             this.Controls.Add(parent);
+
+            var reverseLookup = IdLookup.ToLookup(p => p.Value, p => p.Key);
+            var avatars = new Dictionary<string, (AvatarState State, ImageSet Images)>();
+
+            void Render()
+            {
+                if (!this.InvokeRequired)
+                {
+                    if (activeCharacter != null && avatars.TryGetValue(activeCharacter, out var avatar))
+                    {
+                        this.RenderFace(g, avatar.Images, avatar.State.Eyes, avatar.State.Mouth);
+                        display.Invalidate();
+                    }
+                }
+                else
+                {
+                    this.Invoke(Render);
+                }
+            }
+
+            void ShowAvatar(string name, string caption)
+            {
+                if (!this.InvokeRequired)
+                {
+                    nameLabel.Text = activeCharacter = name;
+                    captionLabel.Text = caption;
+                    Render();
+                }
+                else
+                {
+                    this.Invoke(() => ShowAvatar(name, caption));
+                }
+            }
+
+            foreach (var group in reverseLookup)
+            {
+                var name = group.Key;
+                var avatarState = new AvatarState(codecOptions, name);
+                this.updateTimer.Tick += (e, a) => avatarState.Update();
+                avatarState.Updated += (e, a) =>
+                {
+                    if (name == activeCharacter)
+                    {
+                        Render();
+                    }
+                };
+                var images = group.Select(id => source[id]).OrderByDescending(s => s.ContainsKey("base")).ThenByDescending(s => s.Count).First();
+                avatars.Add(name, (avatarState, images));
+            }
+
+            if (codecOptions.LMEndpoint != null)
+            {
+                this.conversationModel = new ConversationModel(codecOptions, async response =>
+                {
+                    var character = response.Name;
+                    if (avatars.TryGetValue(character, out var avatar))
+                    {
+                        ShowAvatar(character, response.Text);
+
+                        // TODO: Set Mood.
+                        await avatar.State.SayAsync(response.Text).ConfigureAwait(false);
+                    }
+                });
+            }
         }
 
         private void RenderFace(Graphics g, ImageSet components, string? eyes = null, string? mouth = null)
