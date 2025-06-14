@@ -22,6 +22,8 @@
             { "Snake", "Solid Snake" },
             { "Otacon", "Hal Emmerich" },
             { "Liquid", "Liquid Snake" },
+            { "Master", "Liquid Snake" },
+            { "Master Miller", "Liquid Snake" },
             { "Meryl", "Meryl Silverburgh" },
             { "Campbell", "Roy Campbell" },
             { "Colonel", "Roy Campbell" },
