@@ -111,7 +111,7 @@
 
                             lock (this.messages)
                             {
-                                this.messages.Add(new Message("assistant", $"```csharp\n{codeResponse.Code.Trim()}\n```\n"));
+                                this.messages.Add(new Message("assistant", $"```\n{codeResponse.Code.Trim()}\n```\n"));
                             }
 
                             string output;
