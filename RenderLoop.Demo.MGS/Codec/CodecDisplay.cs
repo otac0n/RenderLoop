@@ -22,92 +22,148 @@ namespace RenderLoop.Demo.MGS.Codec
     {
         private ConversationModel conversationModel;
 
-        private static Dictionary<string, string> IdLookup = new()
+        private static Dictionary<(string Mood, string Tags), double> MoodMappingScores = new()
         {
-            { "f73b", "Solid Snake" }, // Neutral
-            { "ae23", "Solid Snake" }, // Frown
-            { "a2ca", "Solid Snake" }, // Looking Down, Eyes Closed
-            { "3e2d", "Solid Snake" }, // Baring Teeth
-            { "7228", "Solid Snake" }, // Smiling
-            { "3108", "Solid Snake" }, // Laugh?
-            { "3078", "Solid Snake" }, // Laugh?
-            { "2272", "Solid Snake" }, // Yelling
-            { "0b7e", "Solid Snake" }, // Nude, Neutral
-            { "c265", "Solid Snake" }, // Nude, Frown
-            { "e6eb", "Solid Snake" }, // Nude, Looking Down, Eyes Closed
-            { "36b4", "Solid Snake" }, // Nude, Angry / Yelling
-            { "2089", "Solid Snake" }, // Nude, Neutral (duplicate)
-            { "59f8", "Solid Snake" }, // Suited, Neutral
-            { "da69", "Solid Snake" }, // Looking Down, Eyes Closed
-            { "1c7e", "Solid Snake" }, // Nude, Looking Down, Eyes Closed
-            { "0d84", "Solid Snake" }, // Nude, Looking Down, Eyes Closed
-            { "bc7b", "Solid Snake" }, // Looking Down, Eyes Closed
-            { "3320", "Roy Campbell" }, // Neutral
-            { "ae0c", "Roy Campbell" }, // Smiling
-            { "7a11", "Roy Campbell" }, // Surprised
-            { "5e56", "Roy Campbell" }, // Frown
-            { "1a37", "Roy Campbell" }, // Yelling
-            { "a927", "Roy Campbell" }, // Sad, Eyes Closed
-            { "a472", "Roy Campbell" }, // Reserved
-            { "bb69", "Roy Campbell" }, // Dumbfounded
-            { "21f3", "Naomi Hunter" }, // Neutral
-            { "9cdf", "Naomi Hunter" }, // Smiling
-            { "68e4", "Naomi Hunter" }, // Surprised
-            { "b96e", "Naomi Hunter" }, // Reserved
-            { "fd17", "Naomi Hunter" }, // Concerned
-            { "b176", "Naomi Hunter" }, // Sad / Hurt
-            { "de08", "Naomi Hunter" }, // Frowning / Eyes Closed
-            { "f1aa", "Naomi Hunter" }, // Frowning / Eyes Closed
-            { "2118", "Naomi Hunter" }, // Frowning / Eyes Closed, Shaking "no"
-            { "7c87", "Naomi Hunter" }, // Resigned / Eyes Closed
-            { "25a1", "Naomi Hunter" }, // Pain / Eyes Closed
-            { "f0ef", "Naomi Hunter" }, // Hiding Pain
-            { "6f74", "Naomi Hunter" }, // Defiant / Holding Back Tears
-            { "5347", "Mei Ling" }, // Neutral
-            { "6244", "Mei Ling" }, // Mischievous
-            { "ce33", "Mei Ling" }, // Smiling
-            { "7e7d", "Mei Ling" }, // Enthusiastic
-            { "2c6a", "Mei Ling" }, // Mid Blink
-            { "1091", "Mei Ling" }, // Mid Blink
-            { "dcf4", "Mei Ling" }, // Concerned
-            { "c60f", "Mei Ling" }, // Left-eye Wink
-            { "fe9f", "Mei Ling" }, // Tongue Out
-            { "40b0", "Mei Ling" }, // Wiggle
-            { "ad5d", "Hal Emmerich" }, // Neutral
-            { "ec59", "Hal Emmerich" }, // Neutral, Lens Shine
-            { "284a", "Hal Emmerich" }, // Smiling
-            { "9c70", "Hal Emmerich" }, // Frown
-            { "3069", "Hal Emmerich" }, // Yelling, Close-up
-            { "74a7", "Hal Emmerich" }, // Questioning
-            { "9cc0", "Liquid Snake" }, // Miller, Neutral
-            { "17ad", "Liquid Snake" }, // Miller, Smile
-            { "d6ef", "Liquid Snake" }, // Miller, Wince
-            { "6a21", "Liquid Snake" }, // Miller, Smirk
-            { "99c1", "Liquid Snake" }, // Liquid, Neutral
-            { "80d8", "Liquid Snake" }, // Liquid, Frown
-            { "2f79", "Liquid Snake" }, // Miller -> Liquid Reveal
-            { "158d", "Nastasha Romanenko" }, // Neutral
-            { "1e41", "Nastasha Romanenko" }, // Looking Down, Eyes Closed
-            { "9079", "Nastasha Romanenko" }, // Smiling
-            { "40c3", "Nastasha Romanenko" }, // Concerned
-            { "7702", "Meryl Silverburgh" }, // Masked
-            { "7d66", "Meryl Silverburgh" }, // Doff Mask
-            { "39c3", "Meryl Silverburgh" }, // Neutral
-            { "6d84", "Meryl Silverburgh" }, // Don Mask
-            { "b4af", "Meryl Silverburgh" }, // Smile
-            { "1162", "Meryl Silverburgh" }, // Grin
-            { "0cc2", "Meryl Silverburgh" }, // Looking Down, Eyes Closed
-            { "64f9", "Meryl Silverburgh" }, // Frown
-            { "3d59", "Meryl Silverburgh" }, // Looking Down, Eyes Closed
-            { "8d32", "Meryl Silverburgh" }, // Turn To Screen Left
-            { "dce9", "Meryl Silverburgh" }, // Facing Screen Left
-            { "3d63", "Sniper Wolf" }, // Neutral
-            { "b84f", "Sniper Wolf" }, // Smile
-            { "124a", "Sniper Wolf" }, // Grin
-            { "6899", "Sniper Wolf" }, // Frown
-            { "a83c", "Sniper Wolf" }, // Neutral
-            { "93f9", "Jim Houseman" }, // Neutral
-            { "bf2f", "Jim Houseman" }, // Frown
+            { ("Frowning", "Frown"), 1.0 },
+            { ("Frustrated", "Frown"), 1.0 },
+            { ("Serious", "Frown"), 1.0 },
+            { ("Gruff", "Frown"), 1.0 },
+            { ("Angry", "Yell"), 1.0 },
+            { ("Angry", "Frown"), 0.8 },
+            { ("Concerned", "Frown"), 0.7 },
+            { ("Cheerful", "Enthusiastic"), 1.0 },
+            { ("Smiling", "Smile"), 1.0 },
+            { ("Smirking", "Smile"), 1.0 },
+            { ("Jokingly", "Smile"), 1.0 },
+            { ("Cheerful", "Smile"), 0.9 },
+            { ("Happy", "Smile"), 1.0 },
+            { ("Amused", "Mischievous"), 1.0 },
+            { ("Amused", "Smile"), 0.9 },
+            { ("Grinning", "Smile"), 0.9 },
+            { ("Smug", "Smile"), 0.9 },
+            { ("Impressed", "Surprised"), 0.9 },
+            { ("Impressed", "Smile"), 0.8 },
+            { ("Questioning", "Concerned"), 0.9 },
+            { ("Puzzled", "Concerned"), 0.9 },
+            { ("Uncertain", "Concerned"), 0.9 },
+            { ("Wary", "Concerned"), 0.9 },
+            { ("Ruthless", "Reserved"), 1.0 },
+            { ("Ruthless", "Frown"), 0.5 },
+            { ("Saddened", "Sad"), 1.0 },
+            { ("Hurt", "Sad"), 1.0 },
+            { ("Hurt", "Pain"), 0.5 },
+            { ("Tragic", "Sad"), 1.0 },
+            { ("Disappointed", "Sad"), 1.0 },
+            { ("Disappointed", "Concerned"), 0.9 },
+            { ("Disappointed", "Frown"), 0.8 },
+        };
+
+        private static Dictionary<string, (string Id, string Tags)[]> CharacterImages = new()
+        {
+            ["Solid Snake"] = [
+                ("f73b", "Neutral"),
+                ("ae23", "Frown"),
+                ("a2ca", "Looking Down, Eyes Closed"),
+                ("3e2d", "Baring Teeth"),
+                ("7228", "Smile"),
+                ("3108", "Laugh?"),
+                ("3078", "Laugh?"),
+                ("2272", "Yell"),
+                ("0b7e", "Nude, Neutral"),
+                ("c265", "Nude, Frown"),
+                ("e6eb", "Nude, Looking Down, Eyes Closed"),
+                ("36b4", "Nude, Angry / Yell"),
+                ("2089", "Nude, Neutral (duplicate)"),
+                ("59f8", "Suited, Neutral"),
+                ("da69", "Looking Down, Eyes Closed"),
+                ("1c7e", "Nude, Looking Down, Eyes Closed"),
+                ("0d84", "Nude, Looking Down, Eyes Closed"),
+                ("bc7b", "Looking Down, Eyes Closed"),
+            ],
+            ["Roy Campbell"] = [
+                ("3320", "Neutral"),
+                ("ae0c", "Smile"),
+                ("7a11", "Surprised"),
+                ("5e56", "Frown"),
+                ("1a37", "Yell"),
+                ("a927", "Sad"), // Eyes Closed
+                ("a472", "Reserved"),
+                ("bb69", "Dumbfounded"),
+            ],
+            ["Naomi Hunter"] = [
+                ("21f3", "Neutral"),
+                ("9cdf", "Smile"),
+                ("68e4", "Surprised"),
+                ("b96e", "Reserved"),
+                ("fd17", "Concerned"),
+                ("b176", "Sad"),
+                ("de08", "Frown"), // Eyes Closed
+                ("f1aa", "Frown"), // Eyes Closed
+                ("2118", "Frown"), // Eyes Closed, Shake 'no'
+                ("7c87", "Resigned"), // Eyes Closed
+                ("25a1", "Pain"), // Eyes Closed
+                ("f0ef", "Hide Pain"),
+                ("6f74", "Defiant / Hold Back Tears"),
+            ],
+            ["Mei Ling"] = [
+                ("5347", "Neutral"),
+                ("6244", "Mischievous"),
+                ("ce33", "Smile"),
+                ("7e7d", "Enthusiastic"),
+                ("2c6a", "Mid Blink"),
+                ("1091", "Mid Blink"),
+                ("dcf4", "Concerned"),
+                ("c60f", "Left-eye Wink"),
+                ("fe9f", "Tongue Out"),
+                ("40b0", "Wiggle"),
+            ],
+            ["Hal Emmerich"] = [
+                ("ad5d", "Neutral"),
+                ("ec59", "Neutral"), // Lens Shine
+                ("284a", "Smile"),
+                ("9c70", "Frown"),
+                ("3069", "Yell"), // Close-up
+                ("74a7", "Concerned"),
+            ],
+            ["Liquid Snake"] = [
+                ("9cc0", "Neutral"), // Miller
+                ("17ad", "Smile"), // Miller
+                ("d6ef", "Wince"), // Miller
+                ("6a21", "Smirk"), // Miller
+                ("99c1", "Neutral"), // Liquid
+                ("80d8", "Frown"), // Liquid
+                ("2f79", "Miller -> Liquid Reveal"),
+            ],
+            ["Nastasha Romanenko"] = [
+                ("158d", "Neutral"),
+                ("1e41", "Looking Down, Eyes Closed"),
+                ("9079", "Smile"),
+                ("40c3", "Concerned"),
+            ],
+            ["Meryl Silverburgh"] = [
+                ("7702", "Masked"),
+                ("7d66", "Doff Mask"),
+                ("39c3", "Neutral"),
+                ("6d84", "Don Mask"),
+                ("b4af", "Smile"),
+                ("1162", "Grin"),
+                ("0cc2", "Looking Down, Eyes Closed"),
+                ("64f9", "Frown"),
+                ("3d59", "Looking Down, Eyes Closed"),
+                ("8d32", "Turn To Screen Left"),
+                ("dce9", "Facing Screen Left"),
+            ],
+            ["Sniper Wolf"] = [
+                ("3d63", "Neutral"),
+                ("b84f", "Smile"),
+                ("124a", "Grin"),
+                ("6899", "Frown"),
+                ("a83c", "Neutral"),
+            ],
+            ["Jim Houseman"] = [
+                ("93f9", "Neutral"),
+                ("bf2f", "Frown"),
+            ],
         };
 
         public CodecDisplay(IServiceProvider serviceProvider)
@@ -141,16 +197,23 @@ namespace RenderLoop.Demo.MGS.Codec
                 this.volumeMeter.Invalidate();
             };
 
-            var reverseLookup = IdLookup.ToLookup(p => p.Value, p => p.Key);
-            var avatars = new Dictionary<string, (AvatarState State, ImageSet Images)>();
+            var avatars = new Dictionary<string, AvatarState>();
 
             void Render()
             {
                 if (!this.InvokeRequired)
                 {
-                    if (activeCharacter != null && avatars.TryGetValue(activeCharacter, out var avatar))
+                    if (activeCharacter != null && avatars.TryGetValue(activeCharacter, out var avatarState))
                     {
-                        this.RenderFace(g, avatar.Images, avatar.State.Eyes, avatar.State.Mouth);
+                        var images = (from x in CharacterImages[activeCharacter]
+                                      let s = source[x.Id]
+                                      where s.ContainsKey("base") && s.Count > 1
+                                      let score = avatarState.Mood == x.Tags ? 1 :
+                                                  MoodMappingScores.TryGetValue((avatarState.Mood, x.Tags), out var sc) ? sc :
+                                                  0
+                                      orderby score descending, x.Tags == "Neutral" descending
+                                      select s).First();
+                        this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
                         this.display.Invalidate();
                     }
                 }
@@ -174,7 +237,7 @@ namespace RenderLoop.Demo.MGS.Codec
                 }
             }
 
-            foreach (var group in reverseLookup)
+            foreach (var group in CharacterImages)
             {
                 var name = group.Key;
                 var avatarState = new AvatarState(codecOptions, name);
@@ -187,8 +250,7 @@ namespace RenderLoop.Demo.MGS.Codec
                         Render();
                     }
                 };
-                var images = group.Select(id => source[id]).OrderByDescending(s => s.ContainsKey("base")).ThenByDescending(s => s.Count).First();
-                avatars.Add(name, (avatarState, images));
+                avatars.Add(name, avatarState);
             }
 
             if (codecOptions.LMEndpoint != null)
@@ -198,12 +260,12 @@ namespace RenderLoop.Demo.MGS.Codec
                     async response =>
                     {
                         var character = response.Name;
-                        if (avatars.TryGetValue(character, out var avatar))
+                        if (avatars.TryGetValue(character, out var avatarState))
                         {
                             ShowAvatar(character, response.Text);
 
-                            // TODO: Set Mood.
-                            await avatar.State.SayAsync(response.Text).ConfigureAwait(false);
+                            avatarState.Mood = response.Mood;
+                            await avatarState.SayAsync(response.Text).ConfigureAwait(false);
                         }
                     },
                     RunCodeWithUserReview);

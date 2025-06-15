@@ -12,6 +12,7 @@ namespace RenderLoop.Demo.MGS.Codec
         private int eyeState;
         private DateTime? lastBlinkTime;
         private uint lastViseme;
+        private string mood;
 
         public AvatarState(CodecOptions options, string voiceName)
         {
@@ -22,6 +23,12 @@ namespace RenderLoop.Demo.MGS.Codec
         public event EventHandler<EventArgs>? Updated;
 
         public double Attention { get; set; } = 0.5;
+
+        public string Mood
+        {
+            get => this.mood;
+            set => this.mood = value ?? "Neutral";
+        }
 
         public string? Eyes => this.eyeState == 0 ? null : this.eyeState % 2 == 0 ? "eyes-blink" : "eyes-droop";
 
