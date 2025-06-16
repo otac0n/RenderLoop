@@ -36,6 +36,7 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             { "Meryl Silverburgh", (VoiceGender.Female, VoiceAge.Teen, "en-US") },
             { "Sniper Wolf", (VoiceGender.Female, VoiceAge.Adult, "ar-IQ") },
             { "Jim Houseman", (VoiceGender.Male, VoiceAge.Senior, "en-US") },
+            { "Gray Fox", (VoiceGender.Male, VoiceAge.Adult, "en-US") },
         };
 
         public event EventHandler<MouthMovedEventArgs>? MouthMoved;

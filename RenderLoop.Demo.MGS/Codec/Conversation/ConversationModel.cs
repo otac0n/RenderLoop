@@ -32,9 +32,15 @@
             { "Colonel", "Roy Campbell" },
             { "Naomi", "Naomi Hunter" },
             { "Nastasha", "Nastasha Romanenko" },
+            { "Deepthroat", "Gray Fox" },
+            { "Frank Jaeger", "Gray Fox" },
+            { "Grey Fox", "Gray Fox" },
         };
 
-        private readonly List<Message> messages = [];
+        private readonly List<Message> messages =
+        [
+            new("system", Configuration.RootElement.GetProperty("inference_params").GetProperty("pre_prompt").GetString()),
+        ];
 
         public event EventHandler<MessageReceivedArgs> MessageReceived;
 

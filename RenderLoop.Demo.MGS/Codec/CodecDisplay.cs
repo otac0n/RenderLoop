@@ -184,7 +184,14 @@ namespace RenderLoop.Demo.MGS.Codec
             ["Meryl Silverburgh"] = "140.15",
             ["Sniper Wolf"] = "141.12",
             ["Jim Houseman"] = "140.85",
+            ["Gray Fox"] = "140.48",
         };
+
+        private string ActiveCharacter
+        {
+            get => this.nameLabel.Text;
+            set => this.nameLabel.Text = value;
+        }
 
         public CodecDisplay(IServiceProvider serviceProvider)
         {
@@ -210,7 +217,6 @@ namespace RenderLoop.Demo.MGS.Codec
             var vu = Graphics.FromImage(vuSurface);
             this.volumeMeter.Image = vuSurface;
 
-            var activeCharacter = this.nameLabel.Text = "User";
             var volume = 0.0;
             var avatars = new Dictionary<string, AvatarState>();
 
@@ -218,9 +224,9 @@ namespace RenderLoop.Demo.MGS.Codec
             {
                 if (!this.InvokeRequired)
                 {
-                    if (activeCharacter != null && avatars.TryGetValue(activeCharacter, out var avatarState))
+                    if (this.ActiveCharacter != null && avatars.TryGetValue(this.ActiveCharacter, out var avatarState) && CharacterImages.TryGetValue(this.ActiveCharacter, out var imageSet))
                     {
-                        var images = (from x in CharacterImages[activeCharacter]
+                        var images = (from x in imageSet
                                       let s = source[x.Id]
                                       where s.ContainsKey("base") && s.Count > 1
                                       let score = avatarState.Mood == x.Tags ? 1 :
@@ -247,7 +253,7 @@ namespace RenderLoop.Demo.MGS.Codec
             {
                 if (!this.InvokeRequired)
                 {
-                    this.nameLabel.Text = activeCharacter = name;
+                    this.ActiveCharacter = name;
                     this.captionLabel.Text = caption;
                     Render();
                 }
@@ -260,25 +266,28 @@ namespace RenderLoop.Demo.MGS.Codec
             this.updateTimer.Tick += (s, e) =>
             {
                 volume *= 0.9;
-                if (activeCharacter == null || !DisplayedFrequency.TryGetValue(activeCharacter, out var frequency))
+                if (this.ActiveCharacter == null || !DisplayedFrequency.TryGetValue(this.ActiveCharacter, out var frequency))
                 {
-                    Render();
                     frequency = "000.00";
                 }
 
                 RenderVolumeDisplay(vu, vuW, vuH, volume, frequency);
                 this.volumeMeter.Invalidate();
+
+                if (this.ActiveCharacter == null || !CharacterImages.ContainsKey(this.ActiveCharacter))
+                {
+                    Render();
+                }
             };
 
-            foreach (var group in CharacterImages)
+            foreach (var name in CharacterImages.Keys)
             {
-                var name = group.Key;
                 var avatarState = new AvatarState(codecOptions, name);
                 this.updateTimer.Tick += (e, a) => avatarState.Update();
                 avatarState.Updated += (e, a) =>
                 {
                     volume = Math.Max(volume, avatarState.Volume);
-                    if (name == activeCharacter)
+                    if (name == this.ActiveCharacter)
                     {
                         Render();
                     }
@@ -288,17 +297,22 @@ namespace RenderLoop.Demo.MGS.Codec
 
             if (codecOptions.LMEndpoint != null)
             {
+                var defaultVoice = new AvatarState(codecOptions, "Unknown");
                 this.conversationModel = new ConversationModel(
                     codecOptions,
                     async response =>
                     {
                         var character = response.Name;
+                        ShowAvatar(character, response.Text);
+
                         if (avatars.TryGetValue(character, out var avatarState))
                         {
-                            ShowAvatar(character, response.Text);
-
                             avatarState.Mood = response.Mood;
                             await avatarState.SayAsync(response.Text).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await defaultVoice.SayAsync(response.Text).ConfigureAwait(false);
                         }
                     },
                     RunCodeWithUserReview);
@@ -597,7 +611,7 @@ namespace RenderLoop.Demo.MGS.Codec
         private void SayButton_Click(object sender, EventArgs e)
         {
             this.conversationModel.AddUserMessage(this.speechBox.Text);
-            this.nameLabel.Text = "User";
+            this.ActiveCharacter = "User";
             this.captionLabel.Text = this.speechBox.Text;
             this.speechBox.Text = string.Empty;
             this.speechBox.Focus();
