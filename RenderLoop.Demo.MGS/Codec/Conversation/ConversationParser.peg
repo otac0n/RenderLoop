@@ -2,10 +2,11 @@
 @classname ConversationParser
 @accessibility internal
 @using System.Linq
+@start conversation
 
 conversation <IList<Response>> = r:response* EOF { r }
 
-response <Response> = characterResponse / codeResponse
+response <Response> -export = characterResponse / codeResponse
 
 characterResponse <CharacterResponse> = n:("" name<1,2,WS>) _ m:mood? _ ":" _ t:text EOL? { new CharacterResponse(n, m.SingleOrDefault(), t) }
 

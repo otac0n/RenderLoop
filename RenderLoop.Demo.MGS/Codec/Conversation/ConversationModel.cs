@@ -2,12 +2,15 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Net.Http;
+    using System.Runtime.CompilerServices;
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using System.Threading;
     using System.Threading.Tasks;
+    using Pegasus.Common;
 
     internal class ConversationModel(CodecOptions codecOptions, Func<CharacterResponse, Task> speechFunction, Func<CodeResponse, Task<string>> codeFunction) : IDisposable
     {
@@ -71,69 +74,92 @@
             var getNextResponse = true;
             while (getNextResponse)
             {
-                var response = await this.GetNextResponse(cancel).ConfigureAwait(false);
-                if (string.IsNullOrWhiteSpace(response))
-                {
-                    continue;
-                }
-
-                IList<Response> parsed;
+                getNextResponse = false;
                 try
                 {
-                    parsed = new ConversationParser().Parse(response);
-                    getNextResponse = false;
+                    await foreach (var response in this.ParseResponsesAsync(this.GetNextResponseTokensAsync(cancel)).ConfigureAwait(false))
+                    {
+                        switch (response)
+                        {
+                            case CharacterResponse characterResponse:
+                                lock (this.messages)
+                                {
+                                    this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}\n"));
+                                }
+
+                                if (Aliases.TryGetValue(characterResponse.Name, out var name))
+                                {
+                                    characterResponse = characterResponse with { Name = name };
+                                }
+
+                                await speechFunction(characterResponse).ConfigureAwait(false);
+                                break;
+
+                            case CodeResponse codeResponse:
+                                getNextResponse = true;
+                                lock (this.messages)
+                                {
+                                    this.messages.Add(new Message("assistant", $"```\n{codeResponse.Code.Trim()}\n```\n"));
+                                }
+
+                                string output;
+                                try
+                                {
+                                    output = await codeFunction(codeResponse).ConfigureAwait(false);
+                                    output = $"{output.Trim()}\nSystem: Task Status Completed";
+                                }
+                                catch (Exception ex)
+                                {
+                                    output = $"{ex.ToString().Trim()}\nSystem: Task Status Faulted";
+                                }
+
+                                this.messages.Add(new Message("assistant", $"{output}\n"));
+                                break;
+                        }
+                    }
                 }
                 catch (FormatException)
                 {
+                    getNextResponse = true;
                     continue;
-                }
-
-                foreach (var item in parsed)
-                {
-                    switch (item)
-                    {
-                        case CharacterResponse characterResponse:
-                            lock (this.messages)
-                            {
-                                this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}\n"));
-                            }
-
-                            if (Aliases.TryGetValue(characterResponse.Name, out var name))
-                            {
-                                characterResponse = characterResponse with { Name = name };
-                            }
-
-                            await speechFunction(characterResponse).ConfigureAwait(false);
-                            break;
-
-                        case CodeResponse codeResponse:
-                            getNextResponse = true;
-
-                            lock (this.messages)
-                            {
-                                this.messages.Add(new Message("assistant", $"```\n{codeResponse.Code.Trim()}\n```\n"));
-                            }
-
-                            string output;
-                            try
-                            {
-                                output = await codeFunction(codeResponse).ConfigureAwait(false);
-                                output = $"{output.Trim()}\nSystem: Task Status Completed";
-                            }
-                            catch (Exception ex)
-                            {
-                                output = $"{ex.ToString().Trim()}\nSystem: Task Status Faulted";
-                            }
-
-                            this.messages.Add(new Message("assistant", $"{output}\n"));
-
-                            break;
-                    }
                 }
             }
         }
 
-        public async Task<string> GetNextResponse(CancellationToken cancel)
+        private async IAsyncEnumerable<Response> ParseResponsesAsync(IAsyncEnumerable<string> tokens)
+        {
+            var parser = new ConversationParser();
+            var remaining = "";
+            await foreach (var token in tokens.ConfigureAwait(false))
+            {
+                remaining += token;
+
+                var cursor = new Cursor(remaining);
+                while (true)
+                {
+                    var startCursor = cursor;
+                    var parsed = parser.Exported.Response(ref cursor);
+                    if (parsed != null && cursor.Location < remaining.Length)
+                    {
+                        yield return parsed.Value;
+                    }
+                    else
+                    {
+                        cursor = startCursor;
+                        break;
+                    }
+                }
+
+                remaining = remaining[cursor.Location..];
+            }
+
+            foreach (var parsed in parser.Parse(remaining))
+            {
+                yield return parsed;
+            }
+        }
+
+        private async IAsyncEnumerable<string> GetNextResponseTokensAsync([EnumeratorCancellation] CancellationToken cancel)
         {
             string requestBody;
             lock (this.messages)
@@ -145,17 +171,46 @@
                     this.messages,
                     temperature = 0.7,
                     max_tokens = -1,
-                    stream = false,
+                    stream = true,
                 },
                 JsonOptions);
             }
 
-            var response = await this.httpClient.PostAsync("/v1/chat/completions", new StringContent(requestBody, Encoding.UTF8, "application/json"), cancel).ConfigureAwait(false);
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/chat/completions")
+            {
+                Content = new StringContent(requestBody, Encoding.UTF8, "application/json"),
+            };
+
+            using var response = await this.httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancel).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             using var responseStream = await response.Content.ReadAsStreamAsync(cancel).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(responseStream, cancellationToken: cancel).ConfigureAwait(false);
-            return doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()!;
+            using var reader = new StreamReader(responseStream);
+
+            while (!reader.EndOfStream && !cancel.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(cancel).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("data:", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var jsonPart = line[5..].Trim();
+                if (jsonPart == "[DONE]")
+                {
+                    yield break;
+                }
+
+                using var doc = JsonDocument.Parse(jsonPart);
+                if (doc.RootElement.TryGetProperty("choices", out var choices) && choices[0].GetProperty("delta").TryGetProperty("content", out var content))
+                {
+                    var tokens = content.GetString();
+                    if (!string.IsNullOrEmpty(tokens))
+                    {
+                        yield return tokens;
+                    }
+                }
+            }
         }
 
         private record class Message(string Role, string Content);
