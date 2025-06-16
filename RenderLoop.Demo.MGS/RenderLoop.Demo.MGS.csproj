@@ -5,6 +5,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AnimatedGif" Version="1.0.5" />
@@ -27,6 +28,8 @@
     <PegGrammar Include="Codec\Conversation\ConversationParser.peg" />
     <None Remove="Codec\Conversation\model_config.json" />
     <EmbeddedResource Include="Codec\Conversation\model_config.json" />
+    <None Remove="Codec\digital-7.ttf" />
+    <EmbeddedResource Include="Codec\digital-7.ttf" />
     <None Remove="stylecop.json" />
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>

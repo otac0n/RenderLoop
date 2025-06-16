@@ -7,8 +7,10 @@ namespace RenderLoop.Demo.MGS.Codec
     using System.Diagnostics;
     using System.Drawing;
     using System.Drawing.Drawing2D;
+    using System.Drawing.Text;
     using System.IO;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
@@ -20,6 +22,8 @@ namespace RenderLoop.Demo.MGS.Codec
 
     internal partial class CodecDisplay : Form
     {
+        private static FontFamily Digital7 = LoadEmbeddedFont("digital-7.ttf");
+
         private ConversationModel conversationModel;
 
         private static Dictionary<(string Mood, string Tags), double> MoodMappingScores = new()
@@ -166,9 +170,32 @@ namespace RenderLoop.Demo.MGS.Codec
             ],
         };
 
+        private static Dictionary<string, string> DisplayedFrequency = new()
+        {
+            ["Solid Snake"] = "141.80",
+            ["Roy Campbell"] = "140.85",
+            ["Naomi Hunter"] = "140.85",
+            ["Mei Ling"] = "140.96",
+            ["Hal Emmerich"] = "141.12",
+            ["Liquid Snake"] = "141.80",
+            ["Nastasha Romanenko"] = "141.52",
+            ["Meryl Silverburgh"] = "140.15",
+            ["Sniper Wolf"] = "141.12",
+            ["Jim Houseman"] = "140.85",
+        };
+
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             this.InitializeComponent();
+            EnableDrag(this);
+            MoveToRightmostBottomCorner(this);
+
+            var (r, b) = (this.volumeMeter.Right - this.frequencyLabel.Right, this.volumeMeter.Bottom - this.frequencyLabel.Bottom);
+            this.frequencyLabel.Parent = this.volumeMeter;
+            this.frequencyLabel.Font = new Font(Digital7, this.frequencyLabel.Font.Size, this.frequencyLabel.Font.Style);
+            this.frequencyLabel.Location = new Point(
+                this.volumeMeter.Width - r - this.frequencyLabel.Width,
+                this.volumeMeter.Height - b - this.frequencyLabel.Height);
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
@@ -214,6 +241,7 @@ namespace RenderLoop.Demo.MGS.Codec
                                       orderby score descending, x.Tags == "Neutral" descending
                                       select s).First();
                         this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
+                        this.frequencyLabel.Text = DisplayedFrequency[activeCharacter];
                         this.display.Invalidate();
                     }
                 }
@@ -432,7 +460,7 @@ namespace RenderLoop.Demo.MGS.Codec
 
             points.Add(new Point(w, h));
 
-            using (Brush brush = new SolidBrush(Color.FromArgb(0, 0, 0, 0)))
+            using (Brush brush = new SolidBrush(Color.FromArgb(128, 16, 16, 16)))
             {
                 g.CompositingMode = CompositingMode.SourceCopy;
 
@@ -491,6 +519,112 @@ namespace RenderLoop.Demo.MGS.Codec
 
             gifStream.Seek(0, SeekOrigin.Begin);
             return Image.FromStream(gifStream);
+        }
+
+        private void SpeechBox_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                e.Handled = true;
+                this.sayButton.PerformClick();
+            }
+        }
+
+        private void CloseButton_Click(object sender, EventArgs e)
+        {
+            this.DialogResult = DialogResult.Abort;
+            this.Close();
+        }
+
+        private static void EnableDrag(Form form)
+        {
+            ArgumentNullException.ThrowIfNull(form);
+
+            var mouseDownLocation = Point.Empty;
+            var dragging = false;
+
+            void Attach(Control control)
+            {
+                if (control is not (Form or Label or PictureBox))
+                {
+                    return;
+                }
+
+                control.MouseDown += (s, e) =>
+                {
+                    if (e.Button == MouseButtons.Left)
+                    {
+                        dragging = true;
+                        mouseDownLocation = form.PointToClient(control.PointToScreen(e.Location));
+                    }
+                };
+
+                control.MouseMove += (s, e) =>
+                {
+                    if (dragging && e.Button == MouseButtons.Left)
+                    {
+                        var newMousePosition = Control.MousePosition;
+                        form.Location = new Point(
+                            newMousePosition.X - mouseDownLocation.X,
+                            newMousePosition.Y - mouseDownLocation.Y);
+                    }
+                };
+
+                control.MouseUp += (s, e) =>
+                {
+                    if (e.Button == MouseButtons.Left)
+                    {
+                        dragging = false;
+                    }
+                };
+
+                foreach (Control child in control.Controls)
+                {
+                    Attach(child);
+                }
+            }
+
+            form.Load += (_, _) => Attach(form);
+        }
+
+        private static void MoveToRightmostBottomCorner(Form form)
+        {
+            ArgumentNullException.ThrowIfNull(form);
+
+            var rightmost = Screen.AllScreens
+                .OrderByDescending(s => s.Bounds.Right)
+                .Select(s => s.WorkingArea)
+                .First();
+
+            form.StartPosition = FormStartPosition.Manual;
+            form.Location = new Point(
+                rightmost.Right - form.Width,
+                rightmost.Bottom - form.Height);
+        }
+
+        [LibraryImport("gdi32.dll", SetLastError = true)]
+        private static partial IntPtr AddFontMemResourceEx(
+            IntPtr pbFont,
+            uint cbFont,
+            IntPtr pdv,
+            ref uint pcFonts);
+
+        public static FontFamily LoadEmbeddedFont(string fontName)
+        {
+            using var stream = typeof(CodecDisplay).Assembly.GetManifestResourceStream($"{typeof(CodecDisplay).Namespace}.{fontName}")!;
+
+            var fontData = new byte[stream.Length];
+            stream.Read(fontData, 0, (int)stream.Length);
+
+            var fontPtr = Marshal.AllocCoTaskMem(fontData.Length);
+            Marshal.Copy(fontData, 0, fontPtr, fontData.Length);
+            uint fonts = 0;
+            AddFontMemResourceEx(fontPtr, (uint)fontData.Length, 0, ref fonts);
+
+            var privateFonts = new PrivateFontCollection();
+            privateFonts.AddMemoryFont(fontPtr, fontData.Length);
+
+            return privateFonts.Families[0];
         }
     }
 }
