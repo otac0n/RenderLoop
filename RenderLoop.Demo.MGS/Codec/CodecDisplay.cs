@@ -7,6 +7,7 @@ namespace RenderLoop.Demo.MGS.Codec
     using System.Diagnostics;
     using System.Drawing;
     using System.Drawing.Drawing2D;
+    using System.Drawing.Imaging;
     using System.Drawing.Text;
     using System.IO;
     using System.Linq;
@@ -209,20 +210,8 @@ namespace RenderLoop.Demo.MGS.Codec
             var vu = Graphics.FromImage(vuSurface);
             this.volumeMeter.Image = vuSurface;
 
-            var activeCharacter = this.nameLabel.Text;
+            var activeCharacter = this.nameLabel.Text = "User";
             var volume = 0.0;
-            this.updateTimer.Tick += (s, e) =>
-            {
-                volume *= 0.9;
-                if (activeCharacter == null || !DisplayedFrequency.TryGetValue(activeCharacter, out var frequency))
-                {
-                    frequency = "000.00";
-                }
-
-                RenderVolumeDisplay(vu, vuW, vuH, volume, frequency);
-                this.volumeMeter.Invalidate();
-            };
-
             var avatars = new Dictionary<string, AvatarState>();
 
             void Render()
@@ -240,8 +229,13 @@ namespace RenderLoop.Demo.MGS.Codec
                                       orderby score descending, x.Tags == "Neutral" descending
                                       select s).First();
                         RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
-                        this.display.Invalidate();
                     }
+                    else
+                    {
+                        RenderStatic(g, source["f73b"]["base"].Image.Palette, maxX / 3, maxY / 3);
+                    }
+
+                    this.display.Invalidate();
                 }
                 else
                 {
@@ -262,6 +256,19 @@ namespace RenderLoop.Demo.MGS.Codec
                     this.Invoke(() => ShowAvatar(name, caption));
                 }
             }
+
+            this.updateTimer.Tick += (s, e) =>
+            {
+                volume *= 0.9;
+                if (activeCharacter == null || !DisplayedFrequency.TryGetValue(activeCharacter, out var frequency))
+                {
+                    Render();
+                    frequency = "000.00";
+                }
+
+                RenderVolumeDisplay(vu, vuW, vuH, volume, frequency);
+                this.volumeMeter.Invalidate();
+            };
 
             foreach (var group in CharacterImages)
             {
@@ -507,6 +514,33 @@ namespace RenderLoop.Demo.MGS.Codec
             g.DrawString(major, fontMed, on, majorPosition, StringFormat.GenericTypographic);
         }
 
+        private static void RenderStatic(Graphics g, ColorPalette palette, int width, int height)
+        {
+            using var bmp = new Bitmap(width, height, PixelFormat.Format8bppIndexed);
+            bmp.Palette = palette;
+            BitmapData? data = null;
+            try
+            {
+                data = bmp.LockBits(new Rectangle(Point.Empty, bmp.Size), ImageLockMode.WriteOnly, PixelFormat.Format8bppIndexed);
+                var buffer = new byte[data.Width];
+                var scan = data.Scan0;
+                for (var y = 0; y < data.Height; y++, scan += data.Stride)
+                {
+                    Random.Shared.NextBytes(buffer);
+                    Marshal.Copy(buffer, 0, scan, buffer.Length);
+                }
+            }
+            finally
+            {
+                if (data != null)
+                {
+                    bmp.UnlockBits(data);
+                }
+            }
+
+            g.DrawImage(bmp, g.VisibleClipBounds);
+        }
+
         private static void RenderFace(Graphics g, ImageSet components, string? eyes = null, string? mouth = null)
         {
             if (components.TryGetValue("base", out var baseComponent))
@@ -563,6 +597,8 @@ namespace RenderLoop.Demo.MGS.Codec
         private void SayButton_Click(object sender, EventArgs e)
         {
             this.conversationModel.AddUserMessage(this.speechBox.Text);
+            this.nameLabel.Text = "User";
+            this.captionLabel.Text = this.speechBox.Text;
             this.speechBox.Text = string.Empty;
             this.speechBox.Focus();
         }

@@ -65,9 +65,9 @@
             this.nameLabel.Location = new System.Drawing.Point(49, 298);
             this.nameLabel.Margin = new System.Windows.Forms.Padding(3, 20, 3, 0);
             this.nameLabel.Name = "nameLabel";
-            this.nameLabel.Size = new System.Drawing.Size(121, 21);
+            this.nameLabel.Size = new System.Drawing.Size(48, 21);
             this.nameLabel.TabIndex = 1;
-            this.nameLabel.Text = "Hal Emmerich";
+            this.nameLabel.Text = "User";
             // 
             // speechBox
             // 
