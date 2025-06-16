@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.Windows.Forms.Label border1;
             this.updateTimer = new System.Windows.Forms.Timer(this.components);
             this.nameLabel = new System.Windows.Forms.Label();
             this.speechBox = new System.Windows.Forms.TextBox();
@@ -38,11 +39,19 @@
             this.inputsPanel = new System.Windows.Forms.Panel();
             this.closeButton = new System.Windows.Forms.Button();
             this.captionLabel = new System.Windows.Forms.TextBox();
-            this.frequencyLabel = new System.Windows.Forms.Label();
+            border1 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)this.display).BeginInit();
             ((System.ComponentModel.ISupportInitialize)this.volumeMeter).BeginInit();
             this.inputsPanel.SuspendLayout();
             this.SuspendLayout();
+            // 
+            // border1
+            // 
+            border1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            border1.Location = new System.Drawing.Point(194, 99);
+            border1.Name = "border1";
+            border1.Size = new System.Drawing.Size(181, 113);
+            border1.TabIndex = 3;
             // 
             // updateTimer
             // 
@@ -56,7 +65,7 @@
             this.nameLabel.Location = new System.Drawing.Point(49, 298);
             this.nameLabel.Margin = new System.Windows.Forms.Padding(3, 20, 3, 0);
             this.nameLabel.Name = "nameLabel";
-            this.nameLabel.Size = new System.Drawing.Size(121, 25);
+            this.nameLabel.Size = new System.Drawing.Size(121, 21);
             this.nameLabel.TabIndex = 1;
             this.nameLabel.Text = "Hal Emmerich";
             // 
@@ -71,9 +80,8 @@
             this.speechBox.Margin = new System.Windows.Forms.Padding(20, 5, 5, 5);
             this.speechBox.Multiline = true;
             this.speechBox.Name = "speechBox";
-            this.speechBox.Size = new System.Drawing.Size(330, 37);
+            this.speechBox.Size = new System.Drawing.Size(324, 37);
             this.speechBox.TabIndex = 0;
-            this.speechBox.Text = "Hey, snake! Get your head in the game.";
             this.speechBox.KeyPress += this.SpeechBox_KeyPress;
             // 
             // sayButton
@@ -81,12 +89,12 @@
             this.sayButton.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right;
             this.sayButton.AutoSize = true;
             this.sayButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.sayButton.Location = new System.Drawing.Point(360, 14);
+            this.sayButton.Location = new System.Drawing.Point(354, 14);
             this.sayButton.Margin = new System.Windows.Forms.Padding(5);
             this.sayButton.Name = "sayButton";
-            this.sayButton.Size = new System.Drawing.Size(52, 37);
+            this.sayButton.Size = new System.Drawing.Size(58, 37);
             this.sayButton.TabIndex = 1;
-            this.sayButton.Text = "Say";
+            this.sayButton.Text = "PTT";
             this.sayButton.UseVisualStyleBackColor = true;
             this.sayButton.Click += this.SayButton_Click;
             // 
@@ -131,6 +139,7 @@
             this.closeButton.Name = "closeButton";
             this.closeButton.Size = new System.Drawing.Size(36, 37);
             this.closeButton.TabIndex = 2;
+            this.closeButton.TabStop = false;
             this.closeButton.Text = "×";
             this.closeButton.UseVisualStyleBackColor = true;
             this.closeButton.Click += this.CloseButton_Click;
@@ -140,7 +149,6 @@
             this.captionLabel.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
             this.captionLabel.BackColor = System.Drawing.Color.Black;
             this.captionLabel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.captionLabel.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold);
             this.captionLabel.ForeColor = System.Drawing.Color.White;
             this.captionLabel.Location = new System.Drawing.Point(49, 323);
             this.captionLabel.Margin = new System.Windows.Forms.Padding(40, 0, 40, 20);
@@ -149,29 +157,20 @@
             this.captionLabel.ReadOnly = true;
             this.captionLabel.Size = new System.Drawing.Size(380, 106);
             this.captionLabel.TabIndex = 5;
-            // 
-            // frequencyLabel
-            // 
-            this.frequencyLabel.AutoSize = true;
-            this.frequencyLabel.BackColor = System.Drawing.Color.Transparent;
-            this.frequencyLabel.Font = new System.Drawing.Font("Consolas", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 0);
-            this.frequencyLabel.Location = new System.Drawing.Point(236, 153);
-            this.frequencyLabel.Name = "frequencyLabel";
-            this.frequencyLabel.Size = new System.Drawing.Size(138, 42);
-            this.frequencyLabel.TabIndex = 6;
-            this.frequencyLabel.Text = "100.00";
+            this.captionLabel.TabStop = false;
             // 
             // CodecDisplay
             // 
             this.BackColor = System.Drawing.Color.Black;
             this.CancelButton = this.closeButton;
             this.ClientSize = new System.Drawing.Size(478, 458);
-            this.Controls.Add(this.frequencyLabel);
             this.Controls.Add(this.captionLabel);
             this.Controls.Add(this.display);
             this.Controls.Add(this.nameLabel);
             this.Controls.Add(this.volumeMeter);
             this.Controls.Add(this.inputsPanel);
+            this.Controls.Add(border1);
+            this.Font = new System.Drawing.Font("Arial", 9F);
             this.ForeColor = System.Drawing.Color.Green;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.MaximizeBox = false;
@@ -196,6 +195,6 @@
         private System.Windows.Forms.Panel inputsPanel;
         private System.Windows.Forms.TextBox captionLabel;
         private System.Windows.Forms.Button closeButton;
-        private System.Windows.Forms.Label frequencyLabel;
+        private System.Windows.Forms.Label border1;
     }
 }

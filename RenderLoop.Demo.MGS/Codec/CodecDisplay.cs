@@ -32,6 +32,7 @@ namespace RenderLoop.Demo.MGS.Codec
             { ("Frustrated", "Frown"), 1.0 },
             { ("Serious", "Frown"), 1.0 },
             { ("Gruff", "Frown"), 1.0 },
+            { ("Yelling", "Yell"), 1.0 },
             { ("Angry", "Yell"), 1.0 },
             { ("Angry", "Frown"), 0.8 },
             { ("Concerned", "Frown"), 0.7 },
@@ -190,13 +191,6 @@ namespace RenderLoop.Demo.MGS.Codec
             EnableDrag(this);
             MoveToRightmostBottomCorner(this);
 
-            var (r, b) = (this.volumeMeter.Right - this.frequencyLabel.Right, this.volumeMeter.Bottom - this.frequencyLabel.Bottom);
-            this.frequencyLabel.Parent = this.volumeMeter;
-            this.frequencyLabel.Font = new Font(Digital7, this.frequencyLabel.Font.Size, this.frequencyLabel.Font.Style);
-            this.frequencyLabel.Location = new Point(
-                this.volumeMeter.Width - r - this.frequencyLabel.Width,
-                this.volumeMeter.Height - b - this.frequencyLabel.Height);
-
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
@@ -220,7 +214,12 @@ namespace RenderLoop.Demo.MGS.Codec
             this.updateTimer.Tick += (s, e) =>
             {
                 volume *= 0.9;
-                this.RenderVolumeDisplay(vu, vuW, vuH, volume);
+                if (activeCharacter == null || !DisplayedFrequency.TryGetValue(activeCharacter, out var frequency))
+                {
+                    frequency = "000.00";
+                }
+
+                RenderVolumeDisplay(vu, vuW, vuH, volume, frequency);
                 this.volumeMeter.Invalidate();
             };
 
@@ -240,8 +239,7 @@ namespace RenderLoop.Demo.MGS.Codec
                                                   0
                                       orderby score descending, x.Tags == "Neutral" descending
                                       select s).First();
-                        this.RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
-                        this.frequencyLabel.Text = DisplayedFrequency[activeCharacter];
+                        RenderFace(g, images, avatarState.Eyes, avatarState.Mouth);
                         this.display.Invalidate();
                     }
                 }
@@ -300,12 +298,6 @@ namespace RenderLoop.Demo.MGS.Codec
             }
         }
 
-        private void SayButton_Click(object sender, EventArgs e)
-        {
-            this.conversationModel.AddUserMessage(this.speechBox.Text);
-            this.speechBox.Text = string.Empty;
-        }
-
         public Task<string> RunCodeWithUserReview(CodeResponse codeResponse)
         {
             var tcs = new TaskCompletionSource<string>();
@@ -315,8 +307,8 @@ namespace RenderLoop.Demo.MGS.Codec
                 var form = new Form
                 {
                     Text = "Review Code",
-                    Width = 800,
-                    Height = 600,
+                    Width = this.Width,
+                    Height = this.Height * 8 / 10,
                     StartPosition = FormStartPosition.CenterParent,
                 };
 
@@ -327,18 +319,20 @@ namespace RenderLoop.Demo.MGS.Codec
                     ScrollBars = ScrollBars.Both,
                     Dock = DockStyle.Fill,
                     Text = codeResponse.Code,
-                    Font = new Font("Consolas", 10),
+                    Font = new Font("Consolas", 8),
                 };
 
                 var approveButton = new Button
                 {
                     Text = "Approve",
+                    AutoSize = true,
                     DialogResult = DialogResult.OK,
                 };
 
                 var denyButton = new Button
                 {
                     Text = "Deny",
+                    AutoSize = true,
                     DialogResult = DialogResult.Cancel,
                 };
 
@@ -346,7 +340,7 @@ namespace RenderLoop.Demo.MGS.Codec
                 {
                     Dock = DockStyle.Bottom,
                     FlowDirection = FlowDirection.RightToLeft,
-                    Height = 40,
+                    AutoSize = true,
                 };
 
                 buttonPanel.Controls.Add(approveButton);
@@ -444,40 +438,76 @@ namespace RenderLoop.Demo.MGS.Codec
             return tcs.Task;
         }
 
-        private void RenderVolumeDisplay(Graphics g, int w, int h, double volume)
+        private static void RenderVolumeDisplay(Graphics g, int width, int height, double volume, string frequency)
         {
-            g.Clear(Color.Gray);
-            var top = (int)((1 - volume) * h);
-            g.FillRectangle(Brushes.White, 0, top, w, h - top);
+            var offColor = Color.FromArgb(45, 71, 60);
+            var onColor = Color.FromArgb(226, 255, 255);
+            using var off = new SolidBrush(offColor);
+            using var on = new SolidBrush(onColor);
+            using var bg = new SolidBrush(Color.FromArgb(19, 31, 27));
 
-            var points = new List<Point>();
+            g.Clear(Color.Black);
+            var w = width * 0.85f;
+            var l = (width - w) / 2;
+            var h = (float)height;
+
+            g.FillRectangle(off, l, 0, w, h);
+            var top = (int)((1 - volume) * h);
+            g.FillRectangle(on, l, top, w, h - top);
+
+            var bars = 8;
+            var barGap = h / (bars + 1);
+            for (var b = 1; b <= bars; b++)
+            {
+                var y = b * barGap;
+                var dy = Math.Max(h / 80, 1);
+                g.FillRectangle(bg, l, (int)Math.Round(y - dy), w, (int)Math.Round(2 * dy));
+            }
+
+            var points = new List<PointF>();
             for (var px = 1; px < w; px++)
             {
-                var x = (double)px / h;
-                var py = (int)double.Lerp(0, h, 1.0 / (8 * x));
-                points.Add(new Point(px, py));
+                var x = px / h;
+                var py = float.Lerp(0, h, 1 / (8 * x));
+                points.Add(new PointF(px + l, Math.Max(py, barGap)));
             }
 
-            points.Add(new Point(w, h));
+            points.Add(new PointF(w + l, h));
+            g.FillPolygon(bg, points.ToArray());
 
-            using (Brush brush = new SolidBrush(Color.FromArgb(128, 16, 16, 16)))
-            {
-                g.CompositingMode = CompositingMode.SourceCopy;
+            var sizeRatioBig = 0.25f;
+            var sizeRatioMed = sizeRatioBig * 6 / 7f;
 
-                g.FillPolygon(brush, points.ToArray());
-                var bars = 8;
-                for (var b = 1; b <= bars; b++)
-                {
-                    var y = b * (h / (bars + 1));
-                    var dy = Math.Max(h / 80.0, 1);
-                    g.FillRectangle(brush, 0, (int)(y - dy), w, (int)(2 * dy));
-                }
+            var family = Digital7;
+            var style = FontStyle.Regular;
+            using var fontMed = new Font(family, h * sizeRatioMed, style);
+            var major = frequency[0..2];
+            var majorSize = g.MeasureString(major, fontMed, 0, StringFormat.GenericTypographic);
 
-                g.CompositingMode = CompositingMode.SourceOver;
-            }
+            using var fontBig = new Font(family, h * sizeRatioBig, style);
+            var minor = frequency[2..];
+            var minorSize = g.MeasureString(minor, fontBig, 0, StringFormat.GenericTypographic);
+
+            var scalingBig = fontBig.GetHeight(g) / family.GetLineSpacing(style);
+            var scalingMed = fontMed.GetHeight(g) / family.GetLineSpacing(style);
+            var ascentBig = family.GetCellAscent(style) * scalingBig;
+            var descentBig = family.GetCellDescent(style) * scalingBig;
+            var ascentMed = family.GetCellAscent(style) * scalingMed;
+            var descentMed = family.GetCellDescent(style) * scalingMed;
+            minorSize.Height = ascentBig + descentBig;
+            majorSize.Height = ascentMed + descentMed;
+
+            var minorPosition = new PointF(w - minorSize.Width - descentBig + l, h - minorSize.Height);
+            var majorPosition = new PointF(minorPosition.X - majorSize.Width, h - (ascentMed + descentBig));
+
+            g.DrawString("8.88", fontBig, off, minorPosition, StringFormat.GenericTypographic);
+            g.DrawString(minor, fontBig, on, minorPosition, StringFormat.GenericTypographic);
+
+            g.DrawString("88", fontMed, off, majorPosition, StringFormat.GenericTypographic);
+            g.DrawString(major, fontMed, on, majorPosition, StringFormat.GenericTypographic);
         }
 
-        private void RenderFace(Graphics g, ImageSet components, string? eyes = null, string? mouth = null)
+        private static void RenderFace(Graphics g, ImageSet components, string? eyes = null, string? mouth = null)
         {
             if (components.TryGetValue("base", out var baseComponent))
             {
@@ -495,7 +525,7 @@ namespace RenderLoop.Demo.MGS.Codec
             }
         }
 
-        private Image RenderAnimation(ImageSet frames)
+        private static Image RenderAnimation(ImageSet frames)
         {
             var gifStream = new MemoryStream();
 
@@ -528,6 +558,13 @@ namespace RenderLoop.Demo.MGS.Codec
                 e.Handled = true;
                 this.sayButton.PerformClick();
             }
+        }
+
+        private void SayButton_Click(object sender, EventArgs e)
+        {
+            this.conversationModel.AddUserMessage(this.speechBox.Text);
+            this.speechBox.Text = string.Empty;
+            this.speechBox.Focus();
         }
 
         private void CloseButton_Click(object sender, EventArgs e)
