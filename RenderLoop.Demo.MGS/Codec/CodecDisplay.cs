@@ -18,6 +18,7 @@ namespace RenderLoop.Demo.MGS.Codec
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.Codec.Conversation;
+    using static RenderLoop.Demo.MGS.Codec.CharacterMetadata;
     using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
 
     internal partial class CodecDisplay : Form
@@ -61,129 +62,6 @@ namespace RenderLoop.Demo.MGS.Codec
             { ("Disappointed", "Sad"), 1.0 },
             { ("Disappointed", "Concerned"), 0.9 },
             { ("Disappointed", "Frown"), 0.8 },
-        };
-
-        private static Dictionary<string, (string Id, string Tags)[]> CharacterImages = new()
-        {
-            ["Solid Snake"] = [
-                ("f73b", "Neutral"),
-                ("ae23", "Frown"),
-                ("a2ca", "Looking Down, Eyes Closed"),
-                ("3e2d", "Baring Teeth"),
-                ("7228", "Smile"),
-                ("3108", "Laugh?"),
-                ("3078", "Laugh?"),
-                ("2272", "Yell"),
-                ("0b7e", "Nude, Neutral"),
-                ("c265", "Nude, Frown"),
-                ("e6eb", "Nude, Looking Down, Eyes Closed"),
-                ("36b4", "Nude, Angry / Yell"),
-                ("2089", "Nude, Neutral (duplicate)"),
-                ("59f8", "Suited, Neutral"),
-                ("da69", "Looking Down, Eyes Closed"),
-                ("1c7e", "Nude, Looking Down, Eyes Closed"),
-                ("0d84", "Nude, Looking Down, Eyes Closed"),
-                ("bc7b", "Looking Down, Eyes Closed"),
-            ],
-            ["Roy Campbell"] = [
-                ("3320", "Neutral"),
-                ("ae0c", "Smile"),
-                ("7a11", "Surprised"),
-                ("5e56", "Frown"),
-                ("1a37", "Yell"),
-                ("a927", "Sad"), // Eyes Closed
-                ("a472", "Reserved"),
-                ("bb69", "Dumbfounded"),
-            ],
-            ["Naomi Hunter"] = [
-                ("21f3", "Neutral"),
-                ("9cdf", "Smile"),
-                ("68e4", "Surprised"),
-                ("b96e", "Reserved"),
-                ("fd17", "Concerned"),
-                ("b176", "Sad"),
-                ("de08", "Frown"), // Eyes Closed
-                ("f1aa", "Frown"), // Eyes Closed
-                ("2118", "Frown"), // Eyes Closed, Shake 'no'
-                ("7c87", "Resigned"), // Eyes Closed
-                ("25a1", "Pain"), // Eyes Closed
-                ("f0ef", "Hide Pain"),
-                ("6f74", "Defiant / Hold Back Tears"),
-            ],
-            ["Mei Ling"] = [
-                ("5347", "Neutral"),
-                ("6244", "Mischievous"),
-                ("ce33", "Smile"),
-                ("7e7d", "Enthusiastic"),
-                ("2c6a", "Mid Blink"),
-                ("1091", "Mid Blink"),
-                ("dcf4", "Concerned"),
-                ("c60f", "Left-eye Wink"),
-                ("fe9f", "Tongue Out"),
-                ("40b0", "Wiggle"),
-            ],
-            ["Hal Emmerich"] = [
-                ("ad5d", "Neutral"),
-                ("ec59", "Neutral"), // Lens Shine
-                ("284a", "Smile"),
-                ("9c70", "Frown"),
-                ("3069", "Yell"), // Close-up
-                ("74a7", "Concerned"),
-            ],
-            ["Liquid Snake"] = [
-                ("9cc0", "Neutral"), // Miller
-                ("17ad", "Smile"), // Miller
-                ("d6ef", "Wince"), // Miller
-                ("6a21", "Smirk"), // Miller
-                ("99c1", "Neutral"), // Liquid
-                ("80d8", "Frown"), // Liquid
-                ("2f79", "Miller -> Liquid Reveal"),
-            ],
-            ["Nastasha Romanenko"] = [
-                ("158d", "Neutral"),
-                ("1e41", "Looking Down, Eyes Closed"),
-                ("9079", "Smile"),
-                ("40c3", "Concerned"),
-            ],
-            ["Meryl Silverburgh"] = [
-                ("7702", "Masked"),
-                ("7d66", "Doff Mask"),
-                ("39c3", "Neutral"),
-                ("6d84", "Don Mask"),
-                ("b4af", "Smile"),
-                ("1162", "Grin"),
-                ("0cc2", "Looking Down, Eyes Closed"),
-                ("64f9", "Frown"),
-                ("3d59", "Looking Down, Eyes Closed"),
-                ("8d32", "Turn To Screen Left"),
-                ("dce9", "Facing Screen Left"),
-            ],
-            ["Sniper Wolf"] = [
-                ("3d63", "Neutral"),
-                ("b84f", "Smile"),
-                ("124a", "Grin"),
-                ("6899", "Frown"),
-                ("a83c", "Neutral"),
-            ],
-            ["Jim Houseman"] = [
-                ("93f9", "Neutral"),
-                ("bf2f", "Frown"),
-            ],
-        };
-
-        private static Dictionary<string, string> DisplayedFrequency = new()
-        {
-            ["Solid Snake"] = "141.80",
-            ["Roy Campbell"] = "140.85",
-            ["Naomi Hunter"] = "140.85",
-            ["Mei Ling"] = "140.96",
-            ["Hal Emmerich"] = "141.12",
-            ["Liquid Snake"] = "141.80",
-            ["Nastasha Romanenko"] = "141.52",
-            ["Meryl Silverburgh"] = "140.15",
-            ["Sniper Wolf"] = "141.12",
-            ["Jim Houseman"] = "140.85",
-            ["Gray Fox"] = "140.48",
         };
 
         private string ActiveCharacter
