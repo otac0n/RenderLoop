@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Net.Http;
+    using System.Runtime.CompilerServices;
     using System.Text;
     using System.Text.Json;
     using System.Text.Json.Serialization;
@@ -66,7 +67,7 @@
         {
             this.logger = serviceProvider.GetRequiredService<ILogger<ConversationModel>>();
             this.codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
-            this.httpClient = new(new SerialRequestsWithTimeBufferHandler(codecOptions.LMCoolDown)) { BaseAddress = new Uri(this.codecOptions.LMEndpoint) };
+            this.httpClient = new(new SerialRequestsWithTimeBufferHandler(this.codecOptions.LMCoolDown)) { BaseAddress = new Uri(this.codecOptions.LMEndpoint) };
             this.speechFunction = speechFunction;
             this.codeFunction = codeFunction;
         }
@@ -114,7 +115,7 @@
 
                 try
                 {
-                    await foreach (var response in this.ParseResponsesAsync(channel.Reader, cancel).ConfigureAwait(false))
+                    await foreach (var response in ParseResponsesAsync(channel.Reader, cancel).ConfigureAwait(false))
                     {
                         switch (response)
                         {
@@ -171,7 +172,7 @@
             }
         }
 
-        private async IAsyncEnumerable<Response> ParseResponsesAsync(ChannelReader<string> reader, CancellationToken cancel)
+        private static async IAsyncEnumerable<Response> ParseResponsesAsync(ChannelReader<string> reader, [EnumeratorCancellation] CancellationToken cancel)
         {
             var parser = new ConversationParser();
             var remaining = "";

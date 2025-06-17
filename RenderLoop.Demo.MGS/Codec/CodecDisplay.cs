@@ -203,7 +203,7 @@ namespace RenderLoop.Demo.MGS.Codec
                             await defaultVoice.SayAsync(response.Text, cancel).ConfigureAwait(false);
                         }
                     },
-                    RunCodeWithUserReview);
+                    this.RunCodeWithUserReview);
             }
         }
 
