@@ -41,6 +41,8 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
 
         public event EventHandler<MouthMovedEventArgs>? MouthMoved;
 
+        public event EventHandler<IndexReachedEventArgs>? IndexReached;
+
         public static Voice GetVoice(CodecOptions options, string name)
         {
             if (!string.IsNullOrWhiteSpace(options.SpeechKey) && !string.IsNullOrWhiteSpace(options.SpeechEndpoint) && AssignedAzureVoices.TryGetValue(name, out var assignedVoice))
@@ -57,7 +59,8 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
 
         protected static string ApplyPhoneticReplacements(string text) => text
             .Replace("Otacon", "Awtacon", StringComparison.CurrentCultureIgnoreCase)
-            .Replace("FOXDIE", "Fox-Die", StringComparison.CurrentCultureIgnoreCase);
+            .Replace("FOXDIE", "Fox-Die", StringComparison.CurrentCultureIgnoreCase)
+            .Replace("REX", "Rex", StringComparison.CurrentCulture);
 
         public abstract Task SayAsync(string text);
 
@@ -66,9 +69,23 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             this.MouthMoved?.Invoke(this, new MouthMovedEventArgs(visemeId));
         }
 
+        protected void InvokeIndexReached(string text, int index, int length)
+        {
+            this.IndexReached?.Invoke(this, new IndexReachedEventArgs(text, index, length));
+        }
+
         public class MouthMovedEventArgs(uint visemeId) : EventArgs
         {
             public uint VisemeId { get; } = visemeId;
+        }
+
+        public class IndexReachedEventArgs(string text, int index, int length) : EventArgs
+        {
+            public string Text { get; } = text;
+
+            public int Index { get; } = index;
+
+            public int Length { get; } = length;
         }
     }
 }

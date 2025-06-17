@@ -27,12 +27,22 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
                                  v.VoiceInfo.Age == voiceAge descending
                          select v).First();
             this.synth.SelectVoice(voice.VoiceInfo.Name);
+            this.synth.SpeakProgress += this.Synth_SpeakProgress;
             this.synth.VisemeReached += this.Synth_VisemeReached;
+        }
+
+        private void Synth_SpeakProgress(object? sender, SpeakProgressEventArgs e)
+        {
+            this.InvokeIndexReached(e.Text, e.CharacterPosition, e.CharacterCount);
         }
 
         public void Dispose() => this.synth.Dispose();
 
-        public override Task SayAsync(string text) => Task.Factory.StartNew(() => this.synth.Speak(ApplyPhoneticReplacements(text)));
+        public override Task SayAsync(string text) => Task.Run(() =>
+        {
+            this.synth.Speak(ApplyPhoneticReplacements(text));
+            this.InvokeIndexReached(string.Empty, text.Length, 0);
+        });
 
         private void Synth_VisemeReached(object? sender, VisemeReachedEventArgs e)
         {

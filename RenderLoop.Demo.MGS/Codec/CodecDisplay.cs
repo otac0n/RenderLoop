@@ -292,6 +292,17 @@ namespace RenderLoop.Demo.MGS.Codec
                         Render();
                     }
                 };
+                avatarState.IndexReached += (e, a) =>
+                {
+                    if (name == this.ActiveCharacter)
+                    {
+                        this.Invoke(() =>
+                        {
+                            this.captionLabel.Select(a.Index, a.Length);
+                            this.captionLabel.ScrollToCaret();
+                        });
+                    }
+                };
                 avatars.Add(name, avatarState);
             }
 

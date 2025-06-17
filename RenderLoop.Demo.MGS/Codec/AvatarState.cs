@@ -18,7 +18,10 @@ namespace RenderLoop.Demo.MGS.Codec
         {
             this.voice = Voice.GetVoice(options, voiceName);
             this.voice.MouthMoved += this.Voice_MouthMoved;
+            this.voice.IndexReached += (e, a) => this.IndexReached?.Invoke(this, a);
         }
+
+        public event EventHandler<Voice.IndexReachedEventArgs>? IndexReached;
 
         public event EventHandler<EventArgs>? Updated;
 

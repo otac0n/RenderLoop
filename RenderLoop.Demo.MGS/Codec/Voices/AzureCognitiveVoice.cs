@@ -15,7 +15,13 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             var speechConfig = SpeechConfig.FromEndpoint(new Uri(options.SpeechEndpoint!), options.SpeechKey);
             speechConfig.SpeechSynthesisVoiceName = voiceName;
             this.synth = new(speechConfig);
+            this.synth.WordBoundary += this.Synth_WordBoundary;
             this.synth.VisemeReceived += this.Synth_VisemeReceived;
+        }
+
+        private void Synth_WordBoundary(object? sender, SpeechSynthesisWordBoundaryEventArgs e)
+        {
+            this.InvokeIndexReached(e.Text, (int)e.TextOffset, (int)e.WordLength);
         }
 
         public void Dispose() => this.synth.Dispose();
