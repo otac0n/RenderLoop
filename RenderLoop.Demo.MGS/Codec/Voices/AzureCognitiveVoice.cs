@@ -43,7 +43,21 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             });
 
             LogMessages.SpeakingText(this.logger, this.voiceName, text);
-            await this.synth.SpeakTextAsync(ApplyPhoneticReplacements(text)).ConfigureAwait(false);
+
+            try
+            {
+                await this.synth.SpeakTextAsync(ApplyPhoneticReplacements(text)).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (!cancel.IsCancellationRequested)
+                {
+                    this.InvokeIndexReached(text, text.Length, 0);
+                }
+
+                this.InvokeMouthMoved(0);
+            }
+
             LogMessages.SpeakingCompleted(this.logger, this.voiceName);
         }
 

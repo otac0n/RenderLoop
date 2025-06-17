@@ -55,7 +55,30 @@ namespace RenderLoop.Demo.MGS.Codec
             _ => 0,
         };
 
-        public Task SayAsync(string text, CancellationToken cancel) => this.voice.SayAsync(text, cancel);
+        public async Task<string> SayAsync(string text, CancellationToken cancel)
+        {
+            var index = 0;
+            void IndexReached(object? sender, Voice.IndexReachedEventArgs args) => index = args.Index;
+            try
+            {
+                this.IndexReached += IndexReached;
+                await this.voice.SayAsync(text, cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                this.IndexReached -= IndexReached;
+                if (index != text.Length)
+                {
+                    text = text[..index].TrimEnd();
+                    if (text is not "" && text[^1..] is not ("." or "?" or "!"))
+                    {
+                        text += "--";
+                    }
+                }
+            }
+
+            return text;
+        }
 
         public void Update()
         {

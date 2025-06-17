@@ -21,7 +21,7 @@
         private static readonly JsonSerializerOptions JsonOptions;
         private readonly ILogger<ConversationModel> logger;
         private readonly CodecOptions codecOptions;
-        private readonly Func<CharacterResponse, CancellationToken, Task> speechFunction;
+        private readonly Func<CharacterResponse, CancellationToken, Task<string>> speechFunction;
         private readonly Func<CodeResponse, Task<string>> codeFunction;
         private readonly HttpClient httpClient;
         private CancellationTokenSource cts = new();
@@ -63,7 +63,7 @@
             Configuration = JsonDocument.Parse(configStream!);
         }
 
-        public ConversationModel(IServiceProvider serviceProvider, Func<CharacterResponse, CancellationToken, Task> speechFunction, Func<CodeResponse, Task<string>> codeFunction)
+        public ConversationModel(IServiceProvider serviceProvider, Func<CharacterResponse, CancellationToken, Task<string>> speechFunction, Func<CodeResponse, Task<string>> codeFunction)
         {
             this.logger = serviceProvider.GetRequiredService<ILogger<ConversationModel>>();
             this.codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
@@ -78,97 +78,123 @@
             this.httpClient.Dispose();
         }
 
-        public void AddUserMessage(string content)
+        public async Task AddUserMessageAsync(string content)
         {
             LogMessages.ReceivedUserMessage(this.logger, content);
+
+            LogMessages.CancelingActiveGeneration(this.logger);
+            await this.cts.CancelAsync().ConfigureAwait(false);
+            if (this.activeWork is Task activeWork)
+            {
+                LogMessages.AwaitingActiveGeneration(this.logger);
+
+                try
+                {
+                    await activeWork.ConfigureAwait(false);
+                }
+                catch
+                {
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            }
+
+            LogMessages.CanceledActiveGeneration(this.logger);
 
             lock (this.messages)
             {
                 this.messages.Add(new Message("user", $"User: {content.Trim()}\n"));
             }
 
-            this.activeWork = this.CancelPreviousAndProcessNextResponsesAsync(content);
-        }
-
-        public async Task CancelPreviousAndProcessNextResponsesAsync(string content)
-        {
-            await this.cts.CancelAsync().ConfigureAwait(false);
             this.cts = new CancellationTokenSource();
-            await this.ProcessNextResponsesAsync(this.cts.Token).ConfigureAwait(false);
+            var work = this.ProcessNextResponsesAsync(this.cts.Token);
+            this.activeWork = work;
+            await work.ConfigureAwait(false);
         }
 
         public async Task ProcessNextResponsesAsync(CancellationToken cancel)
         {
             var getNextResponse = true;
-            while (getNextResponse)
+            try
             {
-                getNextResponse = false;
-                cancel.ThrowIfCancellationRequested();
-
-                var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
+                while (getNextResponse)
                 {
-                    SingleReader = true,
-                    SingleWriter = true,
-                });
+                    getNextResponse = false;
+                    cancel.ThrowIfCancellationRequested();
 
-                var producer = this.GetNextResponseTokensAsync(channel.Writer, cancel);
-
-                try
-                {
-                    await foreach (var response in ParseResponsesAsync(channel.Reader, cancel).ConfigureAwait(false))
+                    var channel = Channel.CreateUnbounded<string>(new UnboundedChannelOptions
                     {
-                        switch (response)
+                        SingleReader = true,
+                        SingleWriter = true,
+                    });
+
+                    var producer = this.GetNextResponseTokensAsync(channel.Writer, cancel);
+
+                    try
+                    {
+                        await foreach (var response in ParseResponsesAsync(channel.Reader, cancel).ConfigureAwait(false))
                         {
-                            case CharacterResponse characterResponse:
-                                var content = $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}";
-                                lock (this.messages)
-                                {
-                                    this.messages.Add(new Message("assistant", $"{content}\n"));
-                                }
+                            switch (response)
+                            {
+                                case CharacterResponse characterResponse:
+                                    var content = $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}";
 
-                                LogMessages.ReceivedAgentMessage(this.logger, content);
+                                    LogMessages.ReceivedAgentMessage(this.logger, content);
 
-                                if (Aliases.TryGetValue(characterResponse.Name, out var name))
-                                {
-                                    characterResponse = characterResponse with { Name = name };
-                                }
+                                    if (Aliases.TryGetValue(characterResponse.Name, out var name))
+                                    {
+                                        characterResponse = characterResponse with { Name = name };
+                                    }
 
-                                await this.speechFunction(characterResponse, cancel).ConfigureAwait(false);
-                                break;
+                                    var spoken = await this.speechFunction(characterResponse, cancel).ConfigureAwait(false);
+                                    lock (this.messages)
+                                    {
+                                        this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {spoken}\n"));
+                                    }
 
-                            case CodeResponse codeResponse:
-                                getNextResponse = true;
-                                lock (this.messages)
-                                {
-                                    this.messages.Add(new Message("assistant", $"```\n{codeResponse.Code.Trim()}\n```\n"));
-                                }
+                                    break;
 
-                                string output;
-                                try
-                                {
-                                    output = await this.codeFunction(codeResponse).ConfigureAwait(false);
-                                    output = $"{output.Trim()}\nSystem: Task Status Completed";
-                                }
-                                catch (Exception ex)
-                                {
-                                    output = $"{ex.ToString().Trim()}\nSystem: Task Status Faulted";
-                                }
+                                case CodeResponse codeResponse:
+                                    getNextResponse = true;
+                                    lock (this.messages)
+                                    {
+                                        this.messages.Add(new Message("assistant", $"```\n{codeResponse.Code.Trim()}\n```\n"));
+                                    }
 
-                                this.messages.Add(new Message("assistant", $"{output}\n"));
-                                break;
+                                    string output;
+                                    try
+                                    {
+                                        output = await this.codeFunction(codeResponse).ConfigureAwait(false);
+                                        output = $"{output.Trim()}\nSystem: Task Status Completed";
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        output = $"{ex.ToString().Trim()}\nSystem: Task Status Faulted";
+                                    }
+
+                                    this.messages.Add(new Message("assistant", $"{output}\n"));
+                                    break;
+                            }
+
+                            cancel.ThrowIfCancellationRequested();
                         }
                     }
+                    catch (FormatException ex)
+                    {
+                        LogMessages.RetryingDueToParseFailure(this.logger, ex);
+                        getNextResponse = true;
+                        continue;
+                    }
+                    finally
+                    {
+                        await producer.ConfigureAwait(false);
+                    }
                 }
-                catch (FormatException ex)
-                {
-                    LogMessages.RetryingDueToParseFailure(this.logger, ex);
-                    getNextResponse = true;
-                    continue;
-                }
-                finally
-                {
-                    await producer.ConfigureAwait(false);
-                }
+            }
+            catch (Exception ex)
+            {
+                LogMessages.ProcessingFailed(this.logger, ex);
+                throw;
             }
         }
 
@@ -345,6 +371,9 @@
 
             [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Response received from {url}: {statusCode} {statusMessage}")]
             public static partial void ResponseReceived(ILogger logger, Uri url, int statusCode, string? statusMessage);
+
+            [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Processing responses failed: {error}")]
+            public static partial void ProcessingFailed(ILogger logger, Exception error);
 
             [LoggerMessage(EventId = 0, Level = LogLevel.Information, Message = "Request complete.")]
             public static partial void RequestComplete(ILogger logger, Uri url);

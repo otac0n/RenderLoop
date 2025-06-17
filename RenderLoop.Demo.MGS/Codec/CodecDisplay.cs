@@ -26,6 +26,7 @@ namespace RenderLoop.Demo.MGS.Codec
         private static FontFamily Digital7 = LoadEmbeddedFont("digital-7.ttf");
 
         private ConversationModel conversationModel;
+        private Task activeSpeechTask;
 
         private static Dictionary<(string Mood, string Tags), double> MoodMappingScores = new()
         {
@@ -193,15 +194,13 @@ namespace RenderLoop.Demo.MGS.Codec
                         var character = response.Name;
                         ShowAvatar(character, response.Text);
 
-                        if (avatars.TryGetValue(character, out var avatarState))
+                        if (!avatars.TryGetValue(character, out var avatarState))
                         {
-                            avatarState.Mood = response.Mood;
-                            await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
+                            avatarState = defaultVoice;
                         }
-                        else
-                        {
-                            await defaultVoice.SayAsync(response.Text, cancel).ConfigureAwait(false);
-                        }
+
+                        avatarState.Mood = response.Mood;
+                        return await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
                     },
                     this.RunCodeWithUserReview);
             }
@@ -496,13 +495,13 @@ namespace RenderLoop.Demo.MGS.Codec
             }
         }
 
-        private void SayButton_Click(object sender, EventArgs e)
+        private async void SayButton_Click(object sender, EventArgs e)
         {
-            this.conversationModel.AddUserMessage(this.speechBox.Text);
             this.ActiveCharacter = "User";
-            this.captionLabel.Text = this.speechBox.Text;
+            var text = this.captionLabel.Text = this.speechBox.Text;
             this.speechBox.Text = string.Empty;
             this.speechBox.Focus();
+            this.activeSpeechTask = this.conversationModel.AddUserMessageAsync(text);
         }
 
         private void CloseButton_Click(object sender, EventArgs e)

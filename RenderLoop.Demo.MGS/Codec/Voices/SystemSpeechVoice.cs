@@ -52,6 +52,8 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             {
                 if (a.Prompt == prompt)
                 {
+                    this.InvokeIndexReached(text, text.Length, 0);
+                    this.InvokeMouthMoved(0);
                     LogMessages.SpeakingCompleted(this.logger, this.voiceName);
                     tcs.TrySetResult();
                     Dispose();
@@ -79,6 +81,7 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
                         this.synth.SpeakAsyncCancel(prompt);
                     }
 
+                    this.InvokeMouthMoved(0);
                     tcs.TrySetCanceled();
                     Dispose();
                 });
