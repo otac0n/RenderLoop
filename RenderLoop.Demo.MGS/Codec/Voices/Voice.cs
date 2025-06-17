@@ -6,7 +6,10 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
     using System.Collections.Generic;
     using System.Globalization;
     using System.Speech.Synthesis;
+    using System.Threading;
     using System.Threading.Tasks;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
 
     internal abstract class Voice
     {
@@ -43,18 +46,19 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
 
         public event EventHandler<IndexReachedEventArgs>? IndexReached;
 
-        public static Voice GetVoice(CodecOptions options, string name)
+        public static Voice GetVoice(IServiceProvider serviceProvider, string name)
         {
+            var options = serviceProvider.GetRequiredService<CodecOptions>();
             if (!string.IsNullOrWhiteSpace(options.SpeechKey) && !string.IsNullOrWhiteSpace(options.SpeechEndpoint) && AssignedAzureVoices.TryGetValue(name, out var assignedVoice))
             {
-                return new AzureCognitiveVoice(options, assignedVoice);
+                return new AzureCognitiveVoice(options, serviceProvider.GetRequiredService<ILogger<AzureCognitiveVoice>>(), assignedVoice);
             }
             else if (VoiceHints.TryGetValue(name, out var voiceHints))
             {
-                return new SystemSpeechVoice(voiceHints.Gender, voiceHints.Age, CultureInfo.GetCultureInfo(voiceHints.Culture));
+                return new SystemSpeechVoice(serviceProvider.GetRequiredService<ILogger<SystemSpeechVoice>>(), voiceHints.Gender, voiceHints.Age, CultureInfo.GetCultureInfo(voiceHints.Culture));
             }
 
-            return new SystemSpeechVoice(VoiceGender.NotSet, VoiceAge.NotSet, voiceCulture: null);
+            return new SystemSpeechVoice(serviceProvider.GetRequiredService<ILogger<SystemSpeechVoice>>(), VoiceGender.NotSet, VoiceAge.NotSet, voiceCulture: null);
         }
 
         protected static string ApplyPhoneticReplacements(string text) => text
@@ -62,7 +66,7 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
             .Replace("FOXDIE", "Fox-Die", StringComparison.CurrentCultureIgnoreCase)
             .Replace("REX", "Rex", StringComparison.CurrentCulture);
 
-        public abstract Task SayAsync(string text);
+        public abstract Task SayAsync(string text, CancellationToken cancel);
 
         protected void InvokeMouthMoved(uint visemeId)
         {

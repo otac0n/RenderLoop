@@ -54,10 +54,16 @@ namespace RenderLoop.Demo.MGS
                 description: "The language model to request for conversation.",
                 getDefaultValue: () => "mradermacher/QwQ-LCoT-14B-Conversational-i1-GGUF");
 
+            var lmCooldownOption = new Option<TimeSpan>(
+                name: "--lmCooldown",
+                description: "The time to allow the LM to cooldown between requests.",
+                getDefaultValue: () => TimeSpan.FromSeconds(5));
+
             codecCommand.AddOption(speechEndpointOption);
             codecCommand.AddOption(speechKeyOption);
             codecCommand.AddOption(lmEndpointOption);
             codecCommand.AddOption(languageModelOption);
+            codecCommand.AddOption(lmCooldownOption);
 
             rootCommand.Add(codecCommand);
 
@@ -97,6 +103,7 @@ namespace RenderLoop.Demo.MGS
                         SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
                         LMEndpoint = context.ParseResult.GetValueForOption(lmEndpointOption),
                         LanguageModel = context.ParseResult.GetValueForOption(languageModelOption),
+                        LMCoolDown = context.ParseResult.GetValueForOption(lmCooldownOption),
                     };
 
                     var builder = Host.CreateDefaultBuilder(args);

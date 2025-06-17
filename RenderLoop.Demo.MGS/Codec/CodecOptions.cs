@@ -2,6 +2,8 @@
 
 namespace RenderLoop.Demo.MGS.Codec
 {
+    using System;
+
     internal class CodecOptions
     {
         public required string? SpeechEndpoint { get; set; }
@@ -11,5 +13,7 @@ namespace RenderLoop.Demo.MGS.Codec
         public required string? LMEndpoint { get; set; }
 
         public required string? LanguageModel { get; set; }
+
+        public required TimeSpan LMCoolDown { get; set; }
     }
 }

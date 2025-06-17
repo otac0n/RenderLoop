@@ -6,7 +6,6 @@ namespace RenderLoop.Demo.MGS.Codec
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
-    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Drawing.Text;
     using System.IO;
@@ -282,7 +281,7 @@ namespace RenderLoop.Demo.MGS.Codec
 
             foreach (var name in CharacterImages.Keys)
             {
-                var avatarState = new AvatarState(codecOptions, name);
+                var avatarState = new AvatarState(serviceProvider, name);
                 this.updateTimer.Tick += (e, a) => avatarState.Update();
                 avatarState.Updated += (e, a) =>
                 {
@@ -308,10 +307,10 @@ namespace RenderLoop.Demo.MGS.Codec
 
             if (codecOptions.LMEndpoint != null)
             {
-                var defaultVoice = new AvatarState(codecOptions, "Unknown");
+                var defaultVoice = new AvatarState(serviceProvider, "Unknown");
                 this.conversationModel = new ConversationModel(
-                    codecOptions,
-                    async response =>
+                    serviceProvider,
+                    async (response, cancel) =>
                     {
                         var character = response.Name;
                         ShowAvatar(character, response.Text);
@@ -319,11 +318,11 @@ namespace RenderLoop.Demo.MGS.Codec
                         if (avatars.TryGetValue(character, out var avatarState))
                         {
                             avatarState.Mood = response.Mood;
-                            await avatarState.SayAsync(response.Text).ConfigureAwait(false);
+                            await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
                         }
                         else
                         {
-                            await defaultVoice.SayAsync(response.Text).ConfigureAwait(false);
+                            await defaultVoice.SayAsync(response.Text, cancel).ConfigureAwait(false);
                         }
                     },
                     RunCodeWithUserReview);

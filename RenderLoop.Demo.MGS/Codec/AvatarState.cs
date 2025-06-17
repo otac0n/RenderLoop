@@ -3,6 +3,7 @@
 namespace RenderLoop.Demo.MGS.Codec
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using RenderLoop.Demo.MGS.Codec.Voices;
 
@@ -14,9 +15,9 @@ namespace RenderLoop.Demo.MGS.Codec
         private uint lastViseme;
         private string mood;
 
-        public AvatarState(CodecOptions options, string voiceName)
+        public AvatarState(IServiceProvider serviceProvider, string voiceName)
         {
-            this.voice = Voice.GetVoice(options, voiceName);
+            this.voice = Voice.GetVoice(serviceProvider, voiceName);
             this.voice.MouthMoved += this.Voice_MouthMoved;
             this.voice.IndexReached += (e, a) => this.IndexReached?.Invoke(this, a);
         }
@@ -54,10 +55,7 @@ namespace RenderLoop.Demo.MGS.Codec
             _ => 0,
         };
 
-        public async Task SayAsync(string text)
-        {
-            await this.voice.SayAsync(text).ConfigureAwait(true);
-        }
+        public Task SayAsync(string text, CancellationToken cancel) => this.voice.SayAsync(text, cancel);
 
         public void Update()
         {
