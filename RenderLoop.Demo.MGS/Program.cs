@@ -64,8 +64,10 @@ namespace RenderLoop.Demo.MGS
             codecCommand.AddOption(lmEndpointOption);
             codecCommand.AddOption(languageModelOption);
             codecCommand.AddOption(lmCooldownOption);
-
             rootCommand.Add(codecCommand);
+
+            var textureCommand = new Command("texture", "Display Textures (MGS2)");
+            rootCommand.Add(textureCommand);
 
             void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
             {
@@ -116,6 +118,20 @@ namespace RenderLoop.Demo.MGS
                     using var host = builder.Build();
                     await Task.Yield();
                     Application.Run(host.Services.GetService<Codec.CodecDisplay>()!);
+                });
+
+            textureCommand.SetHandler(
+                async context =>
+                {
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        InstallSharedConfiguration(context, services);
+                    });
+
+                    using var host = builder.Build();
+                    await Task.Yield();
+                    Application.Run(host.Services.GetService<MGS2.TextureDisplay>()!);
                 });
 
             return await rootCommand.InvokeAsync(args).ConfigureAwait(true);

@@ -34,6 +34,7 @@ namespace RenderLoop.Demo.MGS
             RegisterCD(WellKnownPaths.CD2Path);
 
             services.AddTransient<Codec.CodecDisplay>();
+            services.AddTransient<MGS2.TextureDisplay>();
             services.AddTransient<ModelDisplay>();
             services.AddTransient<VehicleDisplay>();
         }

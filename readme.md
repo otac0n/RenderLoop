@@ -23,6 +23,7 @@ OpenSource Info
 | | [AnimatedGif](https://github.com/mrousavy/AnimatedGif) | [GPL 3.0](https://github.com/mrousavy/AnimatedGif/blob/master/LICENSE) | Animated GIF generation |
 | | [MGS1-TOOLS](https://github.com/MSylvia/MGS1-TOOLS) | | Reference only |
 | | [mgs_reversing](https://github.com/FoxdieTeam/mgs_reversing) | | Reference only |
+| | [CtxrTool](https://github.com/Jayveer/CtxrTool) | [MIT](https://github.com/Jayveer/CtxrTool/blob/master/README.md) | Reference only |
 | | [Metal Gear Master Collection](https://store.steampowered.com/app/2131630/METAL_GEAR_SOLID__Master_Collection_Version/) | Non-transferrable | You need your own license to this software, and your license may not cover this usage. |
 | | [Digital-7 Font](http://style7.website/font.php?font=digital-7) | Freeware for home use | Frequency display |
 | **Middle Earth Demo**              ||||
