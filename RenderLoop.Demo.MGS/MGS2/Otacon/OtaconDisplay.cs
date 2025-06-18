@@ -27,7 +27,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private SelectedSprite selected = (3, 8);
         private Size spriteSize;
 
-        private readonly Dictionary<SelectedSprite, (Direction Face, Direction Eyes, Expression Expression, Direction Body, Posture Posture, Direction Legs)> metadata = new()
+        private static readonly Dictionary<SelectedSprite, (Direction Face, Direction Eyes, Expression Expression, Direction Body, Posture Posture, Direction Legs)> Metadata = new()
         {
             { (0, 0),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) },
             { (0, 1),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pronated,                  Direction.Left) },
@@ -79,13 +79,36 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             { (3, 11), (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) }, // Animate in
         };
 
-        private static readonly ImmutableDictionary<SelectedSprite, (TimeSpan Time, SelectedSprite State)> NextStates =
-            new Dictionary<SelectedSprite, (TimeSpan Time, SelectedSprite Next)>
+        private static readonly ImmutableDictionary<SelectedSprite, (TimeSpan Time, SelectedSprite[] State)> NextStates =
+            new Dictionary<SelectedSprite, (TimeSpan Time, SelectedSprite[] Next)>
             {
-                { (3, 8), (TimeSpan.FromMilliseconds(33), (3, 9)) },
-                { (3, 9), (TimeSpan.FromMilliseconds(33), (3, 10)) },
-                { (3, 10), (TimeSpan.FromMilliseconds(33), (3, 11)) },
-                { (3, 11), (TimeSpan.FromMilliseconds(33), (0, 0)) },
+                // Animate in
+                { (3, 8), (TimeSpan.FromMilliseconds(33), [(3, 9)]) },
+                { (3, 9), (TimeSpan.FromMilliseconds(33), [(3, 10)]) },
+                { (3, 10), (TimeSpan.FromMilliseconds(33), [(3, 11)]) },
+                { (3, 11), (TimeSpan.FromMilliseconds(33), [(0, 0)]) },
+
+                // Thumbs up
+                { (1, 0), (TimeSpan.FromMilliseconds(200), [(1, 1)]) },
+                { (1, 1), (TimeSpan.FromMilliseconds(200), [(1, 2)]) },
+                { (1, 2), (TimeSpan.FromMilliseconds(200), [(1, 3)]) },
+                { (1, 3), (TimeSpan.FromSeconds(1), [(1, 6)]) },
+
+                // Shrug
+                { (1, 4), (TimeSpan.FromMilliseconds(66), [(1, 5)]) },
+
+                // Laughing
+                { (2, 2), (TimeSpan.FromMilliseconds(200), [(2, 3)]) },
+                { (2, 3), (TimeSpan.FromMilliseconds(200), [(2, 2), (2, 4)]) },
+                { (2, 4), (TimeSpan.FromMilliseconds(200), [(2, 2), (1, 6)]) },
+
+                // Angry
+                { (3, 2), (TimeSpan.FromMilliseconds(200), [(3, 3)]) },
+                { (3, 3), (TimeSpan.FromMilliseconds(200), [(3, 2), (0, 0)]) },
+
+                // Return to neutral
+                { (1, 5), (TimeSpan.FromSeconds(2), [(0, 0)]) }, // Shrug
+                { (1, 6), (TimeSpan.FromSeconds(1), [(0, 0)]) }, // Smile
             }.ToImmutableDictionary();
 
         public OtaconDisplay(IServiceProvider serviceProvider)
@@ -113,11 +136,24 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
         private void UpdateTimer_Tick(object sender, EventArgs e)
         {
-            if (NextStates.TryGetValue(this.selected, out var next) && this.selectedTime.Elapsed >= next.Time)
+            if (NextStates.TryGetValue(this.selected, out var next))
             {
-                this.selected = next.State;
-                this.selectedTime.Restart();
-                this.Invalidate();
+                if (this.selectedTime.Elapsed >= next.Time)
+                {
+                    this.selected = next.State[Random.Shared.Next(next.State.Length)];
+                    this.selectedTime.Restart();
+                    this.Invalidate();
+                }
+            }
+            else
+            {
+                if (this.selectedTime.Elapsed >= TimeSpan.FromSeconds(2))
+                {
+                    var available = new[] { (1, 0), (1, 4), (2, 2), (3, 2) };
+                    this.selected = available[Random.Shared.Next(available.Length)];
+                    this.selectedTime.Restart();
+                    this.Invalidate();
+                }
             }
         }
 
