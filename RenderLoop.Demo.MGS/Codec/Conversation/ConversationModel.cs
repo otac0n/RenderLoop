@@ -49,7 +49,7 @@
             new("system", Configuration.RootElement.GetProperty("inference_params").GetProperty("pre_prompt").GetString()),
         ];
 
-        public event EventHandler<MessageReceivedArgs> MessageReceived;
+        public event EventHandler<TokenReceivedArgs> TokenReceived;
 
         static ConversationModel()
         {
@@ -292,6 +292,7 @@
                         if (!string.IsNullOrEmpty(tokens))
                         {
                             LogMessages.ReceivedTokens(this.logger, tokens);
+                            this.TokenReceived?.Invoke(this, new TokenReceivedArgs(tokens));
                             await writer.WriteAsync(tokens, cancel).ConfigureAwait(false);
                         }
                     }
@@ -312,13 +313,9 @@
 
         private record class Message(string Role, string Content);
 
-        public class MessageReceivedArgs(string character, string mood, string message) : EventArgs
+        public class TokenReceivedArgs(string token) : EventArgs
         {
-            public string Character { get; } = character;
-
-            public string Mood { get; } = mood;
-
-            public string Message { get; } = message;
+            public string Token { get; } = token;
         }
 
         private class SerialRequestsWithTimeBufferHandler(TimeSpan interval) : DelegatingHandler(new HttpClientHandler())

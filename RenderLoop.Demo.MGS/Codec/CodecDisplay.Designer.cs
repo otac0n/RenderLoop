@@ -39,6 +39,7 @@
             this.inputsPanel = new System.Windows.Forms.Panel();
             this.closeButton = new System.Windows.Forms.Button();
             this.captionLabel = new System.Windows.Forms.TextBox();
+            this.progressIndicator = new System.Windows.Forms.Label();
             border1 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)this.display).BeginInit();
             ((System.ComponentModel.ISupportInitialize)this.volumeMeter).BeginInit();
@@ -159,11 +160,22 @@
             this.captionLabel.TabIndex = 5;
             this.captionLabel.TabStop = false;
             // 
+            // progressIndicator
+            // 
+            this.progressIndicator.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
+            this.progressIndicator.Location = new System.Drawing.Point(389, 285);
+            this.progressIndicator.Name = "progressIndicator";
+            this.progressIndicator.Size = new System.Drawing.Size(40, 34);
+            this.progressIndicator.TabIndex = 6;
+            this.progressIndicator.Visible = false;
+            this.progressIndicator.Paint += this.ProgressIndicator_Paint;
+            // 
             // CodecDisplay
             // 
             this.BackColor = System.Drawing.Color.Black;
             this.CancelButton = this.closeButton;
             this.ClientSize = new System.Drawing.Size(478, 458);
+            this.Controls.Add(this.progressIndicator);
             this.Controls.Add(this.captionLabel);
             this.Controls.Add(this.display);
             this.Controls.Add(this.nameLabel);
@@ -196,5 +208,6 @@
         private System.Windows.Forms.TextBox captionLabel;
         private System.Windows.Forms.Button closeButton;
         private System.Windows.Forms.Label border1;
+        private System.Windows.Forms.Label progressIndicator;
     }
 }

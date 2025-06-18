@@ -4,8 +4,10 @@ namespace RenderLoop.Demo.MGS.Codec
 {
     using System;
     using System.Collections.Generic;
+    using System.Collections.Immutable;
     using System.Diagnostics;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Drawing.Imaging;
     using System.Drawing.Text;
     using System.IO;
@@ -26,7 +28,6 @@ namespace RenderLoop.Demo.MGS.Codec
         private static FontFamily Digital7 = LoadEmbeddedFont("digital-7.ttf");
 
         private ConversationModel conversationModel;
-        private Task activeSpeechTask;
 
         private static Dictionary<(string Mood, string Tags), double> MoodMappingScores = new()
         {
@@ -151,6 +152,7 @@ namespace RenderLoop.Demo.MGS.Codec
 
                 RenderVolumeDisplay(vu, vuW, vuH, volume, frequency);
                 this.volumeMeter.Invalidate();
+                this.progressIndicator.Invalidate();
 
                 if (this.ActiveCharacter == null || !CharacterImages.ContainsKey(this.ActiveCharacter))
                 {
@@ -203,6 +205,7 @@ namespace RenderLoop.Demo.MGS.Codec
                         return await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
                     },
                     this.RunCodeWithUserReview);
+                this.conversationModel.TokenReceived += this.ConversationModel_TokenReceived;
             }
         }
 
@@ -501,13 +504,84 @@ namespace RenderLoop.Demo.MGS.Codec
             var text = this.captionLabel.Text = this.speechBox.Text;
             this.speechBox.Text = string.Empty;
             this.speechBox.Focus();
-            this.activeSpeechTask = this.conversationModel.AddUserMessageAsync(text);
+
+            try
+            {
+                this.progressIndicator.Visible = true;
+                await this.conversationModel.AddUserMessageAsync(text).ConfigureAwait(true);
+            }
+            catch (Exception)
+            {
+            }
+            finally
+            {
+                this.progressIndicator.Visible = false;
+            }
         }
 
         private void CloseButton_Click(object sender, EventArgs e)
         {
             this.DialogResult = DialogResult.Abort;
             this.Close();
+        }
+
+        private void ConversationModel_TokenReceived(object? sender, ConversationModel.TokenReceivedArgs e)
+        {
+            var bogies = (this.progressIndicator.Tag as ImmutableList<Bogie>) ?? [];
+            float x, y;
+            do
+            {
+                (x, y) = (Random.Shared.NextSingle(), Random.Shared.NextSingle());
+            }
+            while (((x - 0.5f) * (x - 0.5f)) + ((y - 0.5f) * (y - 0.5f)) > 0.5f);
+
+            bogies = bogies.Add(new Bogie(DateTime.UtcNow, new(x, y)));
+            this.progressIndicator.Tag = bogies;
+        }
+
+        private void ProgressIndicator_Paint(object sender, PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            var now = DateTime.UtcNow;
+            var spinTime = TimeSpan.FromSeconds(2);
+
+            var w = g.VisibleClipBounds.Width;
+            var h = g.VisibleClipBounds.Height;
+            var center = new PointF(w / 2f, h / 2f);
+            var radius = Math.Min(w, h) / 3f;
+            var angle = (now - DateTime.UnixEpoch) / spinTime % 1.0 * Math.Tau;
+            var end = new PointF(
+                center.X + radius * (float)Math.Cos(angle),
+                center.Y + radius * (float)Math.Sin(angle));
+
+            var bounds = new RectangleF(center.X - radius, center.Y - radius, radius * 2, radius * 2);
+            using var path = new GraphicsPath();
+            path.AddPie(bounds.X, bounds.Y, bounds.Width, bounds.Height, (float)((angle - 0.8f) * 360 / Math.Tau), (float)(0.8f * 360 / Math.Tau));
+            g.FillPath(Brushes.Green, path);
+
+            var lineWidth = 2;
+            using var pen = new Pen(Color.Gray, lineWidth);
+            g.DrawEllipse(pen, bounds);
+            g.DrawLine(Pens.Gray, center, end);
+
+            var bogieSize = 2f;
+            var innerRadius = radius - lineWidth - bogieSize;
+            var bogies = (this.progressIndicator.Tag as ImmutableList<Bogie>) ?? [];
+            bogies = bogies.RemoveAll(b => now - b.Appeared > spinTime);
+            foreach (var bogie in bogies)
+            {
+                var bogieAngle = (bogie.Appeared - DateTime.UnixEpoch) / spinTime % 1.0 * Math.Tau;
+                var bogiePoint = new PointF(
+                    float.Lerp(center.X - innerRadius, center.X + innerRadius, bogie.Location.X),
+                    float.Lerp(center.Y - innerRadius, center.Y + innerRadius, bogie.Location.Y));
+
+                var brightness = 1 - (now - bogie.Appeared) / spinTime;
+                var alpha = (int)Math.Clamp(brightness * 255, 0, 255);
+                using var brush = new SolidBrush(Color.FromArgb(alpha, Color.White));
+                g.FillEllipse(brush, bogiePoint.X - bogieSize / 2, bogiePoint.Y - bogieSize / 2, bogieSize, bogieSize);
+            }
+
+            this.progressIndicator.Tag = bogies;
         }
 
         private static void EnableDrag(Form form)
@@ -600,5 +674,7 @@ namespace RenderLoop.Demo.MGS.Codec
 
             return privateFonts.Families[0];
         }
+
+        private record class Bogie(DateTime Appeared, PointF Location);
     }
 }
