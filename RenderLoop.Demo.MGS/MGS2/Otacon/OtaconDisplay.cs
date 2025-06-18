@@ -11,12 +11,73 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
     using System.Windows.Forms;
     using SelectedSprite = (int Sprite, int Index);
 
+    [Flags]
+    internal enum Direction { None, Left, Center, Right };
+
+    [Flags]
+    internal enum Expression { Neutral, Blink, Wink, Happy, Sad, Angry, Reserved, Concerned, Laughing, Embarassed, Sheepish, Frustrated, Frightened, Terrified };
+
+    [Flags]
+    internal enum Posture { Neutral, Pronated, Supinated, Abducting, Adjusting, Pondering, Guarding, Shrugging, DoubledOver, ThumbsUp, ThumbOut, ThumbBack, Clenched, Raised };
+
     internal partial class OtaconDisplay : Form
     {
         private readonly Bitmap[] sprites = new Bitmap[4];
         private readonly Stopwatch selectedTime = new();
         private SelectedSprite selected = (3, 8);
         private Size spriteSize;
+
+        private readonly Dictionary<SelectedSprite, (Direction Face, Direction Eyes, Expression Expression, Direction Body, Posture Posture, Direction Legs)> metadata = new()
+        {
+            { (0, 0),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) },
+            { (0, 1),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pronated,                  Direction.Left) },
+            { (0, 2),  (Direction.Left,                    Direction.Center, Expression.Sad,                          Direction.Left,   Posture.Supinated,                 Direction.Left) },
+            { (0, 3),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Adjusting,                 Direction.Left) },
+            { (0, 4),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pondering,                 Direction.Left) },
+            { (0, 5),  (Direction.Left,                    Direction.Center, Expression.Neutral | Expression.Blink,   Direction.Left,   Posture.Pondering,                 Direction.Left) },
+            { (0, 6),  (Direction.Left,                    Direction.Left,   Expression.Neutral,                      Direction.Left,   Posture.Pondering,                 Direction.Left) },
+            { (0, 7),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pondering,                 Direction.Right | Direction.Center) },
+            { (0, 8),  (Direction.Center,                  Direction.Center, Expression.Neutral,                      Direction.Center, Posture.Adjusting,                 Direction.Center) },
+            { (0, 9),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pondering,                 Direction.Right) },
+            { (0, 10), (Direction.Left,                    Direction.Center, Expression.Neutral | Expression.Blink,   Direction.Left,   Posture.Pondering,                 Direction.Right) },
+            { (0, 11), (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pondering,                 Direction.Left | Direction.Center) },
+            { (1, 0),  (Direction.Center,                  Direction.Center, Expression.Neutral,                      Direction.Center, Posture.ThumbsUp,                  Direction.Center) },
+            { (1, 1),  (Direction.Center,                  Direction.Center, Expression.Neutral,                      Direction.Center, Posture.ThumbsUp | Posture.Raised, Direction.Center) },
+            { (1, 2),  (Direction.Center,                  Direction.Center, Expression.Happy | Expression.Wink,      Direction.Center, Posture.ThumbsUp,                  Direction.Center) },
+            { (1, 3),  (Direction.Center,                  Direction.Center, Expression.Happy | Expression.Wink,      Direction.Center, Posture.ThumbsUp | Posture.Raised, Direction.Center) },
+            { (1, 4),  (Direction.Center,                  Direction.Center, Expression.Reserved,                     Direction.Center, Posture.Abducting,                 Direction.Center) },
+            { (1, 5),  (Direction.Center,                  Direction.Center, Expression.Concerned,                    Direction.Center, Posture.Shrugging,                 Direction.Center) },
+            { (1, 6),  (Direction.Center,                  Direction.Center, Expression.Happy,                        Direction.Center, Posture.Neutral,                   Direction.Center) },
+            { (1, 7),  (Direction.Left,                    Direction.Center, Expression.Neutral | Expression.Wink,    Direction.Left,   Posture.ThumbOut,                  Direction.Left) }, // Opposite eye
+            { (1, 8),  (Direction.Left,                    Direction.Center, Expression.Sheepish,                     Direction.Left,   Posture.Supinated,                 Direction.Left) },
+            { (1, 9),  (Direction.Left,                    Direction.Center, Expression.Concerned,                    Direction.Left,   Posture.Supinated,                 Direction.Left) },
+            { (1, 10), (Direction.Left,                    Direction.Center, Expression.Concerned | Expression.Blink, Direction.Left,   Posture.Supinated,                 Direction.Left) },
+            { (1, 11), (Direction.Left,                    Direction.None,   Expression.Frustrated,                   Direction.Left,   Posture.Supinated,                 Direction.Left) },
+            { (2, 0),  (Direction.Center,                  Direction.Center, Expression.Frightened,                   Direction.Center, Posture.Guarding,                  Direction.Center) },
+            { (2, 1),  (Direction.Left,                    Direction.Center, Expression.Concerned,                    Direction.Left,   Posture.Supinated,                 Direction.Left) },
+            { (2, 2),  (Direction.Left,                    Direction.Center, Expression.Laughing | Expression.Blink,  Direction.Left,   Posture.DoubledOver,               Direction.Center) },
+            { (2, 3),  (Direction.Left,                    Direction.Center, Expression.Laughing | Expression.Blink,  Direction.Left,   Posture.DoubledOver,               Direction.Center) },
+            { (2, 4),  (Direction.Left,                    Direction.Center, Expression.Laughing | Expression.Blink,  Direction.Left,   Posture.DoubledOver,               Direction.Center) },
+            { (2, 5),  (Direction.Center,                  Direction.Center, Expression.Embarassed,                   Direction.Center, Posture.Guarding,                  Direction.Center) },
+            { (2, 6),  (Direction.Left | Direction.Center, Direction.Center, Expression.Embarassed,                   Direction.Center, Posture.Adjusting,                 Direction.Center) },
+            { (2, 7),  (Direction.Left,                    Direction.Center, Expression.Embarassed,                   Direction.Left,   Posture.Neutral,                   Direction.Left) },
+            { (2, 8),  (Direction.Left,                    Direction.Left,   Expression.Embarassed,                   Direction.Left,   Posture.Neutral,                   Direction.Left) },
+            { (2, 9),  (Direction.Center,                  Direction.None,   Expression.Terrified,                    Direction.Center, Posture.Guarding,                  Direction.Center) }, // Pale
+            { (2, 10), (Direction.Right,                   Direction.None,   Expression.Frightened,                   Direction.Right,  Posture.Adjusting,                 Direction.Center) }, // Ghost
+            { (2, 11), (Direction.None, Direction.None, Expression.Neutral, Direction.None, Posture.Neutral, Direction.None) }, // Blank
+            { (3, 0),  (Direction.Right,                   Direction.None,   Expression.Frightened,                   Direction.Right,  Posture.DoubledOver,               Direction.Center) },
+            { (3, 1),  (Direction.Right,                   Direction.None,   Expression.Frightened,                   Direction.Right,  Posture.DoubledOver,               Direction.Center) },
+            { (3, 2),  (Direction.Center,                  Direction.None,   Expression.Angry,                        Direction.Center, Posture.Clenched,                  Direction.Center) },
+            { (3, 3),  (Direction.Center,                  Direction.None,   Expression.Angry,                        Direction.Center, Posture.Clenched | Posture.Raised, Direction.Center) },
+            { (3, 4),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Pondering,                 Direction.Right) },
+            { (3, 5),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Adjusting,                 Direction.Right) },
+            { (3, 6),  (Direction.Left,                    Direction.Center, Expression.Neutral | Expression.Wink,    Direction.Left,   Posture.ThumbOut,                  Direction.Right) },
+            { (3, 7),  (Direction.Left,                    Direction.Center, Expression.Happy,                        Direction.Left,   Posture.ThumbBack,                 Direction.Right) },
+            { (3, 8),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) }, // Animate in
+            { (3, 9),  (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) }, // Animate in
+            { (3, 10), (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) }, // Animate in
+            { (3, 11), (Direction.Left,                    Direction.Center, Expression.Neutral,                      Direction.Left,   Posture.Neutral,                   Direction.Left) }, // Animate in
+        };
 
         private static readonly ImmutableDictionary<SelectedSprite, (TimeSpan Time, SelectedSprite State)> NextStates =
             new Dictionary<SelectedSprite, (TimeSpan Time, SelectedSprite Next)>
