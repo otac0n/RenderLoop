@@ -75,7 +75,7 @@ namespace RenderLoop.Demo.MGS.Codec
         public CodecDisplay(IServiceProvider serviceProvider)
         {
             this.InitializeComponent();
-            EnableDrag(this);
+            this.EnableDrag();
             MoveToRightmostBottomCorner(this);
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
@@ -582,57 +582,6 @@ namespace RenderLoop.Demo.MGS.Codec
             }
 
             this.progressIndicator.Tag = bogies;
-        }
-
-        private static void EnableDrag(Form form)
-        {
-            ArgumentNullException.ThrowIfNull(form);
-
-            var mouseDownLocation = Point.Empty;
-            var dragging = false;
-
-            void Attach(Control control)
-            {
-                if (control is not (Form or Label or PictureBox))
-                {
-                    return;
-                }
-
-                control.MouseDown += (s, e) =>
-                {
-                    if (e.Button == MouseButtons.Left)
-                    {
-                        dragging = true;
-                        mouseDownLocation = form.PointToClient(control.PointToScreen(e.Location));
-                    }
-                };
-
-                control.MouseMove += (s, e) =>
-                {
-                    if (dragging && e.Button == MouseButtons.Left)
-                    {
-                        var newMousePosition = Control.MousePosition;
-                        form.Location = new Point(
-                            newMousePosition.X - mouseDownLocation.X,
-                            newMousePosition.Y - mouseDownLocation.Y);
-                    }
-                };
-
-                control.MouseUp += (s, e) =>
-                {
-                    if (e.Button == MouseButtons.Left)
-                    {
-                        dragging = false;
-                    }
-                };
-
-                foreach (Control child in control.Controls)
-                {
-                    Attach(child);
-                }
-            }
-
-            form.Load += (_, _) => Attach(form);
         }
 
         private static void MoveToRightmostBottomCorner(Form form)

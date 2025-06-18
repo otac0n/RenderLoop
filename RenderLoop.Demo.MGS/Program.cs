@@ -69,6 +69,9 @@ namespace RenderLoop.Demo.MGS
             var textureCommand = new Command("texture", "Display Textures (MGS2)");
             rootCommand.Add(textureCommand);
 
+            var otaconCommand = new Command("otacon", "Display Otacon Assistant");
+            rootCommand.Add(otaconCommand);
+
             void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
             {
                 var options = new Options
@@ -132,6 +135,20 @@ namespace RenderLoop.Demo.MGS
                     using var host = builder.Build();
                     await Task.Yield();
                     Application.Run(host.Services.GetService<MGS2.TextureDisplay>()!);
+                });
+
+            otaconCommand.SetHandler(
+                async context =>
+                {
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        InstallSharedConfiguration(context, services);
+                    });
+
+                    using var host = builder.Build();
+                    await Task.Yield();
+                    Application.Run(host.Services.GetService<MGS2.Otacon.OtaconDisplay>()!);
                 });
 
             return await rootCommand.InvokeAsync(args).ConfigureAwait(true);

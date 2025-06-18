@@ -12,6 +12,12 @@ namespace RenderLoop.Demo.MGS.MGS2
 
     internal class CtxrFile
     {
+        public static async Task<Bitmap> LoadAsync(string path)
+        {
+            using var stream1 = File.OpenRead(path);
+            return await LoadAsync(stream1).ConfigureAwait(false);
+        }
+
         public static async Task<Bitmap> LoadAsync(Stream stream)
         {
             var header = await Header.ReadAsync(stream).ConfigureAwait(false);
