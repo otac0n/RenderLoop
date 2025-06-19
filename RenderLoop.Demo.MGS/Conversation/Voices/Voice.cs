@@ -37,7 +37,32 @@ namespace RenderLoop.Demo.MGS.Conversation.Voices
             .Replace("FOXDIE", "Fox-Die", StringComparison.CurrentCultureIgnoreCase)
             .Replace("REX", "Rex", StringComparison.CurrentCulture);
 
-        public abstract Task SayAsync(string text, CancellationToken cancel);
+        protected abstract Task SayImplAsync(string text, CancellationToken cancel);
+
+        public async Task<string> SayAsync(string text, CancellationToken cancel)
+        {
+            var index = 0;
+            void IndexReached(object? sender, IndexReachedEventArgs args) => index = args.Index;
+            try
+            {
+                this.IndexReached += IndexReached;
+                await this.SayImplAsync(text, cancel).ConfigureAwait(false);
+            }
+            finally
+            {
+                this.IndexReached -= IndexReached;
+                if (index != text.Length)
+                {
+                    text = text[..index].TrimEnd();
+                    if (text is not "" && text[^1..] is not ("." or "?" or "!"))
+                    {
+                        text += "--";
+                    }
+                }
+            }
+
+            return text;
+        }
 
         protected void InvokeMouthMoved(uint visemeId)
         {

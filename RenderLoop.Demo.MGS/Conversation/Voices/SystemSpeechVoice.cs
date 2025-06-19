@@ -42,7 +42,7 @@ namespace RenderLoop.Demo.MGS.Conversation.Voices
 
         public void Dispose() => this.synth.Dispose();
 
-        public override Task SayAsync(string text, CancellationToken cancel)
+        protected override Task SayImplAsync(string text, CancellationToken cancel)
         {
             var tcs = new TaskCompletionSource();
             Prompt? prompt = null;

@@ -105,7 +105,7 @@ namespace RenderLoop.Demo.MGS
             codecCommand.SetHandler(
                 async context =>
                 {
-                    var codecOptions = new Conversation.VoiceOptions
+                    var voiceOptions = new Conversation.VoiceOptions
                     {
                         SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
                         SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
@@ -115,7 +115,7 @@ namespace RenderLoop.Demo.MGS
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
-                        services.AddSingleton(codecOptions);
+                        services.AddSingleton(voiceOptions);
                     });
 
                     using var host = builder.Build();

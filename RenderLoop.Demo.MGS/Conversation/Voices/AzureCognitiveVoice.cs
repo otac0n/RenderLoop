@@ -28,7 +28,7 @@ namespace RenderLoop.Demo.MGS.Conversation.Voices
 
         public void Dispose() => this.synth.Dispose();
 
-        public override async Task SayAsync(string text, CancellationToken cancel)
+        protected override async Task SayImplAsync(string text, CancellationToken cancel)
         {
             if (this.lastCancelTask is Task cancelTask && !cancelTask.IsCompleted)
             {
