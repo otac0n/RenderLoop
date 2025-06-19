@@ -15,10 +15,13 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         {
             Invisible,
             Neutral,
+            Analyzing,
             Shrug,
             ThumbsUp,
             Laughing,
-            Smile,
+            Happy,
+            Disappointed,
+            Embarassed,
             Angry,
         }
 
@@ -125,7 +128,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         {
             [(State.Invisible, State.Neutral)] = new()
             {
-                { (2, 11), (TimeSpan.Zero, [(3, 8)]) },
+                { (2, 11), (TimeSpan.FromMilliseconds(66), [(3, 8)]) },
                 { (3, 8), (TimeSpan.FromMilliseconds(33), [(3, 9)]) },
                 { (3, 9), (TimeSpan.FromMilliseconds(33), [(3, 10)]) },
                 { (3, 10), (TimeSpan.FromMilliseconds(33), [(3, 11)]) },
@@ -137,9 +140,57 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                 { (0, 0), (Timeout.InfiniteTimeSpan, []) },
             },
 
+            [(State.Neutral, State.Analyzing)] = new()
+            {
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+            },
+
+            [(State.Analyzing, State.Analyzing)] = new()
+            {
+                { (0, 3), (TimeSpan.FromMilliseconds(66), [(0, 4)]) },
+                { (0, 4), (TimeSpan.FromSeconds(2), [(0, 5), (0, 6), (0, 7)]) },
+                { (0, 5), (TimeSpan.FromMilliseconds(33), [(0, 4), (0, 6), (0, 7)]) },
+                { (0, 6), (TimeSpan.FromSeconds(2), [(0, 5), (0, 4), (0, 7)]) },
+                { (0, 7), (TimeSpan.FromMilliseconds(66), [(0, 9)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(0, 4), (0, 6), (0, 9)]) },
+                { (0, 9), (TimeSpan.FromSeconds(2), [(0, 10), (0, 11), (3, 4)]) },
+                { (0, 10), (TimeSpan.FromMilliseconds(33), [(0, 9), (0, 11), (3, 4)]) },
+                { (0, 11), (TimeSpan.FromMilliseconds(66), [(0, 6)]) },
+                { (3, 4), (TimeSpan.FromSeconds(2), [(0, 9), (0, 10), (0, 11)]) },
+            },
+
+            [(State.Analyzing, State.Neutral)] = new()
+            {
+                { (0, 3), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (0, 4), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 5), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 6), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 7), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (0, 9), (TimeSpan.FromMilliseconds(66), [(0, 11)]) },
+                { (0, 10), (TimeSpan.FromMilliseconds(66), [(0, 11)]) },
+                { (0, 11), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (3, 4), (TimeSpan.FromMilliseconds(66), [(3, 5)]) },
+                { (3, 5), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+            },
+
             [(State.Neutral, State.Shrug)] = new()
             {
-                { (0, 0), (TimeSpan.Zero, [(1, 4)]) },
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(1, 4)]) },
+            },
+
+            [(State.Analyzing, State.Shrug)] = new()
+            {
+                { (0, 3), (TimeSpan.FromMilliseconds(66), [(1, 4)]) },
+                { (0, 4), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 5), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 6), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 7), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(1, 4)]) },
+                { (0, 9), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 10), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 11), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (3, 4), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
             },
 
             [(State.Shrug, State.Shrug)] = new()
@@ -150,30 +201,99 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
             [(State.Shrug, State.Neutral)] = new()
             {
-                { (1, 5), (TimeSpan.FromMilliseconds(66), [(1, 4)]) },
-                { (1, 4), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (1, 4), (TimeSpan.FromMilliseconds(33), [(0, 0)]) },
+                { (1, 5), (TimeSpan.FromMilliseconds(33), [(1, 4)]) },
             },
 
-            [(State.Neutral, State.Angry)] = new()
+            [(State.Shrug, State.Analyzing)] = new()
             {
-                { (0, 0), (TimeSpan.Zero, [(3, 2), (3, 3)]) },
+                { (1, 4), (TimeSpan.FromMilliseconds(33), [(0, 8)]) },
+                { (1, 5), (TimeSpan.FromMilliseconds(33), [(1, 4)]) },
             },
 
-            [(State.Angry, State.Angry)] = new()
+            [(State.Neutral, State.ThumbsUp)] = new()
             {
-                { (3, 2), (TimeSpan.FromMilliseconds(200), [(3, 3)]) },
-                { (3, 3), (TimeSpan.FromMilliseconds(200), [(3, 2)]) },
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(1, 0)]) },
             },
 
-            [(State.Angry, State.Neutral)] = new()
+            [(State.Analyzing, State.ThumbsUp)] = new()
             {
-                { (3, 2), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
-                { (3, 3), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (0, 3), (TimeSpan.FromMilliseconds(66), [(1, 0)]) },
+                { (0, 4), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 5), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 6), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 7), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(1, 0)]) },
+                { (0, 9), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 10), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (0, 11), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (3, 4), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+            },
+
+            [(State.Shrug, State.ThumbsUp)] = new()
+            {
+                { (1, 4), (TimeSpan.FromMilliseconds(33), [(1, 0)]) },
+                { (1, 5), (TimeSpan.FromMilliseconds(33), [(1, 4)]) },
+            },
+
+            [(State.ThumbsUp, State.ThumbsUp)] = new()
+            {
+                { (1, 0), (TimeSpan.FromMilliseconds(200), [(1, 1)]) },
+                { (1, 1), (TimeSpan.FromMilliseconds(200), [(1, 2)]) },
+                { (1, 2), (TimeSpan.FromMilliseconds(200), [(1, 3)]) },
+                { (1, 3), (Timeout.InfiniteTimeSpan, []) },
+            },
+
+            [(State.ThumbsUp, State.Neutral)] = new()
+            {
+                { (1, 0), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (1, 1), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (1, 2), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
+                { (1, 3), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
+                { (1, 6), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+            },
+
+            [(State.ThumbsUp, State.Analyzing)] = new()
+            {
+                { (1, 0), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (1, 1), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (1, 2), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (1, 3), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
             },
 
             [(State.Neutral, State.Laughing)] = new()
             {
-                { (0, 0), (TimeSpan.Zero, [(2, 2), (2, 3), (2, 4)]) },
+                { (0, 0), (TimeSpan.FromMilliseconds(33), [(2, 2)]) },
+            },
+
+            [(State.ThumbsUp, State.Laughing)] = new()
+            {
+                { (0, 8), (TimeSpan.FromMilliseconds(33), [(2, 2)]) },
+                { (1, 0), (TimeSpan.FromMilliseconds(33), [(0, 8)]) },
+                { (1, 1), (TimeSpan.FromMilliseconds(33), [(0, 8)]) },
+                { (1, 2), (TimeSpan.FromMilliseconds(33), [(0, 8)]) },
+                { (1, 3), (TimeSpan.FromMilliseconds(33), [(0, 8)]) },
+            },
+
+            [(State.Analyzing, State.Laughing)] = new()
+            {
+                { (0, 3), (TimeSpan.FromMilliseconds(33), [(2, 2)]) },
+                { (0, 4), (TimeSpan.FromMilliseconds(33), [(0, 3)]) },
+                { (0, 5), (TimeSpan.FromMilliseconds(33), [(0, 3)]) },
+                { (0, 6), (TimeSpan.FromMilliseconds(33), [(0, 3)]) },
+                { (0, 7), (TimeSpan.FromMilliseconds(33), [(0, 3)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(33), [(2, 2)]) },
+                { (0, 9), (TimeSpan.FromMilliseconds(33), [(0, 11)]) },
+                { (0, 10), (TimeSpan.FromMilliseconds(33), [(0, 11)]) },
+                { (0, 11), (TimeSpan.FromMilliseconds(33), [(0, 3)]) },
+                { (3, 4), (TimeSpan.FromMilliseconds(33), [(0, 11)]) },
+            },
+
+            [(State.Shrug, State.Laughing)] = new()
+            {
+                { (1, 4), (TimeSpan.FromMilliseconds(33), [(2, 2)]) },
+                { (1, 5), (TimeSpan.FromMilliseconds(33), [(1, 4)]) },
             },
 
             [(State.Laughing, State.Laughing)] = new()
@@ -190,20 +310,26 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                 { (2, 4), (TimeSpan.FromMilliseconds(66), [(2, 2)]) },
             },
 
-            [(State.Neutral, State.ThumbsUp)] = new()
+            [(State.Laughing, State.ThumbsUp)] = new()
             {
-                { (0, 0), (TimeSpan.Zero, [(1, 0)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(1, 0)]) },
+                { (2, 2), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (2, 3), (TimeSpan.FromMilliseconds(66), [(2, 2)]) },
+                { (2, 4), (TimeSpan.FromMilliseconds(66), [(2, 2)]) },
             },
 
-            [(State.ThumbsUp, State.ThumbsUp)] = new()
+            [(State.Neutral, State.Happy)] = new()
             {
-                { (1, 0), (TimeSpan.FromMilliseconds(200), [(1, 1)]) },
-                { (1, 1), (TimeSpan.FromMilliseconds(200), [(1, 2)]) },
-                { (1, 2), (TimeSpan.FromMilliseconds(200), [(1, 3)]) },
-                { (1, 3), (Timeout.InfiniteTimeSpan, []) },
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
             },
 
-            [(State.ThumbsUp, State.Smile)] = new()
+            [(State.Shrug, State.Happy)] = new()
+            {
+                { (1, 4), (TimeSpan.FromMilliseconds(33), [(1, 6)]) },
+                { (1, 5), (TimeSpan.FromMilliseconds(33), [(1, 4)]) },
+            },
+
+            [(State.ThumbsUp, State.Happy)] = new()
             {
                 { (1, 0), (TimeSpan.FromMilliseconds(200), [(1, 1)]) },
                 { (1, 1), (TimeSpan.FromMilliseconds(200), [(1, 2)]) },
@@ -211,28 +337,101 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                 { (1, 3), (TimeSpan.FromMilliseconds(200), [(1, 6)]) },
             },
 
-            [(State.ThumbsUp, State.Neutral)] = new()
-            {
-                { (1, 0), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
-                { (1, 1), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
-                { (1, 2), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
-                { (1, 3), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
-                { (1, 6), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
-            },
-
-            [(State.Neutral, State.Smile)] = new()
-            {
-                { (0, 0), (TimeSpan.Zero, [(1, 6)]) },
-            },
-
-            [(State.Smile, State.Smile)] = new()
+            [(State.Happy, State.Happy)] = new()
             {
                 { (1, 6), (Timeout.InfiniteTimeSpan, []) },
             },
 
-            [(State.Smile, State.Neutral)] = new()
+            [(State.Happy, State.Neutral)] = new()
             {
-                { (1, 6), (TimeSpan.Zero, [(0, 0)]) },
+                { (1, 6), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+            },
+
+            [(State.Neutral, State.Disappointed)] = new()
+            {
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(0, 2)]) },
+            },
+
+            [(State.Disappointed, State.Disappointed)] = new()
+            {
+                { (0, 2), (Timeout.InfiniteTimeSpan, []) },
+            },
+
+            [(State.Disappointed, State.Neutral)] = new()
+            {
+                { (0, 2), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+            },
+
+            [(State.Neutral, State.Embarassed)] = new()
+            {
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+            },
+
+            [(State.Analyzing, State.Embarassed)] = new()
+            {
+                { (0, 3), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+                { (0, 4), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 5), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 6), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 7), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+                { (0, 9), (TimeSpan.FromMilliseconds(66), [(0, 11)]) },
+                { (0, 10), (TimeSpan.FromMilliseconds(66), [(0, 11)]) },
+                { (0, 11), (TimeSpan.FromMilliseconds(66), [(0, 3)]) },
+                { (3, 4), (TimeSpan.FromMilliseconds(66), [(3, 5)]) },
+                { (3, 5), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+            },
+
+            [(State.Laughing, State.Embarassed)] = new()
+            {
+                { (2, 2), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+                { (2, 3), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+                { (2, 4), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+            },
+
+            [(State.ThumbsUp, State.Embarassed)] = new()
+            {
+                { (1, 0), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+                { (1, 1), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+                { (1, 2), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
+                { (1, 3), (TimeSpan.FromMilliseconds(66), [(1, 6)]) },
+                { (1, 6), (TimeSpan.FromMilliseconds(66), [(2, 7), (2, 8)]) },
+            },
+
+            [(State.Embarassed, State.Embarassed)] = new()
+            {
+                { (2, 7), (TimeSpan.FromMilliseconds(800), [(2, 7), (2, 8)]) },
+                { (2, 8), (TimeSpan.FromMilliseconds(800), [(2, 7), (2, 8)]) },
+            },
+
+            [(State.Embarassed, State.Neutral)] = new()
+            {
+                { (2, 7), (TimeSpan.Zero, [(0, 0)]) },
+                { (2, 8), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+            },
+
+            [(State.Embarassed, State.ThumbsUp)] = new()
+            {
+                { (0, 8), (TimeSpan.FromMilliseconds(66), [(1, 0)]) },
+                { (2, 7), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+                { (2, 8), (TimeSpan.FromMilliseconds(66), [(0, 8)]) },
+            },
+
+            [(State.Neutral, State.Angry)] = new()
+            {
+                { (0, 0), (TimeSpan.FromMilliseconds(66), [(3, 2), (3, 3)]) },
+            },
+
+            [(State.Angry, State.Angry)] = new()
+            {
+                { (3, 2), (TimeSpan.FromMilliseconds(200), [(3, 3)]) },
+                { (3, 3), (TimeSpan.FromMilliseconds(200), [(3, 2)]) },
+            },
+
+            [(State.Angry, State.Neutral)] = new()
+            {
+                { (3, 2), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
+                { (3, 3), (TimeSpan.FromMilliseconds(66), [(0, 0)]) },
             },
         };
 

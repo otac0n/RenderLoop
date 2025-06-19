@@ -3,23 +3,26 @@
 namespace RenderLoop.Demo.MGS.MGS2.Otacon
 {
     using System;
-    using System.Diagnostics;
     using System.Drawing;
-    using System.Linq;
     using System.Windows.Forms;
-    using Sprite = (int Sprite, int Index);
 
     internal partial class OtaconDisplay : Form
     {
         private readonly Bitmap[] sprites = new Bitmap[4];
-        private readonly Stopwatch selectedTime = new();
-        private readonly AnimationState animationState = new AnimationState();
+        private readonly AnimationState animationState = new();
         private Size spriteSize;
 
         public OtaconDisplay(IServiceProvider serviceProvider)
         {
             this.InitializeComponent();
             this.EnableDrag();
+            foreach (var state in Enum.GetValues<AnimationState.State>())
+            {
+                if (state != AnimationState.State.Invisible)
+                {
+                    this.contextMenu.Items.Add(state.ToString());
+                }
+            }
         }
 
         private async void Form_Load(object sender, EventArgs e)
@@ -35,19 +38,11 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             this.sprites[2] = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d47f22.ctxr").ConfigureAwait(true);
             this.sprites[3] = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d57f22.ctxr").ConfigureAwait(true);
 
-            this.selectedTime.Restart();
             this.updateTimer.Enabled = true;
         }
 
         private void UpdateTimer_Tick(object sender, EventArgs e)
         {
-            if (this.selectedTime.Elapsed >= TimeSpan.FromSeconds(2))
-            {
-                var available = Enum.GetValues<AnimationState.State>().Where(s => s != AnimationState.State.Neutral).ToList();
-                this.animationState.TargetState = this.animationState.TargetState == AnimationState.State.Neutral ? available[Random.Shared.Next(available.Count)] : AnimationState.State.Neutral;
-                this.selectedTime.Restart();
-            }
-
             if (this.animationState.Update())
             {
                 this.Invalidate();
@@ -74,6 +69,19 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             form.Location = new Point(
                 screen.Right - form.Width,
                 screen.Bottom - form.Height);
+        }
+
+        private void Form_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                this.contextMenu.Show(this.Location + new Size(this.Width, 0));
+            }
+        }
+
+        private void ContextMenu_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            this.animationState.TargetState = Enum.Parse<AnimationState.State>(e.ClickedItem.Text);
         }
     }
 }

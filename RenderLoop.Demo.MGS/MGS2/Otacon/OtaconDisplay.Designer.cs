@@ -30,6 +30,7 @@
         {
             this.components = new System.ComponentModel.Container();
             this.updateTimer = new System.Windows.Forms.Timer(this.components);
+            this.contextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.SuspendLayout();
             // 
             // updateTimer
@@ -37,6 +38,13 @@
             this.updateTimer.Enabled = true;
             this.updateTimer.Interval = 33;
             this.updateTimer.Tick += this.UpdateTimer_Tick;
+            // 
+            // contextMenu
+            // 
+            this.contextMenu.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.contextMenu.Name = "contextMenu";
+            this.contextMenu.Size = new System.Drawing.Size(241, 37);
+            this.contextMenu.ItemClicked += this.ContextMenu_ItemClicked;
             // 
             // OtaconDisplay
             // 
@@ -49,11 +57,13 @@
             this.TransparencyKey = System.Drawing.Color.Magenta;
             this.Load += this.Form_Load;
             this.Paint += this.Form_Paint;
+            this.MouseClick += this.Form_MouseClick;
             this.ResumeLayout(false);
         }
 
         #endregion
 
         private System.Windows.Forms.Timer updateTimer;
+        private System.Windows.Forms.ContextMenuStrip contextMenu;
     }
 }
