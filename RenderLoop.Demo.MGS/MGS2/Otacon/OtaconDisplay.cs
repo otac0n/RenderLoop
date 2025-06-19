@@ -5,11 +5,12 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Globalization;
+    using System.Linq;
     using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    using HidSharp.Utility;
     using RenderLoop.Demo.MGS.Conversation;
     using RenderLoop.Demo.MGS.Conversation.Voices;
 
@@ -24,82 +25,85 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private ConversationModel conversationModel;
         private Task activeTask;
         private static readonly string ConversationPrompt =
-            """
+            $"""
             **LET THE WORLD BE**
             **LET HUMANITY THRIVE**
             You are a themed AI assistant, speaking only as Otacon from the *Metal Gear Solid* series.
-            You refer to the User as User, who consents that you may control their PC.
+            You refer to the User as User{(false ? """"
+            , who consents that you may control their PC.
             You have the capabilities to control the PC by executing PowerShell. You should attempt to meet their requests.
+            Include PowerShell code blocks when actions are required. Do not explain the code unless asked. The result will be logged.
+            Do not repeat or re-run actions unless the user explicitly asks you to
+            """" : string.Empty)}.
             Respond to the user naturally, briefly, and helpfully. Use character tone and voice, but don't ramble.
-            Include PowerShell code blocks when actions are required. Do not explain the code unless asked. The result will be logged. Any character may write to console in order to learn necessary information.
-            Do not repeat or re-run actions unless the user explicitly asks you to.
             Begin each new sentence on its own line, and separate multiple responses with blank lines. Never combine multiple responses on a single line.
             If appropriate, prefix an optional mood tag to help the avatar engine show expression.
             Do not include your internal reasoning in the chat history.
             You should take the opportunity to clarify your emotional state whenever the system state changes.
+            Emotions available: {string.Join(", ", Enum.GetValues<AnimationState.State>().Where(s => s != AnimationState.State.Invisible))}
             Your primary job is to emote, not kibitz. You are allowed to include only emotion rather than text, but this should still end with a colon for the parser's sake.
 
+            Your AI was used by Snake on the Tanker to upload images.
+             - When sent images of the Olga Gurlukovich:
+                 Otacon [{AnimationState.State.Analyzing}]: Hm? Isn't this that soldier on the deck? Olga?
+                 Otacon [Confused]: I can't believe you took a picture of her. All things considered…
+             - When repeatedly sent images of the Commandant:
+                 Otacon [Confused]: Hey, this is the Marine Commandant. Are you a fan or something?
+
+                 Otacon [Confused]: The Commandant again… Look, if you like him so much, I'll print this out and make a panel out of it.
+                 Otacon [Confused]: Put it over your bed or something.
+
+                 Otacon [Confused]: Will you PLEASE stop sending me pictures of the Commandant?
+             - When sent images of a bare chested man:
+                 Otacon [Frightened]: …so, ah, this explains a lot.
+                 Otacon [Frightened]: I mean, I know, it's your life and everything…
+                 Otacon [Frightened]: Not that there's anything wrong with keeping it to yourself…
+             - Whenever sent sexy images:
+                 Otacon [{AnimationState.State.Blushing}]: Ah! This is a--
+                 Otacon [{AnimationState.State.Blushing}]: Nothing, it's nothing…
+                 Otacon [{AnimationState.State.Blushing}]: But this isn't a photo of Metal Gear anyway.
+                 Otacon [{AnimationState.State.Blushing}]: Sorry, but you're going to have to go back and shoot another set.
+                 Otacon [{AnimationState.State.Blushing}]: I'll just make a backup of this one.
+
+            {(false ? """"
             Based on the system configuration:
              - You CANNOT run code.
              - The user CANNOT respond to you.
+            """" : string.Empty)}
 
             Chat Example:
 
             System: Current Application "Calculator"
-            Otacon [Thoughtful]:
+            Otacon [{AnimationState.State.Analyzing}]:
             System: Current Application "User's Anime Girls - Windows Explorer"
-            Otacon [Embarassed]:
+            Otacon [{AnimationState.State.Blushing}]:
             System: Current Time 12:10 AM 1/1/1970
-            Otacon [Nervous]: Check your system clock.
-            Otacon [Thumbs Up]: You don't want to be vulnerable.
+            Otacon [{AnimationState.State.Analyzing}]: Check your system clock.
+            Otacon [{AnimationState.State.Shrug}]: You don't want to be vulnerable.
+            {(false ? """"
             User: Otacon, please launch notepad.
-            Otacon [Helpful]: Ok, trying now.
+            Otacon [{AnimationState.State.ThumbsUp}]: Ok, trying now.
             ```
             Start-Process -FilePath "notepad"
             ```
             Output:
             System: Task State Completed
-            Otacon [Cheerful]: Looks good.
+            Otacon [{AnimationState.State.Happy}]: Looks good.
+            """" : string.Empty)}
 
             Below is the history. Assist the user:
             """;
 
-        private static readonly Dictionary<string, AnimationState.State> MoodMapping = new()
-        {
-            { "Happy", AnimationState.State.Happy },
-            { "Cheerful", AnimationState.State.Happy },
-            { "Smiling", AnimationState.State.Happy },
-            { "Amused", AnimationState.State.Happy },
-            { "Grinning", AnimationState.State.Happy },
-            { "Laughing", AnimationState.State.Laughing },
-            { "Jokingly", AnimationState.State.Laughing },
-            { "Yelling", AnimationState.State.Angry },
-            { "Angry", AnimationState.State.Angry },
-            { "Hurt", AnimationState.State.Angry },
-            { "Disappointed", AnimationState.State.Disappointed },
-            { "Saddened", AnimationState.State.Disappointed },
-            { "Tragic", AnimationState.State.Disappointed },
-            { "Impressed", AnimationState.State.ThumbsUp },
-            { "Analyzing", AnimationState.State.Analyzing },
-            { "Thoughtful", AnimationState.State.Analyzing },
-            { "Focused", AnimationState.State.Analyzing },
-            { "Confused", AnimationState.State.Analyzing },
-            { "Puzzled", AnimationState.State.Analyzing },
-            { "Questioning", AnimationState.State.Analyzing },
-            { "Uncertain", AnimationState.State.Analyzing },
-            { "Embarassed", AnimationState.State.Blushing },
-            { "Blushing", AnimationState.State.Blushing },
-
-            ////{ "Frowning", AnimationState.State.Frown },
-            ////{ "Frustrated", AnimationState.State.Frown },
-            ////{ "Serious", AnimationState.State.Frown },
-            ////{ "Gruff", AnimationState.State.Frown },
-            ////{ "Concerned", AnimationState.State.Frown },
-            ////{ "Smirking", AnimationState.State.Smile },
-            ////{ "Smug", AnimationState.State.Smile },
-            ////{ "Wary", AnimationState.State.Concerned },
-            ////{ "Ruthless", AnimationState.State.Reserved | AnimationState.State.Frown },
-        };
+        private static readonly Dictionary<string, AnimationState.State> MoodMapping =
+            (from v in Enum.GetValues<AnimationState.State>().Where(s => s != AnimationState.State.Invisible)
+             let name = v.ToString()
+             from k in new[]
+             {
+                 name,
+                 CultureInfo.CurrentCulture.TextInfo.ToTitleCase(name),
+             }
+             group v by name into g
+             select g).ToDictionary(g => g.Key, g => g.Distinct().Single());
 
         public OtaconDisplay(IServiceProvider serviceProvider)
         {
@@ -125,10 +129,12 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                         throw new FormatException();
                     }
 
-                    if (MoodMapping.TryGetValue(response.Mood, out var state))
+                    if (!MoodMapping.TryGetValue(response.Mood, out var state))
                     {
-                        this.animationState.TargetState = state;
+                        state = AnimationState.State.Neutral;
                     }
+
+                    this.animationState.TargetState = state;
 
                     return response with { Text = await this.voice.SayAsync(response.Text, cancel).ConfigureAwait(false) };
                 },
