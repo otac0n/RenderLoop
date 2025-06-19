@@ -11,6 +11,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private readonly Bitmap[] sprites = new Bitmap[4];
         private readonly AnimationState animationState = new();
         private Size spriteSize;
+        private bool lastFlip;
 
         public OtaconDisplay(IServiceProvider serviceProvider)
         {
@@ -43,8 +44,10 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
         private void UpdateTimer_Tick(object sender, EventArgs e)
         {
-            if (this.animationState.Update())
+            var flip = this.PointToClient(Cursor.Position).X > (this.lastFlip ? 0 : this.Width);
+            if (this.animationState.Update() || flip != this.lastFlip)
             {
+                this.lastFlip = flip;
                 this.Invalidate();
             }
         }
@@ -56,7 +59,15 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             var offset = -(this.spriteSize.Width * current.Index);
             if (sprite is not null)
             {
+                var state = e.Graphics.Save();
+                if (this.lastFlip)
+                {
+                    e.Graphics.ScaleTransform(-1, 1);
+                    e.Graphics.TranslateTransform(-this.ClientSize.Width, 0);
+                }
+
                 e.Graphics.DrawImage(sprite, offset, 0);
+                e.Graphics.Restore(state);
             }
         }
 
