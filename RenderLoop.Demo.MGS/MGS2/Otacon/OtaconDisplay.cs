@@ -5,6 +5,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Globalization;
     using System.Linq;
     using System.Runtime.InteropServices;
@@ -141,12 +142,24 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                 (response) => Task.FromResult("System: Code execution is disabled."));
         }
 
+        protected override bool ShowWithoutActivation => true;
+
+        protected override CreateParams CreateParams
+        {
+            get
+            {
+                var cp = base.CreateParams;
+                cp.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
+                return cp;
+            }
+        }
+
         private async void Form_Load(object sender, EventArgs e)
         {
             var sprite = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d27f22.ctxr").ConfigureAwait(true);
             var size = sprite.Size;
             size.Width /= 12;
-            this.ClientSize = this.spriteSize = size;
+            this.ClientSize = (this.spriteSize = size) * 2;
             MoveToPrimaryBottomCorner(this);
 
             this.sprites[0] = sprite;
@@ -195,10 +208,17 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             if (sprite is not null)
             {
                 var state = e.Graphics.Save();
+
+                e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+                e.Graphics.PixelOffsetMode = PixelOffsetMode.Half;
+
+                var scale = (float)this.ClientSize.Height / sprite.Height;
+                e.Graphics.ScaleTransform(scale, scale);
+
                 if (this.lastFlip)
                 {
                     e.Graphics.ScaleTransform(-1, 1);
-                    e.Graphics.TranslateTransform(-this.ClientSize.Width, 0);
+                    e.Graphics.TranslateTransform(-this.ClientSize.Width / scale, 0);
                 }
 
                 e.Graphics.DrawImage(sprite, offset, 0);
