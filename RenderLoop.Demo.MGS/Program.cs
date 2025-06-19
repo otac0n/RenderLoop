@@ -44,14 +44,6 @@ namespace RenderLoop.Demo.MGS
                 description: "The time to allow the LM to cooldown between requests.",
                 getDefaultValue: () => TimeSpan.FromSeconds(5));
 
-            rootCommand.AddGlobalOption(fileOption);
-            rootCommand.AddGlobalOption(keyOption);
-            rootCommand.AddOption(lmEndpointOption);
-            rootCommand.AddOption(languageModelOption);
-            rootCommand.AddOption(lmCooldownOption);
-
-            var codecCommand = new Command("codec", "Display Codec");
-
             var speechEndpointOption = new Option<string?>(
                 name: "--speechEndpoint",
                 description: "The Azure Speech API to use for avatars.",
@@ -62,8 +54,15 @@ namespace RenderLoop.Demo.MGS
                 description: "The Azure Speech API key.",
                 getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
 
-            codecCommand.AddOption(speechEndpointOption);
-            codecCommand.AddOption(speechKeyOption);
+            rootCommand.AddGlobalOption(fileOption);
+            rootCommand.AddGlobalOption(keyOption);
+            rootCommand.AddOption(lmEndpointOption);
+            rootCommand.AddOption(languageModelOption);
+            rootCommand.AddOption(lmCooldownOption);
+            rootCommand.AddOption(speechEndpointOption);
+            rootCommand.AddOption(speechKeyOption);
+
+            var codecCommand = new Command("codec", "Display Codec");
             rootCommand.Add(codecCommand);
 
             var textureCommand = new Command("texture", "Display Textures (MGS2)");
@@ -140,10 +139,17 @@ namespace RenderLoop.Demo.MGS
             otaconCommand.SetHandler(
                 async context =>
                 {
+                    var voiceOptions = new Conversation.VoiceOptions
+                    {
+                        SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
+                        SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
+                    };
+
                     var builder = Host.CreateDefaultBuilder(args);
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
+                        services.AddSingleton(voiceOptions);
                     });
 
                     using var host = builder.Build();

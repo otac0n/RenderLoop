@@ -43,7 +43,7 @@
             // 
             this.contextMenu.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.contextMenu.Name = "contextMenu";
-            this.contextMenu.Size = new System.Drawing.Size(241, 37);
+            this.contextMenu.Size = new System.Drawing.Size(61, 4);
             this.contextMenu.ItemClicked += this.ContextMenu_ItemClicked;
             // 
             // OtaconDisplay
@@ -53,6 +53,7 @@
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Name = "OtaconDisplay";
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
+            this.Text = "Otacon Assistant";
             this.TopMost = true;
             this.TransparencyKey = System.Drawing.Color.Magenta;
             this.Load += this.Form_Load;
