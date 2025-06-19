@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.Codec.Voices
+namespace RenderLoop.Demo.MGS.Conversation.Voices
 {
     using System;
     using System.Globalization;
@@ -19,7 +19,7 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
 
         public static Voice GetVoice(IServiceProvider serviceProvider, string name)
         {
-            var options = serviceProvider.GetRequiredService<CodecOptions>();
+            var options = serviceProvider.GetRequiredService<VoiceOptions>();
             if (!string.IsNullOrWhiteSpace(options.SpeechKey) && !string.IsNullOrWhiteSpace(options.SpeechEndpoint) && AssignedAzureVoices.TryGetValue(name, out var assignedVoice))
             {
                 return new AzureCognitiveVoice(options, serviceProvider.GetRequiredService<ILogger<AzureCognitiveVoice>>(), assignedVoice);

@@ -5,7 +5,7 @@ namespace RenderLoop.Demo.MGS.Codec
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using RenderLoop.Demo.MGS.Codec.Voices;
+    using RenderLoop.Demo.MGS.Conversation.Voices;
 
     internal sealed class AvatarState : IDisposable
     {

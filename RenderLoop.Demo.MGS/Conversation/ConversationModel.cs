@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.Demo.MGS.Codec.Conversation
+﻿namespace RenderLoop.Demo.MGS.Conversation
 {
     using System;
     using System.Collections.Generic;
@@ -20,34 +20,14 @@
         private static readonly JsonDocument Configuration;
         private static readonly JsonSerializerOptions JsonOptions;
         private readonly ILogger<ConversationModel> logger;
-        private readonly CodecOptions codecOptions;
-        private readonly Func<CharacterResponse, CancellationToken, Task<string>> speechFunction;
+        private readonly Program.Options options;
+        private readonly Func<CharacterResponse, CancellationToken, Task<CharacterResponse>> speechFunction;
         private readonly Func<CodeResponse, Task<string>> codeFunction;
         private readonly HttpClient httpClient;
         private CancellationTokenSource cts = new();
         private Task activeWork;
 
-        private static readonly Dictionary<string, string> Aliases = new()
-        {
-            { "Snake", "Solid Snake" },
-            { "Otacon", "Hal Emmerich" },
-            { "Liquid", "Liquid Snake" },
-            { "Master", "Liquid Snake" },
-            { "Master Miller", "Liquid Snake" },
-            { "Meryl", "Meryl Silverburgh" },
-            { "Campbell", "Roy Campbell" },
-            { "Colonel", "Roy Campbell" },
-            { "Naomi", "Naomi Hunter" },
-            { "Nastasha", "Nastasha Romanenko" },
-            { "Deepthroat", "Gray Fox" },
-            { "Frank Jaeger", "Gray Fox" },
-            { "Grey Fox", "Gray Fox" },
-        };
-
-        private readonly List<Message> messages =
-        [
-            new("system", Configuration.RootElement.GetProperty("inference_params").GetProperty("pre_prompt").GetString()),
-        ];
+        private readonly List<Message> messages;
 
         public event EventHandler<TokenReceivedArgs> TokenReceived;
 
@@ -63,13 +43,17 @@
             Configuration = JsonDocument.Parse(configStream!);
         }
 
-        public ConversationModel(IServiceProvider serviceProvider, Func<CharacterResponse, CancellationToken, Task<string>> speechFunction, Func<CodeResponse, Task<string>> codeFunction)
+        public ConversationModel(IServiceProvider serviceProvider, string systemPrompt, Func<CharacterResponse, CancellationToken, Task<CharacterResponse>> speechFunction, Func<CodeResponse, Task<string>> codeFunction)
         {
             this.logger = serviceProvider.GetRequiredService<ILogger<ConversationModel>>();
-            this.codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
-            this.httpClient = new(new SerialRequestsWithTimeBufferHandler(this.codecOptions.LMCoolDown)) { BaseAddress = new Uri(this.codecOptions.LMEndpoint) };
+            this.options = serviceProvider.GetRequiredService<Program.Options>();
+            this.httpClient = new(new SerialRequestsWithTimeBufferHandler(this.options.LMCoolDown)) { BaseAddress = new Uri(this.options.LMEndpoint) };
             this.speechFunction = speechFunction;
             this.codeFunction = codeFunction;
+            this.messages =
+            [
+                new("system", systemPrompt),
+            ];
         }
 
         public void Dispose()
@@ -78,7 +62,7 @@
             this.httpClient.Dispose();
         }
 
-        public async Task AddUserMessageAsync(string content)
+        public async Task AddUserMessageAsync(string content, bool userPrefix = true)
         {
             LogMessages.ReceivedUserMessage(this.logger, content);
 
@@ -103,7 +87,7 @@
 
             lock (this.messages)
             {
-                this.messages.Add(new Message("user", $"User: {content.Trim()}\n"));
+                this.messages.Add(new Message("user", userPrefix ? $"User: {content.Trim()}\n" : $"{content.Trim()}\n"));
             }
 
             this.cts = new CancellationTokenSource();
@@ -141,15 +125,10 @@
 
                                     LogMessages.ReceivedAgentMessage(this.logger, content);
 
-                                    if (Aliases.TryGetValue(characterResponse.Name, out var name))
-                                    {
-                                        characterResponse = characterResponse with { Name = name };
-                                    }
-
-                                    var spoken = await this.speechFunction(characterResponse, cancel).ConfigureAwait(false);
+                                    characterResponse = await this.speechFunction(characterResponse, cancel).ConfigureAwait(false);
                                     lock (this.messages)
                                     {
-                                        this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {spoken}\n"));
+                                        this.messages.Add(new Message("assistant", $"{characterResponse.Name}{(string.IsNullOrWhiteSpace(characterResponse.Mood) ? string.Empty : $" [{characterResponse.Mood}]")}: {characterResponse.Text}\n"));
                                     }
 
                                     break;
@@ -239,7 +218,7 @@
                 requestBody = JsonSerializer.Serialize(
                 new
                 {
-                    model = this.codecOptions.LanguageModel,
+                    model = this.options.LanguageModel,
                     this.messages,
                     temperature = 0.7,
                     max_tokens = -1,

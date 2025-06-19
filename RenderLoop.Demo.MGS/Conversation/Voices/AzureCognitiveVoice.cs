@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.Codec.Voices
+namespace RenderLoop.Demo.MGS.Conversation.Voices
 {
     using System;
     using System.Threading;
@@ -15,7 +15,7 @@ namespace RenderLoop.Demo.MGS.Codec.Voices
         private readonly SpeechSynthesizer synth;
         private Task lastCancelTask;
 
-        public AzureCognitiveVoice(CodecOptions options, ILogger<AzureCognitiveVoice> logger, string voiceName)
+        public AzureCognitiveVoice(VoiceOptions options, ILogger<AzureCognitiveVoice> logger, string voiceName)
         {
             this.logger = logger;
             this.voiceName = voiceName;

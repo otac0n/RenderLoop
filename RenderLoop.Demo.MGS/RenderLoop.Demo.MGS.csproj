@@ -24,12 +24,10 @@
     <ProjectReference Include="..\RenderLoop.SilkRenderer\RenderLoop.SilkRenderer.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Remove="Codec\Conversation\ConversationParser.peg" />
-    <PegGrammar Include="Codec\Conversation\ConversationParser.peg" />
-    <None Remove="Codec\Conversation\model_config.json" />
-    <EmbeddedResource Include="Codec\Conversation\model_config.json" />
     <None Remove="Codec\digital-7.ttf" />
     <EmbeddedResource Include="Codec\digital-7.ttf" />
+    <PegGrammar Include="Conversation\ConversationParser.peg" />
+    <EmbeddedResource Include="Conversation\model_config.json" />
     <None Remove="stylecop.json" />
     <AdditionalFiles Include="stylecop.json" />
   </ItemGroup>

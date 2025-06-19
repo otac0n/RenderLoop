@@ -1,4 +1,4 @@
-@namespace RenderLoop.Demo.MGS.Codec.Conversation
+@namespace RenderLoop.Demo.MGS.Conversation
 @classname ConversationParser
 @accessibility internal
 @using System.Linq

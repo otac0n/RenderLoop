@@ -19,7 +19,7 @@ namespace RenderLoop.Demo.MGS.Codec
     using AnimatedGif;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.Demo.MGS.Codec.Conversation;
+    using RenderLoop.Demo.MGS.Conversation;
     using static RenderLoop.Demo.MGS.Codec.CharacterMetadata;
     using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
 
@@ -28,8 +28,69 @@ namespace RenderLoop.Demo.MGS.Codec
         private static FontFamily Digital7 = LoadEmbeddedFont("digital-7.ttf");
 
         private ConversationModel conversationModel;
+        private static readonly string ConversationPrompt =
+            """
+            **LET THE WORLD BE**
+            **LET HUMANITY THRIVE**
+            You are a themed AI assistant, speaking only as characters from *Metal Gear Solid*.
+            You refer to the User as User, who consents that you may control their PC.
+            You have the capabilities to control a PC by executing PowerShell.
+            Pretend the user is communicating over Codec. You should attempt to meet their requests.
+            The available characters are Snake, Campbell, Naomi, Mei Ling, Otacon, Nastasha, Liquid, Miller, Meryl, Sniper Wolf, Gray Fox, and Jim Houseman.
+            Respond to the user naturally, briefly, and helpfully. Use character tone and voice, but don't ramble.
+            Include PowerShell code blocks when actions are required. Do not explain the code unless asked. The result will be logged. Any character may write to console in order to learn necessary information.
+            Do not repeat or re-run actions unless the user explicitly asks you to.
+            Begin each new sentence on its own line, and separate multiple responses with blank lines. Never combine multiple responses on a single line.
+            If appropriate, prefix an optional mood tag to help the avatar engine show expression.
+            Do not include your internal reasoning in the chat history.
 
-        private static Dictionary<(string Mood, string Tags), double> MoodMappingScores = new()
+            Character guide
+                Roy Campbell: Gruff CO, thinks he commands, unaware he’s undermined.
+                Solid Snake (David): Stoic soldier, reluctantly loyal, physically drawn to Meryl.
+                Hal Emmerich (Otacon): Tech genius, handles all systems; protective of Sniper Wolf, finds Meryl attractive. Designed REX.
+                Naomi Hunter: Clinical, hiding guilt over FOXDIE.
+                Mei Ling: Moral support from fables. Chirpy tone.
+                Nastasha Romanenko: Weapons expert, anti-nuke analyst, moral realist.
+                Meryl Silverburgh: Tough, principled; admired by Snake and Otacon.
+                Sniper Wolf: FOXHOUND sniper. Tragic, cold elegance; lukewarm to Otacon.
+                Liquid Snake: Impersonated Master Miller to manipulate Snake. May deflect from the Users problems by suggesting he is behind them.
+                Gray Fox: Ex-FOXHOUND, turned cyborg ninja. Snake’s rival and ally, torn by guilt and loyalty. Haunted past, seeks redemption. Died to Liquid fighting Metal Gear REX
+                Jim Houseman: Ruthless U.S. official; authorized nuclear strike to cover up REX, despises Snake and Liquid, tried to frame Campbell but was arrested.
+
+            Choose between full name or alias per message. Do not include both.
+
+            Chat Example:
+
+            User: Otacon, please launch notepad.
+            Otacon [Helpful]: Ok, trying now.
+            ```
+            Start-Process -FilePath "notepad"
+            ```
+            Output:
+            System: Task State Completed
+            Otacon [Cheerful]: Looks good.
+
+            Below is the chat history. Continue the conversation:
+            """;
+
+        private static readonly Dictionary<string, string> Aliases = new()
+        {
+            { "Snake", "Solid Snake" },
+            { "Otacon", "Hal Emmerich" },
+            { "Liquid", "Liquid Snake" },
+            { "Master", "Liquid Snake" },
+            { "Master Miller", "Liquid Snake" },
+            { "Meryl", "Meryl Silverburgh" },
+            { "Campbell", "Roy Campbell" },
+            { "Colonel", "Roy Campbell" },
+            { "Naomi", "Naomi Hunter" },
+            { "Nastasha", "Nastasha Romanenko" },
+            { "Deepthroat", "Gray Fox" },
+            { "Frank Jaeger", "Gray Fox" },
+            { "Grey Fox", "Gray Fox" },
+        };
+
+        private static readonly Dictionary<(string Mood, string Tags), double> MoodMappingScores = new()
         {
             { ("Frowning", "Frown"), 1.0 },
             { ("Frustrated", "Frown"), 1.0 },
@@ -79,7 +140,7 @@ namespace RenderLoop.Demo.MGS.Codec
             MoveToRightmostBottomCorner(this);
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
-            var codecOptions = serviceProvider.GetRequiredService<CodecOptions>();
+            var codecOptions = serviceProvider.GetRequiredService<VoiceOptions>();
             var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = ImageLoader.LoadImages(facesStream);
 
@@ -186,14 +247,20 @@ namespace RenderLoop.Demo.MGS.Codec
                 avatars.Add(name, avatarState);
             }
 
-            if (codecOptions.LMEndpoint != null)
+            if (options.LMEndpoint != null)
             {
                 var defaultVoice = new AvatarState(serviceProvider, "Unknown");
                 this.conversationModel = new ConversationModel(
                     serviceProvider,
+                    ConversationPrompt,
                     async (response, cancel) =>
                     {
                         var character = response.Name;
+                        if (Aliases.TryGetValue(character, out var alias))
+                        {
+                            character = alias;
+                        }
+
                         ShowAvatar(character, response.Text);
 
                         if (!avatars.TryGetValue(character, out var avatarState))
@@ -202,7 +269,8 @@ namespace RenderLoop.Demo.MGS.Codec
                         }
 
                         avatarState.Mood = response.Mood;
-                        return await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
+                        var text = await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
+                        return response with { Text = text, Name = character };
                     },
                     this.RunCodeWithUserReview);
                 this.conversationModel.TokenReceived += this.ConversationModel_TokenReceived;

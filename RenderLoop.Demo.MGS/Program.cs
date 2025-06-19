@@ -29,21 +29,6 @@ namespace RenderLoop.Demo.MGS
                 description: "The key to the alldata.bin file.");
             keyOption.IsRequired = true;
 
-            rootCommand.AddGlobalOption(fileOption);
-            rootCommand.AddGlobalOption(keyOption);
-
-            var codecCommand = new Command("codec", "Display Codec");
-
-            var speechEndpointOption = new Option<string?>(
-                name: "--speechEndpoint",
-                description: "The Azure Speech API to use for avatars.",
-                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_ENDPOINT"));
-
-            var speechKeyOption = new Option<string?>(
-                name: "--speechKey",
-                description: "The Azure Speech API key.",
-                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
-
             var lmEndpointOption = new Option<string?>(
                 name: "--lmEndpoint",
                 description: "The LM Studio API to use for conversation.",
@@ -59,11 +44,26 @@ namespace RenderLoop.Demo.MGS
                 description: "The time to allow the LM to cooldown between requests.",
                 getDefaultValue: () => TimeSpan.FromSeconds(5));
 
+            rootCommand.AddGlobalOption(fileOption);
+            rootCommand.AddGlobalOption(keyOption);
+            rootCommand.AddOption(lmEndpointOption);
+            rootCommand.AddOption(languageModelOption);
+            rootCommand.AddOption(lmCooldownOption);
+
+            var codecCommand = new Command("codec", "Display Codec");
+
+            var speechEndpointOption = new Option<string?>(
+                name: "--speechEndpoint",
+                description: "The Azure Speech API to use for avatars.",
+                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_ENDPOINT"));
+
+            var speechKeyOption = new Option<string?>(
+                name: "--speechKey",
+                description: "The Azure Speech API key.",
+                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
+
             codecCommand.AddOption(speechEndpointOption);
             codecCommand.AddOption(speechKeyOption);
-            codecCommand.AddOption(lmEndpointOption);
-            codecCommand.AddOption(languageModelOption);
-            codecCommand.AddOption(lmCooldownOption);
             rootCommand.Add(codecCommand);
 
             var textureCommand = new Command("texture", "Display Textures (MGS2)");
@@ -78,6 +78,9 @@ namespace RenderLoop.Demo.MGS
                 {
                     File = context.ParseResult.GetValueForOption(fileOption)!,
                     Key = context.ParseResult.GetValueForOption(keyOption)!,
+                    LMEndpoint = context.ParseResult.GetValueForOption(lmEndpointOption),
+                    LanguageModel = context.ParseResult.GetValueForOption(languageModelOption),
+                    LMCoolDown = context.ParseResult.GetValueForOption(lmCooldownOption),
                 };
 
                 ApplicationConfiguration.Initialize();
@@ -102,13 +105,10 @@ namespace RenderLoop.Demo.MGS
             codecCommand.SetHandler(
                 async context =>
                 {
-                    var codecOptions = new Codec.CodecOptions
+                    var codecOptions = new Conversation.VoiceOptions
                     {
                         SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
                         SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
-                        LMEndpoint = context.ParseResult.GetValueForOption(lmEndpointOption),
-                        LanguageModel = context.ParseResult.GetValueForOption(languageModelOption),
-                        LMCoolDown = context.ParseResult.GetValueForOption(lmCooldownOption),
                     };
 
                     var builder = Host.CreateDefaultBuilder(args);
@@ -159,6 +159,12 @@ namespace RenderLoop.Demo.MGS
             public required string File { get; set; }
 
             public required string Key { get; set; }
+
+            public required string? LMEndpoint { get; set; }
+
+            public required string? LanguageModel { get; set; }
+
+            public required TimeSpan LMCoolDown { get; set; }
         }
     }
 }

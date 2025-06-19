@@ -1,19 +1,11 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.Codec
+namespace RenderLoop.Demo.MGS.Conversation
 {
-    using System;
-
-    internal class CodecOptions
+    internal class VoiceOptions
     {
         public required string? SpeechEndpoint { get; set; }
 
         public required string? SpeechKey { get; set; }
-
-        public required string? LMEndpoint { get; set; }
-
-        public required string? LanguageModel { get; set; }
-
-        public required TimeSpan LMCoolDown { get; set; }
     }
 }
