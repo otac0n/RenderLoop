@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.Codec
+namespace RenderLoop.Demo.MGS.MGS1.Codec
 {
     using System;
     using System.Threading;

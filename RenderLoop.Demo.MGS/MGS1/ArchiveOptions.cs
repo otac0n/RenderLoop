@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS
+namespace RenderLoop.Demo.MGS.MGS1
 {
     using System.CommandLine;
     using System.CommandLine.Invocation;
@@ -10,7 +10,7 @@ namespace RenderLoop.Demo.MGS
     using DiscUtils.Iso9660;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.Demo.MGS.Archives;
+    using RenderLoop.Demo.MGS.MGS1.Archives;
 
     internal class ArchiveOptions
     {

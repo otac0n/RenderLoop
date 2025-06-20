@@ -23,15 +23,15 @@ namespace RenderLoop.Demo.MGS
             Options.Attach(rootCommand);
 
             var modelCommand = new Command("model", "Display Models (MGS1)");
-            ArchiveOptions.Attach(modelCommand);
+            MGS1.ArchiveOptions.Attach(modelCommand);
             rootCommand.Add(modelCommand);
 
             var vehicleCommand = new Command("vehicle", "Display Vehicles (MGS1)");
-            ArchiveOptions.Attach(vehicleCommand);
+            MGS1.ArchiveOptions.Attach(vehicleCommand);
             rootCommand.Add(vehicleCommand);
 
             var codecCommand = new Command("codec", "Display Codec (MGS1)");
-            ArchiveOptions.Attach(codecCommand);
+            MGS1.ArchiveOptions.Attach(codecCommand);
             Conversation.LanguageModelOptions.Attach(codecCommand);
             Conversation.Voices.VoiceOptions.Attach(codecCommand);
             rootCommand.Add(codecCommand);
@@ -58,8 +58,8 @@ namespace RenderLoop.Demo.MGS
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
-                        ArchiveOptions.Bind(context, services);
-                        services.AddHostedService<GameLoopApplication<ModelDisplay>>();
+                        MGS1.ArchiveOptions.Bind(context, services);
+                        services.AddHostedService<GameLoopApplication<MGS1.ModelDisplay>>();
                     });
 
                     using var host = builder.Build();
@@ -73,8 +73,8 @@ namespace RenderLoop.Demo.MGS
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
-                        ArchiveOptions.Bind(context, services);
-                        services.AddHostedService<GameLoopApplication<VehicleDisplay>>();
+                        MGS1.ArchiveOptions.Bind(context, services);
+                        services.AddHostedService<GameLoopApplication<MGS1.VehicleDisplay>>();
                     });
 
                     using var host = builder.Build();
@@ -88,14 +88,14 @@ namespace RenderLoop.Demo.MGS
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
-                        ArchiveOptions.Bind(context, services);
+                        MGS1.ArchiveOptions.Bind(context, services);
                         Conversation.LanguageModelOptions.Bind(context, services);
                         Conversation.Voices.VoiceOptions.Bind(context, services);
                     });
 
                     using var host = builder.Build();
                     await Task.Yield();
-                    Application.Run(host.Services.GetService<Codec.CodecDisplay>()!);
+                    Application.Run(host.Services.GetService<MGS1.Codec.CodecDisplay>()!);
                 });
 
             textureCommand.SetHandler(

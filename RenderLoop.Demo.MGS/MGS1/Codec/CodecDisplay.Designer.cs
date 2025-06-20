@@ -1,4 +1,4 @@
-﻿namespace RenderLoop.Demo.MGS.Codec
+﻿namespace RenderLoop.Demo.MGS.MGS1.Codec
 {
     partial class CodecDisplay
     {

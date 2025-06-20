@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS
+namespace RenderLoop.Demo.MGS.MGS1
 {
     using System;
     using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace RenderLoop.Demo.MGS
     using System.Linq;
     using System.Numerics;
     using ImageMagick;
-    using RenderLoop.Demo.MGS.Archives;
+    using RenderLoop.Demo.MGS.MGS1.Archives;
     using Point = (int x, int y, int z);
 
     public class Model

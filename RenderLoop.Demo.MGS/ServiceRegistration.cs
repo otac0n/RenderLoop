@@ -10,11 +10,11 @@ namespace RenderLoop.Demo.MGS
         {
             RenderLoop.ServiceRegistration.Register(services);
 
-            services.AddTransient<Codec.CodecDisplay>();
+            services.AddTransient<MGS1.Codec.CodecDisplay>();
+            services.AddTransient<MGS1.ModelDisplay>();
+            services.AddTransient<MGS1.VehicleDisplay>();
             services.AddTransient<MGS2.TextureDisplay>();
             services.AddTransient<MGS2.Otacon.OtaconDisplay>();
-            services.AddTransient<ModelDisplay>();
-            services.AddTransient<VehicleDisplay>();
         }
     }
 }

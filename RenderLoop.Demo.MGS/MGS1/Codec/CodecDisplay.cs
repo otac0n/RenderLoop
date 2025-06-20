@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.Codec
+namespace RenderLoop.Demo.MGS.MGS1.Codec
 {
     using System;
     using System.Collections.Generic;
@@ -20,7 +20,7 @@ namespace RenderLoop.Demo.MGS.Codec
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.Conversation;
-    using static RenderLoop.Demo.MGS.Codec.CharacterMetadata;
+    using static RenderLoop.Demo.MGS.MGS1.Codec.CharacterMetadata;
     using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
 
     internal partial class CodecDisplay : Form

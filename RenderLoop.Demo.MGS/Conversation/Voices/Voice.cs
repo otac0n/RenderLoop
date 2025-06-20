@@ -9,7 +9,7 @@ namespace RenderLoop.Demo.MGS.Conversation.Voices
     using System.Threading.Tasks;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
-    using static RenderLoop.Demo.MGS.Codec.CharacterMetadata;
+    using static RenderLoop.Demo.MGS.MGS1.Codec.CharacterMetadata;
 
     internal abstract class Voice
     {
