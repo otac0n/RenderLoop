@@ -5,6 +5,7 @@ namespace RenderLoop.Demo.MGS
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.IO;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
@@ -19,81 +20,60 @@ namespace RenderLoop.Demo.MGS
         {
             var rootCommand = new RootCommand();
 
-            var fileOption = new Option<string>(
-                name: "--file",
-                description: "The path of the alldata.bin file.");
-            fileOption.IsRequired = true;
+            Options.Attach(rootCommand);
 
-            var keyOption = new Option<string>(
-                name: "--key",
-                description: "The key to the alldata.bin file.");
-            keyOption.IsRequired = true;
+            var modelCommand = new Command("model", "Display Models (MGS1)");
+            ArchiveOptions.Attach(modelCommand);
+            rootCommand.Add(modelCommand);
 
-            var lmEndpointOption = new Option<string?>(
-                name: "--lmEndpoint",
-                description: "The LM Studio API to use for conversation.",
-                getDefaultValue: () => "http://localhost:5000");
+            var vehicleCommand = new Command("vehicle", "Display Vehicles (MGS1)");
+            ArchiveOptions.Attach(vehicleCommand);
+            rootCommand.Add(vehicleCommand);
 
-            var languageModelOption = new Option<string?>(
-                name: "--languageModel",
-                description: "The language model to request for conversation.",
-                getDefaultValue: () => "mradermacher/QwQ-LCoT-14B-Conversational-i1-GGUF");
-
-            var lmCooldownOption = new Option<TimeSpan>(
-                name: "--lmCooldown",
-                description: "The time to allow the LM to cooldown between requests.",
-                getDefaultValue: () => TimeSpan.FromSeconds(5));
-
-            var speechEndpointOption = new Option<string?>(
-                name: "--speechEndpoint",
-                description: "The Azure Speech API to use for avatars.",
-                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_ENDPOINT"));
-
-            var speechKeyOption = new Option<string?>(
-                name: "--speechKey",
-                description: "The Azure Speech API key.",
-                getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
-
-            rootCommand.AddGlobalOption(fileOption);
-            rootCommand.AddGlobalOption(keyOption);
-            rootCommand.AddOption(lmEndpointOption);
-            rootCommand.AddOption(languageModelOption);
-            rootCommand.AddOption(lmCooldownOption);
-            rootCommand.AddOption(speechEndpointOption);
-            rootCommand.AddOption(speechKeyOption);
-
-            var codecCommand = new Command("codec", "Display Codec");
+            var codecCommand = new Command("codec", "Display Codec (MGS1)");
+            ArchiveOptions.Attach(codecCommand);
+            Conversation.LanguageModelOptions.Attach(codecCommand);
+            Conversation.Voices.VoiceOptions.Attach(codecCommand);
             rootCommand.Add(codecCommand);
 
             var textureCommand = new Command("texture", "Display Textures (MGS2)");
             rootCommand.Add(textureCommand);
 
-            var otaconCommand = new Command("otacon", "Display Otacon Assistant");
+            var otaconCommand = new Command("otacon", "Display Otacon Assistant (MGS2)");
+            Conversation.LanguageModelOptions.Attach(otaconCommand);
+            Conversation.Voices.VoiceOptions.Attach(otaconCommand);
             rootCommand.Add(otaconCommand);
 
-            void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
+            static void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
             {
-                var options = new Options
-                {
-                    File = context.ParseResult.GetValueForOption(fileOption)!,
-                    Key = context.ParseResult.GetValueForOption(keyOption)!,
-                    LMEndpoint = context.ParseResult.GetValueForOption(lmEndpointOption),
-                    LanguageModel = context.ParseResult.GetValueForOption(languageModelOption),
-                    LMCoolDown = context.ParseResult.GetValueForOption(lmCooldownOption),
-                };
-
                 ApplicationConfiguration.Initialize();
-                services.AddSingleton(options);
-                ServiceRegistration.Register(services, options);
+                Options.Bind(context, services);
+                ServiceRegistration.Register(services);
             }
 
-            rootCommand.SetHandler(
+            modelCommand.SetHandler(
                 async context =>
                 {
                     var builder = Host.CreateDefaultBuilder(args);
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
+                        ArchiveOptions.Bind(context, services);
+                        services.AddHostedService<GameLoopApplication<ModelDisplay>>();
+                    });
+
+                    using var host = builder.Build();
+                    await host.RunAsync().ConfigureAwait(true);
+                });
+
+            vehicleCommand.SetHandler(
+                async context =>
+                {
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        InstallSharedConfiguration(context, services);
+                        ArchiveOptions.Bind(context, services);
                         services.AddHostedService<GameLoopApplication<VehicleDisplay>>();
                     });
 
@@ -104,17 +84,13 @@ namespace RenderLoop.Demo.MGS
             codecCommand.SetHandler(
                 async context =>
                 {
-                    var voiceOptions = new Conversation.VoiceOptions
-                    {
-                        SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
-                        SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
-                    };
-
                     var builder = Host.CreateDefaultBuilder(args);
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
-                        services.AddSingleton(voiceOptions);
+                        ArchiveOptions.Bind(context, services);
+                        Conversation.LanguageModelOptions.Bind(context, services);
+                        Conversation.Voices.VoiceOptions.Bind(context, services);
                     });
 
                     using var host = builder.Build();
@@ -139,17 +115,12 @@ namespace RenderLoop.Demo.MGS
             otaconCommand.SetHandler(
                 async context =>
                 {
-                    var voiceOptions = new Conversation.VoiceOptions
-                    {
-                        SpeechEndpoint = context.ParseResult.GetValueForOption(speechEndpointOption),
-                        SpeechKey = context.ParseResult.GetValueForOption(speechKeyOption),
-                    };
-
                     var builder = Host.CreateDefaultBuilder(args);
                     builder.ConfigureServices(services =>
                     {
                         InstallSharedConfiguration(context, services);
-                        services.AddSingleton(voiceOptions);
+                        Conversation.LanguageModelOptions.Bind(context, services);
+                        Conversation.Voices.VoiceOptions.Bind(context, services);
                     });
 
                     using var host = builder.Build();
@@ -162,15 +133,30 @@ namespace RenderLoop.Demo.MGS
 
         internal class Options
         {
-            public required string File { get; set; }
+            public static readonly Option<string> SteamAppsOption = new(
+                name: "--steamApps",
+                description: "The path to the steamapps folder that contains the games.",
+                getDefaultValue: () => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Steam\steamapps\"))
+            {
+                IsRequired = true,
+            };
 
-            public required string Key { get; set; }
+            public required string SteamApps { get; set; }
 
-            public required string? LMEndpoint { get; set; }
+            public static void Attach(Command command)
+            {
+                command.AddOption(SteamAppsOption);
+            }
 
-            public required string? LanguageModel { get; set; }
+            public static void Bind(InvocationContext context, IServiceCollection services)
+            {
+                var options = new Options()
+                {
+                    SteamApps = context.ParseResult.GetValueForOption(SteamAppsOption)!,
+                };
 
-            public required TimeSpan LMCoolDown { get; set; }
+                services.AddSingleton(options);
+            }
         }
     }
 }

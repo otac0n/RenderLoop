@@ -140,8 +140,8 @@ namespace RenderLoop.Demo.MGS.Codec
             MoveToRightmostBottomCorner(this);
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
-            var codecOptions = serviceProvider.GetRequiredService<VoiceOptions>();
-            var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
+            var lmOptions = serviceProvider.GetRequiredService<LanguageModelOptions>();
+            var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
             var source = ImageLoader.LoadImages(facesStream);
 
             var maxX = source.Values.SelectMany(x => x.Values.Select(v => v.X + v.Image.Width)).Max();
@@ -247,7 +247,7 @@ namespace RenderLoop.Demo.MGS.Codec
                 avatars.Add(name, avatarState);
             }
 
-            if (options.LMEndpoint != null)
+            if (lmOptions.LMEndpoint != null)
             {
                 var defaultVoice = new AvatarState(serviceProvider, "Unknown");
                 this.conversationModel = new ConversationModel(

@@ -20,7 +20,7 @@
         private static readonly JsonDocument Configuration;
         private static readonly JsonSerializerOptions JsonOptions;
         private readonly ILogger<ConversationModel> logger;
-        private readonly Program.Options options;
+        private readonly LanguageModelOptions options;
         private readonly Func<CharacterResponse, CancellationToken, Task<CharacterResponse>> speechFunction;
         private readonly Func<CodeResponse, Task<string>> codeFunction;
         private readonly HttpClient httpClient;
@@ -46,7 +46,7 @@
         public ConversationModel(IServiceProvider serviceProvider, string systemPrompt, Func<CharacterResponse, CancellationToken, Task<CharacterResponse>> speechFunction, Func<CodeResponse, Task<string>> codeFunction)
         {
             this.logger = serviceProvider.GetRequiredService<ILogger<ConversationModel>>();
-            this.options = serviceProvider.GetRequiredService<Program.Options>();
+            this.options = serviceProvider.GetRequiredService<LanguageModelOptions>();
             this.httpClient = new(new SerialRequestsWithTimeBufferHandler(this.options.LMCoolDown)) { BaseAddress = new Uri(this.options.LMEndpoint) };
             this.speechFunction = speechFunction;
             this.codeFunction = codeFunction;

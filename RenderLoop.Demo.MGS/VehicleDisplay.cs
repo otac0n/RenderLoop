@@ -11,6 +11,7 @@ namespace RenderLoop.Demo.MGS
     using RenderLoop.SoftwareRenderer;
     using RenderLoop.Input;
     using DevDecoder.HIDDevices.Usages;
+    using System.IO;
 
     public class VehicleDisplay : GameLoop
     {
@@ -284,7 +285,7 @@ namespace RenderLoop.Demo.MGS
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
-            this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
+            this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
 
             this.models = new();
             foreach (var source in Sources)

@@ -2,7 +2,7 @@
   "profiles": {
     "RenderLoop": {
       "commandName": "Project",
-      "commandLineArgs": "--file \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\MGS1\\windata\\alldata.bin\" --key \"25G/xpvTbsb+6\""
+      "commandLineArgs": "codec --key \"25G/xpvTbsb+6\""
     }
   }
 }

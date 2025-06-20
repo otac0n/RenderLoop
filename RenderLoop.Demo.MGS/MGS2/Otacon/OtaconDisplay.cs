@@ -7,11 +7,13 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.Globalization;
+    using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
+    using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.Conversation;
     using RenderLoop.Demo.MGS.Conversation.Voices;
 
@@ -19,6 +21,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
     {
         private readonly Bitmap[] sprites = new Bitmap[4];
         private readonly AnimationState animationState = new();
+        private readonly Program.Options options;
         private Size spriteSize;
         private bool lastFlip;
         private DateTime LastMinute;
@@ -111,6 +114,8 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         {
             this.InitializeComponent();
             this.EnableDrag();
+            this.options = serviceProvider.GetRequiredService<Program.Options>();
+
             foreach (var state in Enum.GetValues<AnimationState.State>())
             {
                 if (state != AnimationState.State.Invisible)
@@ -172,16 +177,17 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
         private async void Form_Load(object sender, EventArgs e)
         {
-            var sprite = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d27f22.ctxr").ConfigureAwait(true);
+            var basePath = Path.Combine(this.options.SteamApps, WellKnownPaths.MGS2Texture, @"flatlist\_win");
+            var sprite = await CtxrFile.LoadAsync(Path.Combine(basePath, @"00d27f22.ctxr")).ConfigureAwait(true);
             var size = sprite.Size;
             size.Width /= 12;
             this.ClientSize = (this.spriteSize = size) * 2;
             MoveToPrimaryBottomCorner(this);
 
             this.sprites[0] = sprite;
-            this.sprites[1] = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d37f22.ctxr").ConfigureAwait(true);
-            this.sprites[2] = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d47f22.ctxr").ConfigureAwait(true);
-            this.sprites[3] = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d57f22.ctxr").ConfigureAwait(true);
+            this.sprites[1] = await CtxrFile.LoadAsync(Path.Combine(basePath, @"00d37f22.ctxr")).ConfigureAwait(true);
+            this.sprites[2] = await CtxrFile.LoadAsync(Path.Combine(basePath, @"00d47f22.ctxr")).ConfigureAwait(true);
+            this.sprites[3] = await CtxrFile.LoadAsync(Path.Combine(basePath, @"00d57f22.ctxr")).ConfigureAwait(true);
 
             this.updateTimer.Enabled = true;
             this.speechForm = new SpeechBubble(this, (float)this.ClientSize.Height / this.spriteSize.Height);

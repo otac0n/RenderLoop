@@ -5,6 +5,7 @@ namespace RenderLoop.Demo.MGS
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.IO;
     using System.Linq;
     using System.Numerics;
     using DevDecoder.HIDDevices.Usages;
@@ -38,8 +39,8 @@ namespace RenderLoop.Demo.MGS
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
-            this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
-            this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { options.File, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
+            this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
+            this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { Path.Combine(options.SteamApps, WellKnownPaths.AllDataBin), WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
             this.activeModel = Random.Shared.Next(this.models.Count);
 
             this.Camera.Up = new Vector3(0, 1, 0);

@@ -6,15 +6,17 @@ namespace RenderLoop.Demo.MGS.MGS2
     using System.Drawing;
     using System.IO;
     using System.Windows.Forms;
+    using Microsoft.Extensions.DependencyInjection;
 
     internal partial class TextureDisplay : Form
     {
         private readonly string basePath;
-        private VirtualImageList<string> textureDisplay;
+        private readonly VirtualImageList<string> textureDisplay;
 
         public TextureDisplay(IServiceProvider serviceProvider)
         {
-            this.basePath = @"G:\Games\Steam\steamapps\common\MGS2\textures\";
+            var options = serviceProvider.GetRequiredService<Program.Options>();
+            this.basePath = Path.Combine(options.SteamApps, WellKnownPaths.MGS2Texture);
 
             this.InitializeComponent();
             this.textureDisplay = new VirtualImageList<string>(
