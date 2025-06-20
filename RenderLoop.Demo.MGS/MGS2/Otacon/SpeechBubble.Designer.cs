@@ -1,6 +1,6 @@
 ﻿namespace RenderLoop.Demo.MGS.MGS2.Otacon
 {
-    partial class OtaconDisplay
+    partial class SpeechBubble
     {
         /// <summary>
         /// Required designer variable.
@@ -37,29 +37,27 @@
             // 
             this.updateTimer.Enabled = true;
             this.updateTimer.Interval = 33;
-            this.updateTimer.Tick += this.UpdateTimer_Tick;
             // 
             // contextMenu
             // 
             this.contextMenu.ImageScalingSize = new System.Drawing.Size(24, 24);
             this.contextMenu.Name = "contextMenu";
             this.contextMenu.Size = new System.Drawing.Size(61, 4);
-            this.contextMenu.ItemClicked += this.ContextMenu_ItemClicked;
             // 
-            // OtaconDisplay
+            // SpeechBubble
             // 
             this.BackColor = System.Drawing.Color.Magenta;
-            this.ClientSize = new System.Drawing.Size(207, 279);
+            this.ClientSize = new System.Drawing.Size(458, 148);
+            this.DoubleBuffered = true;
+            this.Font = new System.Drawing.Font("Comic Sans MS", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, 0);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-            this.Name = "OtaconDisplay";
+            this.Name = "SpeechBubble";
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.Manual;
-            this.Text = "Otacon Assistant";
             this.TopMost = true;
             this.TransparencyKey = System.Drawing.Color.Magenta;
-            this.Load += this.Form_Load;
             this.Paint += this.Form_Paint;
-            this.MouseClick += this.Form_MouseClick;
+            this.Move += this.SpeechBubble_Move;
             this.ResumeLayout(false);
         }
 

@@ -25,6 +25,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private readonly Voice voice;
         private ConversationModel conversationModel;
         private Task activeTask;
+        private SpeechBubble speechForm;
         private static readonly string ConversationPrompt =
             $"""
             **LET THE WORLD BE**
@@ -36,7 +37,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             Include PowerShell code blocks when actions are required. Do not explain the code unless asked. The result will be logged.
             Do not repeat or re-run actions unless the user explicitly asks you to
             """" : string.Empty)}.
-            Respond to the user naturally, briefly, and helpfully. Use character tone and voice, but don't ramble.
+            Respond to the user's actions naturally, briefly, and helpfully. Use character tone and voice, but don't ramble.
             Begin each new sentence on its own line, and separate multiple responses with blank lines. Never combine multiple responses on a single line.
             If appropriate, prefix an optional mood tag to help the avatar engine show expression.
             Do not include your internal reasoning in the chat history.
@@ -92,7 +93,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             Otacon [{AnimationState.State.Happy}]: Looks good.
             """" : string.Empty)}
 
-            Below is the history. Assist the user:
+            Below is the history. Introduce yourself and assist the user:
             """;
 
         private static readonly Dictionary<string, AnimationState.State> MoodMapping =
@@ -137,7 +138,22 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
                     this.animationState.TargetState = state;
 
-                    return response with { Text = await this.voice.SayAsync(response.Text, cancel).ConfigureAwait(false) };
+                    if (!string.IsNullOrWhiteSpace(response.Text))
+                    {
+                        this.Invoke(() =>
+                        {
+                            this.speechForm.Text = response.Text;
+                            this.speechForm.Visible = true;
+                        });
+                        response = response with { Text = await this.voice.SayAsync(response.Text, cancel).ConfigureAwait(false) };
+                        this.Invoke(() =>
+                        {
+                            this.speechForm.Visible = false;
+                            this.speechForm.Text = "";
+                        });
+                    }
+
+                    return response;
                 },
                 (response) => Task.FromResult("System: Code execution is disabled."));
         }
@@ -168,6 +184,8 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             this.sprites[3] = await CtxrFile.LoadAsync(@"G:\Games\Steam\steamapps\common\MGS2\textures\flatlist\_win\00d57f22.ctxr").ConfigureAwait(true);
 
             this.updateTimer.Enabled = true;
+            this.speechForm = new SpeechBubble(this, (float)this.ClientSize.Height / this.spriteSize.Height);
+            this.speechForm.Location = new Point(this.Left + (2 * this.Width / 3) - this.speechForm.Width, this.Top - (this.Height / 20) - this.speechForm.Height);
         }
 
         private void UpdateTimer_Tick(object sender, EventArgs e)
@@ -255,6 +273,5 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
         private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-
     }
 }
