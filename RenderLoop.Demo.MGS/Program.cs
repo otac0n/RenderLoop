@@ -23,30 +23,34 @@ namespace RenderLoop.Demo.MGS
 
             Options.Attach(rootCommand);
 
+            var mgs1 = new Command("mgs1", "MGS1 Related Featuers");
+            MGS1.ArchiveOptions.Attach(mgs1);
+            rootCommand.AddCommand(mgs1);
+
+            var mgs2 = new Command("mgs2", "MGS1 Related Featuers");
+            rootCommand.AddCommand(mgs2);
+
             var modelCommand = new Command("model", "Display Models (MGS1)");
             modelCommand.AddAlias("models");
-            MGS1.ArchiveOptions.Attach(modelCommand);
-            rootCommand.Add(modelCommand);
+            mgs1.Add(modelCommand);
 
             var vehicleCommand = new Command("vehicle", "Display Vehicles (MGS1)");
             vehicleCommand.AddAlias("vehicles");
-            MGS1.ArchiveOptions.Attach(vehicleCommand);
-            rootCommand.Add(vehicleCommand);
+            mgs1.Add(vehicleCommand);
 
             var codecCommand = new Command("codec", "Display Codec (MGS1)");
-            MGS1.ArchiveOptions.Attach(codecCommand);
             Conversation.LanguageModelOptions.Attach(codecCommand);
             Conversation.Voices.VoiceOptions.Attach(codecCommand);
-            rootCommand.Add(codecCommand);
+            mgs1.Add(codecCommand);
 
             var textureCommand = new Command("texture", "Display Textures (MGS2)");
             textureCommand.AddAlias("textures");
-            rootCommand.Add(textureCommand);
+            mgs2.Add(textureCommand);
 
             var otaconCommand = new Command("otacon", "Display Otacon Assistant (MGS2)");
             Conversation.LanguageModelOptions.Attach(otaconCommand);
             Conversation.Voices.VoiceOptions.Attach(otaconCommand);
-            rootCommand.Add(otaconCommand);
+            mgs2.Add(otaconCommand);
 
             static void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
             {

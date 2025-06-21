@@ -25,7 +25,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         public static void Attach(Command command)
         {
-            command.AddOption(KeyOption);
+            command.AddGlobalOption(KeyOption);
         }
 
         public static void Bind(InvocationContext context, IServiceCollection services)
