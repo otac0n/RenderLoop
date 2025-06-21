@@ -7,11 +7,12 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Drawing;
     using System.Linq;
     using System.Numerics;
-    using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.SoftwareRenderer;
-    using RenderLoop.Input;
     using DevDecoder.HIDDevices.Usages;
-    using System.IO;
+    using Microsoft.Extensions.DependencyInjection;
+    using RenderLoop.Input;
+    using RenderLoop.SilkRenderer.GL;
+    using Silk.NET.OpenGL;
+    using Silk.NET.Windowing;
 
     public class VehicleDisplay : GameLoop
     {
@@ -264,7 +265,9 @@ namespace RenderLoop.Demo.MGS.MGS1
             },
         ];
 
-        private readonly Display display;
+        private readonly IWindow display;
+        protected GL gl;
+        private ShaderHandle<(Vector3 position, Vector2 uv)> shader;
         private readonly Camera Camera = new();
         private double t;
         private ulong animate;
@@ -276,65 +279,21 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
-        private readonly Dictionary<ushort, Bitmap?> textureLookup = [];
+        private readonly Dictionary<ushort, TextureHandle> textureLookup = [];
 
-        public VehicleDisplay(IServiceProvider serviceProvider, Display display)
+        public VehicleDisplay(IServiceProvider serviceProvider, IWindow display)
             : base(display)
         {
             this.display = display;
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
-            var options = serviceProvider.GetRequiredService<Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
 
             this.models = new();
-            foreach (var source in Sources)
-            {
-                var parts = new Dictionary<string, Model[]>();
-
-                foreach (var (name, info) in source)
-                {
-                    var versions = new Model[info.versions.Length];
-
-                    for (var f = 0; f < info.versions.Length; f++)
-                    {
-                        var file = info.versions[f];
-                        using var stream = this.stageDir.File.OpenRead(file);
-                        var model = Model.FromStream(stream);
-                        versions[f] = model;
-
-                        var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
-                        foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
-                        {
-                            var (id, texture) = this.EnsureTexture(tx);
-                            this.textureLookup[id] = texture;
-                        }
-                    }
-
-                    parts.Add(name, versions);
-                }
-
-                foreach (var (name, info) in source)
-                {
-                    if (info.attach is (string attachTo, int atIndex) attach)
-                    {
-                        var mesh = parts[attach.attachTo].Single().Meshes[attach.atIndex];
-                        var toAttach = parts[name];
-                        foreach (var model in toAttach)
-                        {
-                            model.Meshes[0].RelativeMesh = mesh;
-                        }
-                    }
-                }
-
-                this.models.Add((source, parts));
-            }
-
-            this.UpdateModel();
 
             this.Camera.Up = new Vector3(0, 1, 0);
 
-            this.display.ClientSize = new(640, 480);
+            this.display.Size = new(640, 480);
         }
 
         private static Vector3 Angles(double x, double y, double z) =>
@@ -405,6 +364,92 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             return texture;
         }
+
+        protected override void Initialize()
+        {
+            this.gl = GL.GetApi(this.display);
+            this.display.FramebufferResize += size => this.gl.Viewport(size);
+
+            this.shader = new ShaderHandle<(Vector3 position, Vector2 uv)>(
+                this.gl,
+                [
+                    (3, VertexAttribPointerType.Float, sizeof(float)),
+                    (2, VertexAttribPointerType.Float, sizeof(float)),
+                ],
+                () => """
+                    #version 330 core
+                    layout (location = 0) in vec3 vertex_position;
+                    layout (location = 1) in vec2 vertex_textureCoords;
+                    uniform mat4 uniform_cameraMatrix;
+                    out vec2 fragment_textureCoords;
+                    void main()
+                    {
+                        gl_Position = uniform_cameraMatrix * vec4(vertex_position, 1.0);
+                        fragment_textureCoords = vertex_textureCoords;
+                    }
+                """,
+                () => """
+                    #version 330 core
+                    uniform sampler2D uniform_texture;
+                    in vec2 fragment_textureCoords;
+                    out vec4 color;
+                    void main()
+                    {
+                        color = texture(uniform_texture, fragment_textureCoords);
+                    }
+                """);
+
+            this.gl.Enable(EnableCap.Blend);
+            this.gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            foreach (var source in Sources)
+            {
+                var parts = new Dictionary<string, Model[]>();
+
+                foreach (var (name, info) in source)
+                {
+                    var versions = new Model[info.versions.Length];
+
+                    for (var f = 0; f < info.versions.Length; f++)
+                    {
+                        var file = info.versions[f];
+                        using var stream = this.stageDir.File.OpenRead(file);
+                        var model = Model.FromStream(stream);
+                        versions[f] = model;
+
+                        var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
+                        foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
+                        {
+                            var (id, texture) = this.EnsureTexture(tx);
+                            if (texture != null)
+                            {
+                                this.textureLookup[id] = new TextureHandle(this.gl, texture!);
+                            }
+                        }
+                    }
+
+                    parts.Add(name, versions);
+                }
+
+                foreach (var (name, info) in source)
+                {
+                    if (info.attach is (string attachTo, int atIndex) attach)
+                    {
+                        var mesh = parts[attach.attachTo].Single().Meshes[attach.atIndex];
+                        var toAttach = parts[name];
+                        foreach (var model in toAttach)
+                        {
+                            model.Meshes[0].RelativeMesh = mesh;
+                        }
+                    }
+                }
+
+                this.models.Add((source, parts));
+            }
+
+            this.UpdateModel();
+        }
+
 
         protected override void AdvanceFrame(TimeSpan elapsed)
         {
@@ -516,47 +561,26 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         protected override void DrawScene(TimeSpan elapsed)
         {
-            Bitmap? texture = null;
-            var shader = DynamicDraw.MakeFragmentShader<(uint index, Vector2 uv)>(
-                x => x.uv,
-                uv =>
-                {
-                    if (texture != null)
-                    {
-                        // MGS textures use the last pixel as buffer
-                        var tw = texture.Width - 1;
-                        var th = texture.Height - 1;
-                        var color = texture.GetPixel(
-                            (int)(((uv.X % 1.0) + 1) % 1.0 * tw),
-                            (int)(((uv.Y % 1.0) + 1) % 1.0 * th)).ToArgb();
-                        // MGS treats pure black as transparent.
-                        var masked = color & 0xFFFFFF;
-                        return masked == 0x000000 ? masked : color;
-                    }
-                    else
-                    {
-                        return Color.Black.ToArgb();
-                    }
-                });
-
-            this.display.PaintFrame(elapsed, (Graphics g, Bitmap buffer, float[,] depthBuffer) =>
+            this.gl.PaintFrame(() =>
             {
-                this.Camera.Width = buffer.Width;
-                this.Camera.Height = buffer.Height;
+                this.Camera.Width = this.display.FramebufferSize.X;
+                this.Camera.Height = this.display.FramebufferSize.Y;
+
+                this.shader.SetUniform("uniform_cameraMatrix", this.Camera.Matrix);
 
                 var (_, parts) = this.models[this.activeModel];
                 foreach (var (_, versions) in parts)
                 {
                     foreach (var mesh in versions[0].Meshes)
                     {
-                        var transformed = Array.ConvertAll(mesh.Vertices, this.Camera.TransformToScreenSpace);
                         foreach (var face in mesh.Faces)
                         {
-                            this.textureLookup.TryGetValue(face.TextureId, out texture);
+                            this.textureLookup.TryGetValue(face.TextureId, out var texture);
+                            texture?.Activate();
+                            this.shader.SetUniform("uniform_texture", 0);
 
-                            var indices = face.VertexIndices.Select((i, j) => (index: i, textureCoords: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
-                            DynamicDraw.DrawStrip(indices, s => transformed[s.index], (v, vertices) =>
-                                DynamicDraw.FillTriangle(buffer, depthBuffer, vertices, BackfaceCulling.None, perspective => shader(v, perspective)));
+                            var vertices = face.VertexIndices.Select((i, j) => (position: mesh.Vertices[i], uv: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
+                            this.gl.DrawStrip(vertices, this.shader);
                         }
                     }
                 }

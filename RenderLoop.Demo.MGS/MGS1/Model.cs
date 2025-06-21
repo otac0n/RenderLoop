@@ -5,9 +5,11 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Drawing.Imaging;
     using System.IO;
     using System.Linq;
     using System.Numerics;
+    using System.Runtime.InteropServices;
     using ImageMagick;
     using RenderLoop.Demo.MGS.MGS1.Archives;
     using Point = (int x, int y, int z);
@@ -35,7 +37,38 @@ namespace RenderLoop.Demo.MGS.MGS1
             try
             {
                 using var pcxStream = new OffsetStreamSpan(stream, 8, stream.Length - 8);
-                return new MagickImage(pcxStream).ToBitmap();
+                using var image = new MagickImage(pcxStream);
+                using var bitmap = image.ToBitmap();
+
+                // MGS doesn't use the last pixel in either direction and treats black as fully transparent?
+                var result = new Bitmap(bitmap.Width - 1, bitmap.Height - 1);
+                var bmp1 = bitmap.LockBits(new Rectangle(default, result.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                var bmp2 = result.LockBits(new Rectangle(default, result.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                var scanIn = bmp1.Scan0;
+                var scanOut = bmp2.Scan0;
+                var buffer = new byte[bmp2.Width * 4];
+                for (var y = 0; y < bmp2.Height; y++, scanIn += bmp1.Stride, scanOut += bmp2.Stride)
+                {
+                    Marshal.Copy(scanIn, buffer, 0, buffer.Length);
+
+                    for (var x = 0; x < bmp2.Width; x++)
+                    {
+                        var ix = x * 4;
+                        if (buffer[ix] == 0 &&
+                            buffer[ix + 1] == 0 &&
+                            buffer[ix + 2] == 0)
+                        {
+                            buffer[ix + 3] = 0;
+                        }
+                    }
+
+                    Marshal.Copy(buffer, 0, scanOut, buffer.Length);
+                }
+
+                bitmap.UnlockBits(bmp1);
+                result.UnlockBits(bmp2);
+
+                return result;
             }
             catch
             {
