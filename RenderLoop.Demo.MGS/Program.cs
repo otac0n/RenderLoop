@@ -6,12 +6,13 @@ namespace RenderLoop.Demo.MGS
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.IO;
+    using System.Text.RegularExpressions;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Hosting;
 
-    internal static class Program
+    internal static partial class Program
     {
         /// <summary>
         /// The main entry point for the application.
@@ -23,10 +24,12 @@ namespace RenderLoop.Demo.MGS
             Options.Attach(rootCommand);
 
             var modelCommand = new Command("model", "Display Models (MGS1)");
+            modelCommand.AddAlias("models");
             MGS1.ArchiveOptions.Attach(modelCommand);
             rootCommand.Add(modelCommand);
 
             var vehicleCommand = new Command("vehicle", "Display Vehicles (MGS1)");
+            vehicleCommand.AddAlias("vehicles");
             MGS1.ArchiveOptions.Attach(vehicleCommand);
             rootCommand.Add(vehicleCommand);
 
@@ -37,6 +40,7 @@ namespace RenderLoop.Demo.MGS
             rootCommand.Add(codecCommand);
 
             var textureCommand = new Command("texture", "Display Textures (MGS2)");
+            textureCommand.AddAlias("textures");
             rootCommand.Add(textureCommand);
 
             var otaconCommand = new Command("otacon", "Display Otacon Assistant (MGS2)");
@@ -131,12 +135,12 @@ namespace RenderLoop.Demo.MGS
             return await rootCommand.InvokeAsync(args).ConfigureAwait(true);
         }
 
-        internal class Options
+        internal partial class Options
         {
             public static readonly Option<string> SteamAppsOption = new(
                 name: "--steamApps",
                 description: "The path to the steamapps folder that contains the games.",
-                getDefaultValue: () => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Steam\steamapps\"))
+                getDefaultValue: GetDefaultSteamAppsPath)
             {
                 IsRequired = true,
             };
@@ -145,7 +149,7 @@ namespace RenderLoop.Demo.MGS
 
             public static void Attach(Command command)
             {
-                command.AddOption(SteamAppsOption);
+                command.AddGlobalOption(SteamAppsOption);
             }
 
             public static void Bind(InvocationContext context, IServiceCollection services)
@@ -156,6 +160,31 @@ namespace RenderLoop.Demo.MGS
                 };
 
                 services.AddSingleton(options);
+            }
+
+            [GeneratedRegex(@"""path""\s+""(?<escaped_path>([^\""]|\[\""])+)""[^{}]+""apps""[\r\n\s]+{[^}]+""(?<found_app_id>21316[345]0)""\s+""\d+""")]
+            private static partial Regex GetPathFinderRegex();
+
+            [GeneratedRegex(@"\\(.)")]
+            private static partial Regex GetEscapeRegex();
+
+            private static string GetDefaultSteamAppsPath()
+            {
+                var defaultPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), @"Steam\steamapps\");
+                try
+                {
+                    var library = File.ReadAllText(Path.Combine(defaultPath, "libraryfolders.vdf"));
+                    var match = GetPathFinderRegex().Match(library);
+                    if (match.Success)
+                    {
+                        return Path.Combine(GetEscapeRegex().Replace(match.Groups["escaped_path"].Value, "$1"), "steamapps");
+                    }
+                }
+                catch
+                {
+                }
+
+                return defaultPath;
             }
         }
     }

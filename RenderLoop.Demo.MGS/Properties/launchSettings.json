@@ -1,8 +1,24 @@
 {
   "profiles": {
-    "RenderLoop": {
+    "MGS1 Models": {
+      "commandName": "Project",
+      "commandLineArgs": "model --key \"25G/xpvTbsb+6\""
+    },
+    "MGS1 Vehicles": {
+      "commandName": "Project",
+      "commandLineArgs": "vehicle --key \"25G/xpvTbsb+6\""
+    },
+    "MGS1 Codec": {
       "commandName": "Project",
       "commandLineArgs": "codec --key \"25G/xpvTbsb+6\""
+    },
+    "MGS2 Textures": {
+      "commandName": "Project",
+      "commandLineArgs": "texture"
+    },
+    "MGS2 Otacon": {
+      "commandName": "Project",
+      "commandLineArgs": "otacon"
     }
   }
 }
