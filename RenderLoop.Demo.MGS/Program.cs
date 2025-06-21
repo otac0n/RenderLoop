@@ -30,6 +30,10 @@ namespace RenderLoop.Demo.MGS
             var mgs2 = new Command("mgs2", "MGS1 Related Featuers");
             rootCommand.AddCommand(mgs2);
 
+            var textureCommand1 = new Command("texture", "Display Textures (MGS1)");
+            textureCommand1.AddAlias("textures");
+            mgs1.Add(textureCommand1);
+
             var modelCommand = new Command("model", "Display Models (MGS1)");
             modelCommand.AddAlias("models");
             mgs1.Add(modelCommand);
@@ -43,9 +47,9 @@ namespace RenderLoop.Demo.MGS
             Conversation.Voices.VoiceOptions.Attach(codecCommand);
             mgs1.Add(codecCommand);
 
-            var textureCommand = new Command("texture", "Display Textures (MGS2)");
-            textureCommand.AddAlias("textures");
-            mgs2.Add(textureCommand);
+            var textureCommand2 = new Command("texture", "Display Textures (MGS2)");
+            textureCommand2.AddAlias("textures");
+            mgs2.Add(textureCommand2);
 
             var otaconCommand = new Command("otacon", "Display Otacon Assistant (MGS2)");
             Conversation.LanguageModelOptions.Attach(otaconCommand);
@@ -58,6 +62,21 @@ namespace RenderLoop.Demo.MGS
                 Options.Bind(context, services);
                 ServiceRegistration.Register(services);
             }
+
+            textureCommand1.SetHandler(
+                async context =>
+                {
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        InstallSharedConfiguration(context, services);
+                        MGS1.ArchiveOptions.Bind(context, services);
+                    });
+
+                    using var host = builder.Build();
+                    await Task.Yield();
+                    Application.Run(host.Services.GetService<MGS1.TextureDisplay>()!);
+                });
 
             modelCommand.SetHandler(
                 async context =>
@@ -106,7 +125,7 @@ namespace RenderLoop.Demo.MGS
                     Application.Run(host.Services.GetService<MGS1.Codec.CodecDisplay>()!);
                 });
 
-            textureCommand.SetHandler(
+            textureCommand2.SetHandler(
                 async context =>
                 {
                     var builder = Host.CreateDefaultBuilder(args);

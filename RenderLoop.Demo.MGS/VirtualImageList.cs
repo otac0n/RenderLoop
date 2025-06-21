@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.MGS2
+namespace RenderLoop.Demo.MGS
 {
     using System;
     using System.Collections.Generic;
@@ -89,9 +89,8 @@ namespace RenderLoop.Demo.MGS.MGS2
             var rowStart = clip.Top / ImageSize;
             var rowEnd = (clip.Bottom + ImageSize - 1) / ImageSize;
 
-            void ZoomImage(Task<Bitmap> task, RectangleF destRect)
+            void ZoomImage(Bitmap bmp, RectangleF destRect)
             {
-                var bmp = task.Result;
                 var scale = Math.Min(destRect.Width / bmp.Width, destRect.Height / bmp.Height);
                 var drawWidth = (int)(bmp.Width * scale);
                 var drawHeight = (int)(bmp.Height * scale);
@@ -113,14 +112,14 @@ namespace RenderLoop.Demo.MGS.MGS2
                     }
 
                     var task = this.GetBitmapAsync(index);
-                    if (!task.IsCompletedSuccessfully)
+                    if (!task.IsCompletedSuccessfully || !(task.Result is Bitmap bmp))
                     {
                         continue;
                     }
 
                     var destRect = new Rectangle(col * ImageSize, row * ImageSize, ImageSize, ImageSize);
 
-                    ZoomImage(task, destRect);
+                    ZoomImage(bmp, destRect);
                 }
             }
         }

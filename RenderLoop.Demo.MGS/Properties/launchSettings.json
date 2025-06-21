@@ -1,5 +1,9 @@
 {
   "profiles": {
+    "MGS1 Textures": {
+      "commandName": "Project",
+      "commandLineArgs": "mgs1 texture --key \"25G/xpvTbsb+6\""
+    },
     "MGS1 Models": {
       "commandName": "Project",
       "commandLineArgs": "mgs1 model --key \"25G/xpvTbsb+6\""

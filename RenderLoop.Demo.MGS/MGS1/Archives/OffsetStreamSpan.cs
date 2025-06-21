@@ -57,15 +57,15 @@ namespace RenderLoop.Demo.MGS.MGS1.Archives
             switch (origin)
             {
                 case SeekOrigin.End:
-                    offset = -this.underlying.Length + this.offset + this.Length + offset;
+                    offset = -this.position + this.Length - offset;
                     goto case SeekOrigin.Current;
 
                 case SeekOrigin.Begin:
-                    offset += this.offset;
+                    offset -= this.position;
                     goto case SeekOrigin.Current;
 
                 case SeekOrigin.Current:
-                    var newPosition = this.underlying.Seek(offset, origin) - this.offset;
+                    var newPosition = this.position + offset;
                     if (newPosition < 0 || newPosition > this.Length)
                     {
                         throw new NotSupportedException();

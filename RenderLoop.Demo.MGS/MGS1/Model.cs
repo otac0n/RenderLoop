@@ -41,7 +41,7 @@ namespace RenderLoop.Demo.MGS.MGS1
                 using var bitmap = image.ToBitmap();
 
                 // MGS doesn't use the last pixel in either direction and treats black as fully transparent?
-                var result = new Bitmap(bitmap.Width - 1, bitmap.Height - 1);
+                var result = new Bitmap(Math.Max(bitmap.Width - 1, 1), Math.Max(bitmap.Height - 1, 1));
                 var bmp1 = bitmap.LockBits(new Rectangle(default, result.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 var bmp2 = result.LockBits(new Rectangle(default, result.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
                 var scanIn = bmp1.Scan0;
