@@ -20,6 +20,149 @@ namespace RenderLoop.Demo.MGS.MGS1
         [
             new()
             {
+                ////"opening/model/1b61.kmd" caustics
+                ////"opening/model/1e7c.kmd" forward tubes
+                ////"opening/model/d82d.kmd" bridge
+                ["body"] = (
+                    ["opening/model/db03.kmd"],
+                    null,
+                    []
+                ),
+            },
+            new()
+            {
+                ////"opening/model/1954.kmd" "opening/model/5e94.kmd" "opening/model/a3b7.kmd" exterior
+                ////"opening/model/253a.kmd" interior
+                ////"opening/model/2cb0.kmd" hatch
+                ////"opening/model/3824.kmd" caustics
+                ////"opening/model/6ccf.kmd" hatch 2
+                ////"opening/model/b1d0.kmd" open
+                ////"opening/model/b7cf.kmd" interior 2
+                ["exterior"] = (
+                    ["opening/model/1954.kmd"],
+                    null,
+                    []
+                ),
+            },
+            new()
+            {
+                ["airframe"] = (
+                    ["s11h/model/c7dd.kmd"],
+                    null,
+                    [
+                        (1, Angles(0, 1 / 2f, 0), Angles(0, 1 / 2f, 0)), // Main Rotor
+                        (2, Angles(1 / 2f, 0, 0), Angles(1 / 2f, 0, 0)), // Tail Rotor
+                        (3, Angles(0, 1 / 8f, 0), Angles(0, 1 / 8f, 0)), // Turret
+                        (4, Angles(0, 0, 0), Angles(3 / 16f, 0, 0)), // Cannon
+                    ]
+                ),
+                ["canopy"] = (
+                    ["s11h/model/57fc.kmd"],
+                    null,
+                    [
+                    ]
+                ),
+                ["pilot"] = (
+                    [
+                        "s11h/model/d85b.kmd", // Liquid
+                    ],
+                    null,
+                    [
+                    ]
+                ),
+                ["gunner"] = (
+                    [
+                        "s11h/model/6fba.kmd",
+                    ],
+                    null,
+                    [
+                    ]
+                ),
+                ["missile_1"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 5),
+                    [
+                    ]
+                ),
+                ["trail_1"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_1", 0),
+                    [
+                    ]
+                ),
+                ["missile_2"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 6),
+                    [
+                    ]
+                ),
+                ["trail_2"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_2", 0),
+                    [
+                    ]
+                ),
+                ["missile_3"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 7),
+                    [
+                    ]
+                ),
+                ["trail_3"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_3", 0),
+                    [
+                    ]
+                ),
+                ["missile_4"] = (
+                    ["s11h/model/7f5f.kmd"],
+                    ("airframe", 8),
+                    [
+                    ]
+                ),
+                ["trail_4"] = (
+                    [
+                        "s00a/model/8075.kmd",
+                        "s00a/model/8076.kmd",
+                        "s00a/model/8077.kmd",
+                    ],
+                    ("missile_4", 0),
+                    [
+                    ]
+                ),
+                //["gear_a"] = (
+                //    ["s11h/model/647f.kmd"],
+                //    null,
+                //    [
+                //    ]
+                //),
+                //["gear_b"] = (
+                //    ["s11h/model/6485.kmd"],
+                //    null,
+                //    [
+                //    ]
+                //),
+                //["gear_c"] = (
+                //    ["s11h/model/6479.kmd"],
+                //    null,
+                //    [
+                //    ]
+                //),
+            },
+            new()
+            {
                 ["projectile"] = (
                     ["s05a/model/3dcc.kmd"],
                     ("chassis", 5),
@@ -148,120 +291,43 @@ namespace RenderLoop.Demo.MGS.MGS1
             },
             new()
             {
-                ["airframe"] = (
-                    ["s11h/model/c7dd.kmd"],
+                ////"s19a/model/26c7.kmd" "s19b/model/26c7.kmd" "s20a/model/26c7.kmd" body
+                ////"s19a/model/26d9.kmd" "s19b/model/26d9.kmd" "s20a/model/26d9.kmd" wheels
+                ////"s19a/model/3a07.kmd" "s20a/model/3a07.kmd" shine
+                ////"s19a/model/3fa9.kmd" "s19b/model/3fa9.kmd" "s20a/model/3fa9.kmd" gun
+                ////"s19a/model/7607.kmd" "s19b/model/7607.kmd" "s20a/model/7607.kmd" lights & shine
+                ////"s19a/model/da10.kmd" "s19b/model/da10.kmd" "s20a/model/da10.kmd" lights
+                ["body"] = (
+                    ["s19a/model/26c7.kmd"],
                     null,
-                    [
-                        (1, Angles(0, 1 / 2f, 0), Angles(0, 1 / 2f, 0)), // Main Rotor
-                        (2, Angles(1 / 2f, 0, 0), Angles(1 / 2f, 0, 0)), // Tail Rotor
-                        (3, Angles(0, 1 / 8f, 0), Angles(0, 1 / 8f, 0)), // Turret
-                        (4, Angles(0, 0, 0), Angles(3 / 16f, 0, 0)), // Cannon
-                    ]
+                    []
                 ),
-                ["canopy"] = (
-                    ["s11h/model/57fc.kmd"],
+                ["wheels"] = (
+                    ["s19a/model/26d9.kmd"],
+                    ("body", 0),
+                    []
+                ),
+                ["lights"] = (
+                    ["s19a/model/7607.kmd"],
+                    ("body", 0),
+                    []
+                ),
+            },
+            new()
+            {
+                ////"ending/model/00d6.kmd" "ending/model/e6ea.kmd" full
+                ////"ending/model/e44e.kmd" body
+                ////"ending/model/f62e.kmd" "ending/model/f62f.kmd" screen 1
+                ["body"] = (
+                    ["ending/model/00d6.kmd", "ending/model/e6ea.kmd"],
                     null,
-                    [
-                    ]
+                    []
                 ),
-                ["pilot"] = (
-                    [
-                        "s11h/model/d85b.kmd", // Liquid
-                    ],
+                ["screen"] = (
+                    ["ending/model/f62e.kmd", "ending/model/f62f.kmd"],
                     null,
-                    [
-                    ]
+                    []
                 ),
-                ["gunner"] = (
-                    [
-                        "s11h/model/6fba.kmd",
-                    ],
-                    null,
-                    [
-                    ]
-                ),
-                ["missile_1"] = (
-                    ["s11h/model/7f5f.kmd"],
-                    ("airframe", 5),
-                    [
-                    ]
-                ),
-                ["trail_1"] = (
-                    [
-                        "s00a/model/8075.kmd",
-                        "s00a/model/8076.kmd",
-                        "s00a/model/8077.kmd",
-                    ],
-                    ("missile_1", 0),
-                    [
-                    ]
-                ),
-                ["missile_2"] = (
-                    ["s11h/model/7f5f.kmd"],
-                    ("airframe", 6),
-                    [
-                    ]
-                ),
-                ["trail_2"] = (
-                    [
-                        "s00a/model/8075.kmd",
-                        "s00a/model/8076.kmd",
-                        "s00a/model/8077.kmd",
-                    ],
-                    ("missile_2", 0),
-                    [
-                    ]
-                ),
-                ["missile_3"] = (
-                    ["s11h/model/7f5f.kmd"],
-                    ("airframe", 7),
-                    [
-                    ]
-                ),
-                ["trail_3"] = (
-                    [
-                        "s00a/model/8075.kmd",
-                        "s00a/model/8076.kmd",
-                        "s00a/model/8077.kmd",
-                    ],
-                    ("missile_3", 0),
-                    [
-                    ]
-                ),
-                ["missile_4"] = (
-                    ["s11h/model/7f5f.kmd"],
-                    ("airframe", 8),
-                    [
-                    ]
-                ),
-                ["trail_4"] = (
-                    [
-                        "s00a/model/8075.kmd",
-                        "s00a/model/8076.kmd",
-                        "s00a/model/8077.kmd",
-                    ],
-                    ("missile_4", 0),
-                    [
-                    ]
-                ),
-                //["gear_a"] = (
-                //    ["s11h/model/647f.kmd"],
-                //    null,
-                //    [
-                //    ]
-                //),
-                //["gear_b"] = (
-                //    ["s11h/model/6485.kmd"],
-                //    null,
-                //    [
-                //    ]
-                //),
-                //["gear_c"] = (
-                //    ["s11h/model/6479.kmd"],
-                //    null,
-                //    [
-                //    ]
-                //),
             },
         ];
 
