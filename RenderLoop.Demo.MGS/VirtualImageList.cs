@@ -6,6 +6,7 @@ namespace RenderLoop.Demo.MGS
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
@@ -16,13 +17,15 @@ namespace RenderLoop.Demo.MGS
         private const int ImageSize = 128;
         private readonly List<T> items;
         private readonly Func<T, Task<Bitmap>> getImage;
+        private readonly InterpolationMode interpolation;
         private readonly Dictionary<T, Task<Bitmap>> images = [];
         private readonly SemaphoreSlim semaphore = new(5);
 
-        public VirtualImageList(IEnumerable<T> items, Func<T, Task<Bitmap>> getImage)
+        public VirtualImageList(IEnumerable<T> items, Func<T, Task<Bitmap>> getImage, InterpolationMode interpolation = InterpolationMode.Default)
         {
             this.items = [.. items];
             this.getImage = getImage;
+            this.interpolation = interpolation;
             this.DoubleBuffered = true;
         }
 
@@ -98,7 +101,10 @@ namespace RenderLoop.Demo.MGS
                 var dx = destRect.X + (destRect.Width - drawWidth) / 2;
                 var dy = destRect.Y + (destRect.Height - drawHeight) / 2;
 
+                var state = e.Graphics.Save();
+                e.Graphics.InterpolationMode = this.interpolation;
                 e.Graphics.DrawImage(bmp, new RectangleF(dx, dy, drawWidth, drawHeight));
+                e.Graphics.Restore(state);
             }
 
             for (var row = rowStart; row < rowEnd; row++)

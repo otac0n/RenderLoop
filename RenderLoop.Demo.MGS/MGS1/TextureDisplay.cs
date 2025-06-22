@@ -4,6 +4,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 {
     using System;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.IO;
     using System.Threading.Tasks;
     using System.Windows.Forms;
@@ -27,7 +28,8 @@ namespace RenderLoop.Demo.MGS.MGS1
                     using var textureFile = stageDir.File.OpenRead(file);
                     textureFile.Seek(2, SeekOrigin.Current);
                     return Task.FromResult(Model.ReadMgsPcx(textureFile));
-                })
+                },
+                InterpolationMode.NearestNeighbor)
             {
                 AutoSize = true,
                 Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
