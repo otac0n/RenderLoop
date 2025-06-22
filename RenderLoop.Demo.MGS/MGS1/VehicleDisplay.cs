@@ -292,6 +292,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.models = new();
 
             this.Camera.Up = new Vector3(0, 1, 0);
+            this.Camera.NearPlane = 1.0f;
 
             this.display.Size = new(640, 480);
         }
@@ -396,6 +397,11 @@ namespace RenderLoop.Demo.MGS.MGS1
                     void main()
                     {
                         color = texture(uniform_texture, fragment_textureCoords);
+                        if (color.a <= 0.5)
+                        {
+                            discard;
+                        }
+                        color.a = 1;
                     }
                 """);
 

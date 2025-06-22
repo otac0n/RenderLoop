@@ -48,6 +48,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.activeModel = Random.Shared.Next(this.models.Count);
 
             this.Camera.Up = new Vector3(0, 1, 0);
+            this.Camera.NearPlane = 1.0f;
 
             this.display.Size = new(640, 480);
         }
@@ -139,6 +140,10 @@ namespace RenderLoop.Demo.MGS.MGS1
                     void main()
                     {
                         color = texture(uniform_texture, fragment_textureCoords);
+                        if (color.a == 0)
+                        {
+                            discard;
+                        }
                     }
                 """);
 
@@ -264,10 +269,6 @@ namespace RenderLoop.Demo.MGS.MGS1
                         this.gl.DrawStrip(vertices, this.shader);
                     }
                 }
-
-                //using var textBrush = new SolidBrush(this.display.ForeColor);
-                //var paths = string.Join(Environment.NewLine, this.models[this.activeModel].path.Select((p, i) => (i > 0 ? new string(' ', i * 2) + "└" : "") + p));
-                //g.DrawString(paths, this.display.Font, textBrush, PointF.Empty);
             });
         }
     }
