@@ -26,7 +26,6 @@ namespace RenderLoop.Demo.MGS.MGS1
                 file =>
                 {
                     using var textureFile = stageDir.File.OpenRead(file);
-                    textureFile.Seek(2, SeekOrigin.Current);
                     return Task.FromResult(Model.ReadMgsPcx(textureFile));
                 },
                 InterpolationMode.NearestNeighbor)

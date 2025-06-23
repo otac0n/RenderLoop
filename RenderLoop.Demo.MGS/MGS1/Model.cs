@@ -33,16 +33,15 @@ namespace RenderLoop.Demo.MGS.MGS1
             }
         }
 
-        public static Bitmap? ReadMgsPcx(Stream stream)
+        public static Bitmap? ReadMgsPcx(Stream pcxStream)
         {
             try
             {
-                using var pcxStream = new OffsetStreamSpan(stream, 8, stream.Length - 8);
                 using var image = new MagickImage(pcxStream);
                 using var bitmap = image.ToBitmap();
 
-                // MGS doesn't use the last (few?) pixel in the y-direction and treats black as fully transparent.
-                var result = new Bitmap(bitmap.Width, Math.Max(bitmap.Height - 1, 1));
+                // MGS treats black as fully transparent.
+                var result = new Bitmap(bitmap.Width, bitmap.Height);
                 var bmp1 = bitmap.LockBits(new Rectangle(default, result.Size), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
                 var bmp2 = result.LockBits(new Rectangle(default, result.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
                 var scanIn = bmp1.Scan0;

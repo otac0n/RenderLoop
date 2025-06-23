@@ -123,7 +123,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
                 var key = $"{group}/{id}.{ext}";
 
-                entries.Add((key, offset + relative, size));
+                entries.Add((key, offset + relative + 8, size));
 
                 relative += 8 + size;
             }

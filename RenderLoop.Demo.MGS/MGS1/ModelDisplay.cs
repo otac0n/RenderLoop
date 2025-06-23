@@ -5,6 +5,7 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System;
     using System.Collections.Generic;
     using System.Drawing;
+    using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Numerics;
@@ -100,10 +101,8 @@ namespace RenderLoop.Demo.MGS.MGS1
             {
                 if (this.stageDir.File.Exists(file))
                 {
-                    var buffer = new byte[2];
                     using var textureFile = this.stageDir.File.OpenRead(file);
-                    textureFile.ReadExactly(buffer, 2);
-                    texture.id = BitConverter.ToUInt16(buffer, 0);
+                    texture.id = ushort.Parse(Path.GetFileNameWithoutExtension(file), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
                     texture.texture = Model.ReadMgsPcx(textureFile);
                 }
 
