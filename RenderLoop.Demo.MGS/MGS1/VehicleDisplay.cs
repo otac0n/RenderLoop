@@ -22,6 +22,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             {
                 ////"opening/model/1b61.kmd" caustics
                 ////"opening/model/1e7c.kmd" forward tubes
+                ////"opening/model/998f.kmd" forward tube covers
                 ////"opening/model/d82d.kmd" bridge
                 ["body"] = (
                     ["opening/model/db03.kmd"],
@@ -31,7 +32,8 @@ namespace RenderLoop.Demo.MGS.MGS1
             },
             new()
             {
-                ////"opening/model/1954.kmd" "opening/model/5e94.kmd" "opening/model/a3b7.kmd" exterior
+                ////"opening/model/1954.kmd" launch
+                ////"opening/model/5e94.kmd" "opening/model/a3b7.kmd" exterior
                 ////"opening/model/253a.kmd" interior
                 ////"opening/model/2cb0.kmd" hatch
                 ////"opening/model/3824.kmd" caustics
@@ -39,7 +41,7 @@ namespace RenderLoop.Demo.MGS.MGS1
                 ////"opening/model/b1d0.kmd" open
                 ////"opening/model/b7cf.kmd" interior 2
                 ["exterior"] = (
-                    ["opening/model/1954.kmd"],
+                    ["opening/model/5e94.kmd"],
                     null,
                     []
                 ),
@@ -317,14 +319,20 @@ namespace RenderLoop.Demo.MGS.MGS1
             {
                 ////"ending/model/00d6.kmd" "ending/model/e6ea.kmd" full
                 ////"ending/model/e44e.kmd" body
-                ////"ending/model/f62e.kmd" "ending/model/f62f.kmd" screen 1
+                ////"ending/model/f62e.kmd" screen outer
+                ////"ending/model/f62f.kmd" screen inner
                 ["body"] = (
-                    ["ending/model/00d6.kmd", "ending/model/e6ea.kmd"],
+                    ["ending/model/e6ea.kmd"],
                     null,
                     []
                 ),
-                ["screen"] = (
-                    ["ending/model/f62e.kmd", "ending/model/f62f.kmd"],
+                ["screen1"] = (
+                    ["ending/model/f62e.kmd"],
+                    null,
+                    []
+                ),
+                ["screen2"] = (
+                    ["ending/model/f62f.kmd"],
                     null,
                     []
                 ),

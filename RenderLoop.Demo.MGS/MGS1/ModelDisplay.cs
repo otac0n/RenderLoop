@@ -44,7 +44,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             var options = serviceProvider.GetRequiredService<MGS.Program.Options>();
             this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
-            this.models = Model.UnpackModels(this.stageDir).Select(m => (new[] { Path.Combine(options.SteamApps, WellKnownPaths.AllDataBin), WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).ToList();
+            this.models = Model.UnpackModels(this.stageDir).Select(m => (paths: new[] { Path.Combine(options.SteamApps, WellKnownPaths.AllDataBin), WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).OrderBy(m => m.paths[3]).ToList();
             this.activeModel = Random.Shared.Next(this.models.Count);
 
             this.Camera.Up = new Vector3(0, 1, 0);
