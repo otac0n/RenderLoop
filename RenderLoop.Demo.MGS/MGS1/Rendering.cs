@@ -32,7 +32,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             () => """
                 #version 330 core
                 uniform sampler2D uniform_texture;
-                uniform float fragment_opacity;
+                uniform float uniform_opactiy;
                 in vec2 fragment_textureCoords;
                 out vec4 color;
                 void main()
@@ -42,14 +42,14 @@ namespace RenderLoop.Demo.MGS.MGS1
                     {
                         discard;
                     }
-                    color.a = fragment_opacity;
+                    color.a = uniform_opactiy;
                 }
             """);
 
         public static void RenderMeshes(GL gl, Camera camera, ShaderHandle shader, Func<ushort, TextureHandle?> getTexture, IEnumerable<Mesh> meshes)
         {
             shader.SetUniform("uniform_cameraMatrix", camera.Matrix);
-            shader.SetUniform("fragment_opacity", 1.0f);
+            shader.SetUniform("uniform_opactiy", 1.0f);
 
             var anyTransparent = false;
             foreach (var mesh in meshes)
@@ -85,7 +85,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             if (anyTransparent)
             {
-                shader.SetUniform("fragment_opacity", 0.5f);
+                shader.SetUniform("uniform_opactiy", 0.5f);
 
                 foreach (var mesh in meshes)
                 {
