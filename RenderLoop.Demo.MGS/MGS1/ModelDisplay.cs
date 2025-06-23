@@ -9,17 +9,21 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Linq;
     using System.Numerics;
     using DevDecoder.HIDDevices.Usages;
+    using ImGuiNET;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Input;
     using RenderLoop.SilkRenderer.GL;
+    using Silk.NET.Input;
     using Silk.NET.OpenGL;
+    using Silk.NET.OpenGL.Extensions.ImGui;
     using Silk.NET.Windowing;
 
     public class ModelDisplay : GameLoop
     {
         private static readonly double ModelDisplaySeconds = 10.0;
         private readonly IWindow display;
-        protected GL gl;
+        private GL gl;
+        private ImGuiController controller = null;
         private ShaderHandle<(Vector3 position, Vector2 uv)> shader;
         private readonly Camera Camera = new();
         private int frame;
@@ -113,6 +117,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         {
             this.gl = GL.GetApi(this.display);
             this.display.FramebufferResize += size => this.gl.Viewport(size);
+            this.controller = new ImGuiController(this.gl, this.display, this.display.CreateInput());
 
             this.shader = Rendering.MakeDefaultShader(this.gl);
 
@@ -124,6 +129,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         protected override void AdvanceFrame(TimeSpan elapsed)
         {
             this.frame++;
+            this.controller.Update((float)elapsed.TotalSeconds);
 
             var targetModel = this.activeModel;
             var moveVector = Vector3.Zero;
@@ -225,6 +231,16 @@ namespace RenderLoop.Demo.MGS.MGS1
                 TextureHandle? GetTexture(ushort id) => this.textureLookup.TryGetValue(id, out var handle) ? handle : null;
                 Rendering.RenderMeshes(this.gl, this.Camera, this.shader, GetTexture, this.models[this.activeModel].model.Meshes);
             });
+
+            var paths = string.Join(Environment.NewLine, this.models[this.activeModel].path.Select((p, i) => new string(' ', i * 2) + p));
+            ImGui.SetNextWindowPos(Vector2.Zero);
+            ImGui.SetNextWindowSize(new Vector2(this.display.FramebufferSize.X, this.display.FramebufferSize.Y));
+            ImGui.Begin("Path", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.DockNodeHost);
+            ImGui.BeginChild("PathsMultilineLabel", Vector2.Zero);
+            ImGui.TextUnformatted(paths);
+            ImGui.EndChild();
+            ImGui.End();
+            this.controller.Render();
         }
     }
 }
