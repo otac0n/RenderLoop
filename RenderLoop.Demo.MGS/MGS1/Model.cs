@@ -12,11 +12,12 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Runtime.InteropServices;
     using ImageMagick;
     using RenderLoop.Demo.MGS.MGS1.Archives;
+    using Bounds = (System.Numerics.Vector3 Start, System.Numerics.Vector3 End);
     using Point = (int x, int y, int z);
 
     public class Model
     {
-        public Model(Mesh[] meshes)
+        public Model(Bounds bounds, Mesh[] meshes)
         {
             this.Meshes = meshes;
         }
@@ -83,15 +84,15 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             var totalFaces = BitConverter.ToUInt32(buffer, 0);
             var meshCount = BitConverter.ToUInt32(buffer, 4);
-            ////var totalBounds = (
-            ////    start: (
-            ////        x: BitConverter.ToInt32(buffer, 8),
-            ////        y: BitConverter.ToInt32(buffer, 12),
-            ////        z: BitConverter.ToInt32(buffer, 16)),
-            ////    end: (
-            ////        x: BitConverter.ToInt32(buffer, 20),
-            ////        y: BitConverter.ToInt32(buffer, 24),
-            ////        z: BitConverter.ToInt32(buffer, 28)));
+            var totalBounds = (
+                start: new Vector3(
+                    x: BitConverter.ToInt32(buffer, 8),
+                    y: BitConverter.ToInt32(buffer, 12),
+                    z: BitConverter.ToInt32(buffer, 16)),
+                end: new Vector3(
+                    x: BitConverter.ToInt32(buffer, 20),
+                    y: BitConverter.ToInt32(buffer, 24),
+                    z: BitConverter.ToInt32(buffer, 28)));
 
             var meshes = new List<Mesh>((int)meshCount);
             var offsets = new List<Point>();
@@ -101,20 +102,21 @@ namespace RenderLoop.Demo.MGS.MGS1
 
                 var flags = BitConverter.ToUInt32(buffer, 0);
                 var faceCount = BitConverter.ToUInt32(buffer, 4);
-                ////var bounds = (
-                ////    start: (
-                ////        x: BitConverter.ToInt32(buffer, 8),
-                ////        y: BitConverter.ToInt32(buffer, 12),
-                ////        z: BitConverter.ToInt32(buffer, 16)),
-                ////    end: (
-                ////        x: BitConverter.ToInt32(buffer, 20),
-                ////        y: BitConverter.ToInt32(buffer, 24),
-                ////        z: BitConverter.ToInt32(buffer, 28)));
+                var bounds = (
+                    start: new Vector3(
+                        x: BitConverter.ToInt32(buffer, 8),
+                        y: BitConverter.ToInt32(buffer, 12),
+                        z: BitConverter.ToInt32(buffer, 16)),
+                    end: new Vector3(
+                        x: BitConverter.ToInt32(buffer, 20),
+                        y: BitConverter.ToInt32(buffer, 24),
+                        z: BitConverter.ToInt32(buffer, 28)));
                 var relativePoint = new Vector3(
                     x: BitConverter.ToInt32(buffer, 32),
                     y: BitConverter.ToInt32(buffer, 36),
                     z: BitConverter.ToInt32(buffer, 40));
-                var baseCoord = BitConverter.ToInt32(buffer, 44);
+                var relativeIndex = BitConverter.ToInt32(buffer, 44);
+                var unkonwn1 = BitConverter.ToUInt32(buffer, 48);
                 var vertexCount = BitConverter.ToUInt32(buffer, 52);
                 var vertexAddress = BitConverter.ToUInt32(buffer, 56);
                 var vertexIndexAddress = BitConverter.ToUInt32(buffer, 60);
@@ -123,8 +125,9 @@ namespace RenderLoop.Demo.MGS.MGS1
                 var normalIndexAddress = BitConverter.ToUInt32(buffer, 72);
                 var texCoordAddress = BitConverter.ToUInt32(buffer, 76);
                 var textureAddress = BitConverter.ToUInt32(buffer, 80);
+                var unkonwn2 = BitConverter.ToUInt32(buffer, 84);
 
-                var relativeMesh = baseCoord != -1 && !(baseCoord == 0 && m == 0) ? meshes[baseCoord] : null;
+                var relativeMesh = relativeIndex != -1 && !(relativeIndex == 0 && m == 0) ? meshes[relativeIndex] : null;
                 var baseOffset = stream.Position;
 
                 var vertices = new Vector3[vertexCount];
@@ -201,17 +204,21 @@ namespace RenderLoop.Demo.MGS.MGS1
 
                 meshes.Add(
                     new Mesh(
+                        (DrawingFlags)flags,
+                        bounds,
                         relativePoint,
+                        relativeMesh,
+                        unkonwn1,
                         vertices,
-                        texCoords,
                         normals,
+                        texCoords,
                         faces,
-                        relativeMesh));
+                        unkonwn2));
 
                 stream.Seek(baseOffset, SeekOrigin.Begin);
             }
 
-            return new Model([.. meshes]);
+            return new Model(totalBounds, [.. meshes]);
         }
     }
 }

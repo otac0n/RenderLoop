@@ -437,39 +437,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.gl = GL.GetApi(this.display);
             this.display.FramebufferResize += size => this.gl.Viewport(size);
 
-            this.shader = new ShaderHandle<(Vector3 position, Vector2 uv)>(
-                this.gl,
-                [
-                    (3, VertexAttribPointerType.Float, sizeof(float)),
-                    (2, VertexAttribPointerType.Float, sizeof(float)),
-                ],
-                () => """
-                    #version 330 core
-                    layout (location = 0) in vec3 vertex_position;
-                    layout (location = 1) in vec2 vertex_textureCoords;
-                    uniform mat4 uniform_cameraMatrix;
-                    out vec2 fragment_textureCoords;
-                    void main()
-                    {
-                        gl_Position = uniform_cameraMatrix * vec4(vertex_position, 1.0);
-                        fragment_textureCoords = vertex_textureCoords;
-                    }
-                """,
-                () => """
-                    #version 330 core
-                    uniform sampler2D uniform_texture;
-                    in vec2 fragment_textureCoords;
-                    out vec4 color;
-                    void main()
-                    {
-                        color = texture(uniform_texture, fragment_textureCoords);
-                        if (color.a <= 0.5)
-                        {
-                            discard;
-                        }
-                        color.a = 1;
-                    }
-                """);
+            this.shader = Rendering.MakeDefaultShader(this.gl);
 
             this.gl.Enable(EnableCap.Blend);
             this.gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
@@ -637,25 +605,8 @@ namespace RenderLoop.Demo.MGS.MGS1
             {
                 this.Camera.Width = this.display.FramebufferSize.X;
                 this.Camera.Height = this.display.FramebufferSize.Y;
-
-                this.shader.SetUniform("uniform_cameraMatrix", this.Camera.Matrix);
-
-                var (_, parts) = this.models[this.activeModel];
-                foreach (var (_, versions) in parts)
-                {
-                    foreach (var mesh in versions[0].Meshes)
-                    {
-                        foreach (var face in mesh.Faces)
-                        {
-                            this.textureLookup.TryGetValue(face.TextureId, out var texture);
-                            texture?.Activate();
-                            this.shader.SetUniform("uniform_texture", 0);
-
-                            var vertices = face.VertexIndices.Select((i, j) => (position: mesh.Vertices[i], uv: mesh.TextureCoords[face.TextureIndices[j]])).ToArray();
-                            this.gl.DrawStrip(vertices, this.shader);
-                        }
-                    }
-                }
+                TextureHandle? GetTexture(ushort id) => this.textureLookup.TryGetValue(id, out var handle) ? handle : null;
+                Rendering.RenderMeshes(this.gl, this.Camera, this.shader, GetTexture, this.models[this.activeModel].parts.Values.SelectMany(p => p[0].Meshes));
             });
         }
     }
