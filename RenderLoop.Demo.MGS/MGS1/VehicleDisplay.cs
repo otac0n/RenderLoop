@@ -165,6 +165,19 @@ namespace RenderLoop.Demo.MGS.MGS1
             },
             new()
             {
+                ["body"] = (
+                    ["s02a/model/6d66.kmd"],
+                    null,
+                    []
+                ),
+                ["turret"] = (
+                    ["s02a/model/6d65.kmd"],
+                    ("body", 0),
+                    []
+                ),
+            },
+            new()
+            {
                 ["projectile"] = (
                     ["s05a/model/3dcc.kmd"],
                     ("chassis", 5),
