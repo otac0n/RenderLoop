@@ -25,5 +25,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         }
 
         public DrawingFlags Flags { get; }
+
+        public new Face[] Faces => (Face[])base.Faces;
     }
 }

@@ -120,18 +120,6 @@ namespace RenderLoop.Demo.MGS.MGS1
                 var textureCoordData = MemoryMarshal.Cast<byte, (byte U, byte V)>(fileSpan[(int)meshDefinitions[m].TextureCoordOffset..])[0..(int)texCoordCount];
                 var textureData = MemoryMarshal.Cast<byte, ushort>(fileSpan[(int)meshDefinitions[m].TextureOffset..])[0..(int)faceCount];
 
-                for (var v = 0; v < faceCount; v++)
-                {
-                    var (a, b, c, d) = vertexIndexData[v];
-                    faces[v].VertexIndices = [b, a, c, d];
-                }
-
-                for (var v = 0; v < faceCount; v++)
-                {
-                    var (a, b, c, d) = normalIndexData[v];
-                    faces[v].NormalIndices = [b, a, c, d];
-                }
-
                 var texCoords = new Vector2[texCoordCount];
                 for (var t = 0; t < texCoords.Length; t++)
                 {
@@ -142,12 +130,13 @@ namespace RenderLoop.Demo.MGS.MGS1
 
                 for (var v = 0; v < faceCount; v++)
                 {
-                    faces[v].TextureId = textureData[v];
-                }
-
-                for (var v = 0u; v < faceCount; v++)
-                {
-                    faces[v].TextureIndices = [4 * v + 1, 4 * v + 0, 4 * v + 2, 4 * v + 3];
+                    var (vA, vB, vC, vD) = vertexIndexData[v];
+                    var (nA, nB, nC, nD) = normalIndexData[v];
+                    faces[v] = new Face(
+                        textureData[v],
+                        [vB, vA, vC, vD],
+                        [nB, nA, nC, nD],
+                        [(uint)(4 * v + 1), (uint)(4 * v + 0), (uint)(4 * v + 2), (uint)(4 * v + 3)]);
                 }
 
                 meshes.Add(
