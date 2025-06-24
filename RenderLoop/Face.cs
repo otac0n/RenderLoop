@@ -2,17 +2,14 @@
 
 namespace RenderLoop
 {
-    public struct Face
+    public class Face
     {
-        public Face(ushort textureId, uint[] vertexIndices, uint[] normalIndices, uint[] textureIndices)
+        public Face(uint[] vertexIndices, uint[] normalIndices, uint[] textureIndices)
         {
-            this.TextureId = textureId;
             this.VertexIndices = vertexIndices;
             this.NormalIndices = normalIndices;
             this.TextureIndices = textureIndices;
         }
-
-        public ushort TextureId { get; set; }
 
         public uint[] VertexIndices { get; set; }
 
