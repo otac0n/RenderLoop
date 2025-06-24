@@ -11,9 +11,7 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Numerics;
     using System.Runtime.InteropServices;
     using ImageMagick;
-    using RenderLoop.Demo.MGS.MGS1.Archives;
     using Bounds = (System.Numerics.Vector3 Start, System.Numerics.Vector3 End);
-    using Point = (int x, int y, int z);
 
     public class Model
     {
@@ -78,146 +76,130 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         public static Model FromStream(Stream stream)
         {
-            var buffer = new byte[128];
-            stream.ReadExactly(buffer, 32);
+            static Vector3 V(Point p) => new(p.X, p.Y, p.Z);
 
-            var totalFaces = BitConverter.ToUInt32(buffer, 0);
-            var meshCount = BitConverter.ToUInt32(buffer, 4);
-            var totalBounds = (
-                start: new Vector3(
-                    x: BitConverter.ToInt32(buffer, 8),
-                    y: BitConverter.ToInt32(buffer, 12),
-                    z: BitConverter.ToInt32(buffer, 16)),
-                end: new Vector3(
-                    x: BitConverter.ToInt32(buffer, 20),
-                    y: BitConverter.ToInt32(buffer, 24),
-                    z: BitConverter.ToInt32(buffer, 28)));
+            var buffer = new byte[stream.Length];
+            var fileSpan = buffer.AsSpan();
+            stream.ReadExactly(fileSpan);
+            var header = MemoryMarshal.Cast<byte, Header>(fileSpan)[0];
+            var meshDefinitions = MemoryMarshal.Cast<byte, MeshDefinition>(fileSpan[32..])[0..(int)header.MeshCount];
 
-            var meshes = new List<Mesh>((int)meshCount);
-            var offsets = new List<Point>();
-            for (var m = 0; m < meshCount; m++)
+            var meshes = new List<Mesh>((int)header.MeshCount);
+            for (var m = 0; m < header.MeshCount; m++)
             {
-                stream.ReadExactly(buffer, 88);
+                var relativeMesh = meshDefinitions[m].RelativeIndex != -1 && !(meshDefinitions[m].RelativeIndex == 0 && m == 0) ? meshes[meshDefinitions[m].RelativeIndex] : null;
 
-                var flags = BitConverter.ToUInt32(buffer, 0);
-                var faceCount = BitConverter.ToUInt32(buffer, 4);
-                var bounds = (
-                    start: new Vector3(
-                        x: BitConverter.ToInt32(buffer, 8),
-                        y: BitConverter.ToInt32(buffer, 12),
-                        z: BitConverter.ToInt32(buffer, 16)),
-                    end: new Vector3(
-                        x: BitConverter.ToInt32(buffer, 20),
-                        y: BitConverter.ToInt32(buffer, 24),
-                        z: BitConverter.ToInt32(buffer, 28)));
-                var relativePoint = new Vector3(
-                    x: BitConverter.ToInt32(buffer, 32),
-                    y: BitConverter.ToInt32(buffer, 36),
-                    z: BitConverter.ToInt32(buffer, 40));
-                var relativeIndex = BitConverter.ToInt32(buffer, 44);
-                var unkonwn1 = BitConverter.ToUInt32(buffer, 48);
-                var vertexCount = BitConverter.ToUInt32(buffer, 52);
-                var vertexAddress = BitConverter.ToUInt32(buffer, 56);
-                var vertexIndexAddress = BitConverter.ToUInt32(buffer, 60);
-                var normalCount = BitConverter.ToUInt32(buffer, 64);
-                var normalAddress = BitConverter.ToUInt32(buffer, 68);
-                var normalIndexAddress = BitConverter.ToUInt32(buffer, 72);
-                var texCoordAddress = BitConverter.ToUInt32(buffer, 76);
-                var textureAddress = BitConverter.ToUInt32(buffer, 80);
-                var unkonwn2 = BitConverter.ToUInt32(buffer, 84);
-
-                var relativeMesh = relativeIndex != -1 && !(relativeIndex == 0 && m == 0) ? meshes[relativeIndex] : null;
-                var baseOffset = stream.Position;
-
+                var vertexCount = meshDefinitions[m].VertexCount;
                 var vertices = new Vector3[vertexCount];
-                stream.Seek(vertexAddress, SeekOrigin.Begin);
+                var vertexData = MemoryMarshal.Cast<byte, (short X, short Y, short Z, short W)>(fileSpan[(int)meshDefinitions[m].VertexOffset..])[0..(int)vertexCount];
                 for (var v = 0; v < vertexCount; v++)
                 {
-                    stream.ReadExactly(buffer, 8);
                     // Not using W.
-                    vertices[v] = new Vector3(
-                        BitConverter.ToInt16(buffer, 0),
-                        BitConverter.ToInt16(buffer, 2),
-                        BitConverter.ToInt16(buffer, 4));
+                    vertices[v] = new(
+                        vertexData[v].X,
+                        vertexData[v].Y,
+                        vertexData[v].Z);
                 }
 
+                var normalCount = meshDefinitions[m].NormalCount;
+                var normalData = MemoryMarshal.Cast<byte, (short X, short Y, short Z, short W)>(fileSpan[(int)meshDefinitions[m].NormalOffset..])[0..(int)normalCount];
                 var normals = new Vector3[normalCount];
-                stream.Seek(normalAddress, SeekOrigin.Begin);
                 for (var n = 0; n < normalCount; n++)
                 {
-                    stream.ReadExactly(buffer, 8);
                     normals[n] = new Vector3(
-                        BitConverter.ToInt16(buffer, 0) / -(float)short.MinValue,
-                        BitConverter.ToInt16(buffer, 2) / -(float)short.MinValue,
-                        BitConverter.ToInt16(buffer, 4) / -(float)short.MinValue);
+                        normalData[n].X / -(float)short.MinValue,
+                        normalData[n].Y / -(float)short.MinValue,
+                        normalData[n].Z / -(float)short.MinValue);
                 }
 
-                var texCoords = new Vector2[(textureAddress - texCoordAddress) / 2];
-                stream.Seek(texCoordAddress, SeekOrigin.Begin);
+                var faceCount = meshDefinitions[m].FaceCount;
+                var faces = new Face[faceCount];
+                var vertexIndexData = MemoryMarshal.Cast<byte, (byte A, byte B, byte C, byte D)>(fileSpan[(int)meshDefinitions[m].VertexIndexOffset..])[0..(int)faceCount];
+                var normalIndexData = MemoryMarshal.Cast<byte, (byte A, byte B, byte C, byte D)>(fileSpan[(int)meshDefinitions[m].NormalIndexOffset..])[0..(int)faceCount];
+                var texCoordCount = (meshDefinitions[m].TextureOffset - meshDefinitions[m].TextureCoordOffset) / 2;
+                var textureCoordData = MemoryMarshal.Cast<byte, (byte U, byte V)>(fileSpan[(int)meshDefinitions[m].TextureCoordOffset..])[0..(int)texCoordCount];
+                var textureData = MemoryMarshal.Cast<byte, ushort>(fileSpan[(int)meshDefinitions[m].TextureOffset..])[0..(int)faceCount];
+
+                for (var v = 0; v < faceCount; v++)
+                {
+                    var (a, b, c, d) = vertexIndexData[v];
+                    faces[v].VertexIndices = [b, a, c, d];
+                }
+
+                for (var v = 0; v < faceCount; v++)
+                {
+                    var (a, b, c, d) = normalIndexData[v];
+                    faces[v].NormalIndices = [b, a, c, d];
+                }
+
+                var texCoords = new Vector2[texCoordCount];
                 for (var t = 0; t < texCoords.Length; t++)
                 {
-                    stream.ReadExactly(buffer, 2);
                     texCoords[t] = new Vector2(
-                        buffer[0] / 256.0f,
-                        buffer[1] / 256.0f);
+                        textureCoordData[t].U / 256.0f,
+                        textureCoordData[t].V / 256.0f);
                 }
 
-                var faces = new Face[faceCount];
-
-                stream.Seek(vertexIndexAddress, SeekOrigin.Begin);
                 for (var v = 0; v < faceCount; v++)
                 {
-                    var indices = new byte[4];
-                    stream.ReadExactly(indices, 4);
-                    (indices[0], indices[1]) = (indices[1], indices[0]);
-                    faces[v].VertexIndices = Array.ConvertAll(indices, i => (uint)i);
-                }
-
-                stream.Seek(normalIndexAddress, SeekOrigin.Begin);
-                for (var v = 0; v < faceCount; v++)
-                {
-                    var indices = new byte[4];
-                    stream.ReadExactly(indices, 4);
-                    (indices[0], indices[1]) = (indices[1], indices[0]);
-                    faces[v].NormalIndices = Array.ConvertAll(indices, i => (uint)i);
-                }
-
-                stream.Seek(textureAddress, SeekOrigin.Begin);
-                for (var v = 0; v < faceCount; v++)
-                {
-                    stream.ReadExactly(buffer, 2);
-                    faces[v].TextureId = BitConverter.ToUInt16(buffer, 0);
+                    faces[v].TextureId = textureData[v];
                 }
 
                 for (var v = 0u; v < faceCount; v++)
                 {
-                    uint[] indices = [
-                        4 * v + 0,
-                        4 * v + 1,
-                        4 * v + 2,
-                        4 * v + 3
-                    ];
-                    (indices[0], indices[1]) = (indices[1], indices[0]);
-                    faces[v].TextureIndices = indices;
+                    faces[v].TextureIndices = [4 * v + 1, 4 * v + 0, 4 * v + 2, 4 * v + 3];
                 }
 
                 meshes.Add(
                     new Mesh(
-                        (DrawingFlags)flags,
-                        bounds,
-                        relativePoint,
+                        (DrawingFlags)meshDefinitions[m].Flags,
+                        (V(meshDefinitions[m].Min), V(meshDefinitions[m].Max)),
+                        V(meshDefinitions[m].RelativeOrigin),
                         relativeMesh,
-                        unkonwn1,
                         vertices,
                         normals,
                         texCoords,
-                        faces,
-                        unkonwn2));
-
-                stream.Seek(baseOffset, SeekOrigin.Begin);
+                        faces));
             }
 
-            return new Model(totalBounds, [.. meshes]);
+            return new Model((V(header.Min), V(header.Max)), [.. meshes]);
+        }
+
+        private struct Point
+        {
+            public int X;
+            public int Y;
+            public int Z;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Header
+        {
+            public uint FaceCount;
+            public uint MeshCount;
+            public Point Min;
+            public Point Max;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MeshDefinition
+        {
+            public uint Flags;
+            public uint FaceCount;
+            public Point Min;
+            public Point Max;
+            public Point RelativeOrigin;
+            public int RelativeIndex;
+            public uint UnkownA;
+            public uint VertexCount;
+            public uint VertexOffset;
+            public uint VertexIndexOffset;
+            public uint NormalCount;
+            public uint NormalOffset;
+            public uint NormalIndexOffset;
+            public uint TextureCoordOffset;
+            public uint TextureOffset;
+            public uint UnkownB;
         }
     }
 }
