@@ -107,9 +107,9 @@ namespace RenderLoop.Demo.MGS.MGS1
                 for (var n = 0; n < normalCount; n++)
                 {
                     normals[n] = new Vector3(
-                        normalData[n].X / -(float)short.MinValue,
-                        normalData[n].Y / -(float)short.MinValue,
-                        normalData[n].Z / -(float)short.MinValue);
+                        normalData[n].X / 4096f,
+                        normalData[n].Y / 4096f,
+                        normalData[n].Z / 4096f);
                 }
 
                 var faceCount = meshDefinitions[m].FaceCount;
@@ -136,8 +136,8 @@ namespace RenderLoop.Demo.MGS.MGS1
                 for (var t = 0; t < texCoords.Length; t++)
                 {
                     texCoords[t] = new Vector2(
-                        textureCoordData[t].U / 256.0f,
-                        textureCoordData[t].V / 256.0f);
+                        textureCoordData[t].U / 255f,
+                        textureCoordData[t].V / 255f);
                 }
 
                 for (var v = 0; v < faceCount; v++)
@@ -165,6 +165,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             return new Model((V(header.Min), V(header.Max)), [.. meshes]);
         }
 
+        [StructLayout(LayoutKind.Sequential)]
         private struct Point
         {
             public int X;
