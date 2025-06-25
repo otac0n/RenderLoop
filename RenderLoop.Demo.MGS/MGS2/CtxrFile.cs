@@ -14,8 +14,8 @@ namespace RenderLoop.Demo.MGS.MGS2
     {
         public static async Task<Bitmap> LoadAsync(string path)
         {
-            using var stream1 = File.OpenRead(path);
-            return await LoadAsync(stream1).ConfigureAwait(false);
+            using var stream = File.OpenRead(path);
+            return await LoadAsync(stream).ConfigureAwait(false);
         }
 
         public static async Task<Bitmap> LoadAsync(Stream stream)

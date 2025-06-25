@@ -98,7 +98,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             """" : string.Empty)}
 
             Below is the history. Introduce yourself and assist the user:
-            """;
+            """.ReplaceLineEndings("\n");
 
         private static readonly Dictionary<string, AnimationState.State> MoodMapping =
             (from v in Enum.GetValues<AnimationState.State>().Where(s => s != AnimationState.State.Invisible)
@@ -200,7 +200,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         {
             var now = DateTime.Now;
             var minute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, now.Kind);
-            if (this.LastMinute != minute)
+            if (this.LastMinute != minute && (this.activeTask?.Status ?? TaskStatus.RanToCompletion) != TaskStatus.Running)
             {
                 this.LastMinute = minute;
 

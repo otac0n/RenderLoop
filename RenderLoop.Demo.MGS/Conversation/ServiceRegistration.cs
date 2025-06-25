@@ -20,14 +20,14 @@ namespace RenderLoop.Demo.MGS.Conversation
         {
             { "Solid Snake", "en-US-DerekMultilingualNeural" },
             { "Roy Campbell", "en-US-LewisMultilingualNeural" },
-            ////{ "Naomi Hunter", "en-US-LunaNeural" },
+            { "Naomi Hunter", "en-GB-BellaNeural" },
             { "Mei Ling", "en-US-AmberNeural" },
             { "Hal Emmerich", "en-US-TonyNeural" },
-            { "Liquid Snake", "en-US-AndrewMultilingualNeural" },
-            ////{ "Nastasha Romanenko", "en-US-CoraNeural" },
+            { "Liquid Snake", "en-GB-RyanNeural" }, // "en-US-AndrewMultilingualNeural" - for miller
+            { "Nastasha Romanenko", "uk-UA-PolinaNeural" },
             { "Meryl Silverburgh", "en-US-AvaNeural" },
             { "Sniper Wolf", "en-US-NancyNeural" },
-            ////{ "Jim Houseman", "en-US-DavisNeural" },
+            { "Jim Houseman", "en-US-AdamMultilingualNeural" },
         }.ToImmutableDictionary();
 
         public static readonly ImmutableDictionary<string, (VoiceGender Gender, VoiceAge Age, string Culture)> VoiceHints = new Dictionary<string, (VoiceGender Gender, VoiceAge Age, string Culture)>()
