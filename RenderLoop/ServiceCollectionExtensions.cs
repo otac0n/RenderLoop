@@ -12,6 +12,19 @@ namespace RenderLoop
             TKey serviceKey,
             Func<IServiceProvider, TKey, TService> implementationFactory)
             where TService : class =>
-            services.AddKeyedSingleton<TService>(serviceKey, (IServiceProvider s, object? key) => implementationFactory(s, (TKey)key!));
+            services.AddKeyedSingleton<TService>(serviceKey, (s, key) => implementationFactory(s, (TKey)key!));
+
+        public static IServiceCollection AddKeyedTransient<TService, TKey>(
+            this IServiceCollection services,
+            TKey serviceKey,
+            Func<IServiceProvider, TKey, TService> implementationFactory)
+            where TService : class =>
+            services.AddKeyedTransient<TService>(serviceKey, (s, key) => implementationFactory(s, (TKey)key!));
+
+        public static IServiceCollection AddKeyedTransient<TService, TKey>(
+            this IServiceCollection services,
+            Func<IServiceProvider, TKey, TService> implementationFactory)
+            where TService : class =>
+            services.AddKeyedTransient<TService>(KeyedService.AnyKey, (s, key) => implementationFactory(s, (TKey)key!));
     }
 }
