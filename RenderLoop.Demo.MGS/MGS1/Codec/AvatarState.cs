@@ -5,11 +5,12 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using RenderLoop.Demo.MGS.Conversation.Voices;
+    using ConversationModel.Voices;
+    using Microsoft.Extensions.DependencyInjection;
 
     internal sealed class AvatarState : IDisposable
     {
-        private Voice voice;
+        private readonly Voice voice;
         private int eyeState;
         private DateTime? lastBlinkTime;
         private uint lastViseme;
@@ -17,12 +18,12 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
 
         public AvatarState(IServiceProvider serviceProvider, string voiceName)
         {
-            this.voice = Voice.GetVoice(serviceProvider, voiceName);
+            this.voice = serviceProvider.GetRequiredKeyedService<Voice>(voiceName);
             this.voice.MouthMoved += this.Voice_MouthMoved;
             this.voice.IndexReached += (e, a) => this.IndexReached?.Invoke(this, a);
         }
 
-        public event EventHandler<Voice.IndexReachedEventArgs>? IndexReached;
+        public event EventHandler<IndexReachedEventArgs>? IndexReached;
 
         public event EventHandler<EventArgs>? Updated;
 
@@ -88,7 +89,7 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             (this.voice as IDisposable)?.Dispose();
         }
 
-        private void Voice_MouthMoved(object? sender, Voice.MouthMovedEventArgs e)
+        private void Voice_MouthMoved(object? sender, MouthMovedEventArgs e)
         {
             var shape = this.Mouth;
             this.lastViseme = e.VisemeId;

@@ -14,11 +14,15 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using AnimatedGif;
+    using ConversationModel;
+    using ConversationModel.Responses;
     using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using RenderLoop.Demo.MGS.Conversation;
     using static RenderLoop.Demo.MGS.MGS1.Codec.CharacterMetadata;
     using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
@@ -27,7 +31,7 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
     {
         private static FontFamily Digital7 = LoadEmbeddedFont("digital-7.ttf");
 
-        private ConversationModel conversationModel;
+        private Model conversationModel;
         private static readonly string ConversationPrompt =
             """
             **LET THE WORLD BE**
@@ -133,7 +137,7 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             set => this.nameLabel.Text = value;
         }
 
-        public CodecDisplay(IServiceProvider serviceProvider)
+        public CodecDisplay(IServiceProvider serviceProvider, IBackend backend)
         {
             this.InitializeComponent();
             this.EnableDrag();
@@ -250,8 +254,8 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             if (lmOptions.LMEndpoint != null)
             {
                 var defaultVoice = new AvatarState(serviceProvider, "Unknown");
-                this.conversationModel = new ConversationModel(
-                    serviceProvider,
+                this.conversationModel = new Model(
+                    backend,
                     ConversationPrompt,
                     async (response, cancel) =>
                     {
@@ -272,12 +276,13 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
                         var text = await avatarState.SayAsync(response.Text, cancel).ConfigureAwait(false);
                         return response with { Text = text, Name = character };
                     },
-                    this.RunCodeWithUserReview);
+                    this.RunCodeWithUserReview,
+                    serviceProvider.GetService<ILogger<Model>>());
                 this.conversationModel.TokenReceived += this.ConversationModel_TokenReceived;
             }
         }
 
-        public Task<string> RunCodeWithUserReview(CodeResponse codeResponse)
+        public Task<string> RunCodeWithUserReview(CodeResponse codeResponse, CancellationToken cancel)
         {
             var tcs = new TaskCompletionSource<string>();
 
@@ -593,7 +598,7 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             this.Close();
         }
 
-        private void ConversationModel_TokenReceived(object? sender, ConversationModel.TokenReceivedArgs e)
+        private void ConversationModel_TokenReceived(object? sender, TokenReceivedEventArgs e)
         {
             var bogies = (this.progressIndicator.Tag as ImmutableList<Bogie>) ?? [];
             float x, y;

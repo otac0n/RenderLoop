@@ -4,7 +4,6 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
 {
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Speech.Synthesis;
 
     internal static class CharacterMetadata
     {
@@ -129,35 +128,6 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             ["Sniper Wolf"] = "141.12",
             ["Jim Houseman"] = "140.85",
             ["Gray Fox"] = "140.48",
-        }.ToImmutableDictionary();
-
-        public static readonly ImmutableDictionary<string, string> AssignedAzureVoices = new Dictionary<string, string>()
-        {
-            { "Solid Snake", "en-US-DerekMultilingualNeural" },
-            { "Roy Campbell", "en-US-LewisMultilingualNeural" },
-            ////{ "Naomi Hunter", "en-US-LunaNeural" },
-            { "Mei Ling", "en-US-AmberNeural" },
-            { "Hal Emmerich", "en-US-TonyNeural" },
-            { "Liquid Snake", "en-US-AndrewMultilingualNeural" },
-            ////{ "Nastasha Romanenko", "en-US-CoraNeural" },
-            { "Meryl Silverburgh", "en-US-AvaNeural" },
-            { "Sniper Wolf", "en-US-NancyNeural" },
-            ////{ "Jim Houseman", "en-US-DavisNeural" },
-        }.ToImmutableDictionary();
-
-        public static readonly ImmutableDictionary<string, (VoiceGender Gender, VoiceAge Age, string Culture)> VoiceHints = new Dictionary<string, (VoiceGender Gender, VoiceAge Age, string Culture)>()
-        {
-            { "Solid Snake", (VoiceGender.Male, VoiceAge.Adult, "en-US") },
-            { "Roy Campbell", (VoiceGender.Male, VoiceAge.Senior, "en-US") },
-            { "Naomi Hunter", (VoiceGender.Female, VoiceAge.Adult, "en-GB") },
-            { "Mei Ling", (VoiceGender.Female, VoiceAge.Teen, "ja-JP") },
-            { "Hal Emmerich", (VoiceGender.Male, VoiceAge.Teen, "en-US") },
-            { "Liquid Snake", (VoiceGender.Male, VoiceAge.Adult, "en-GB") },
-            { "Nastasha Romanenko", (VoiceGender.Female, VoiceAge.Adult, "uk-UA") },
-            { "Meryl Silverburgh", (VoiceGender.Female, VoiceAge.Teen, "en-US") },
-            { "Sniper Wolf", (VoiceGender.Female, VoiceAge.Adult, "ar-IQ") },
-            { "Jim Houseman", (VoiceGender.Male, VoiceAge.Senior, "en-US") },
-            { "Gray Fox", (VoiceGender.Male, VoiceAge.Adult, "en-US") },
         }.ToImmutableDictionary();
     }
 }

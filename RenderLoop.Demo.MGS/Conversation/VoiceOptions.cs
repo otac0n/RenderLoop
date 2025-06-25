@@ -1,6 +1,6 @@
 ﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
 
-namespace RenderLoop.Demo.MGS.Conversation.Voices
+namespace RenderLoop.Demo.MGS.Conversation
 {
     using System;
     using System.CommandLine;
@@ -9,19 +9,25 @@ namespace RenderLoop.Demo.MGS.Conversation.Voices
 
     internal class VoiceOptions
     {
-        public static readonly Option<string?> SpeechEndpointOption = new(
+        public static readonly Option<Uri> SpeechEndpointOption = new(
             name: "--speechEndpoint",
             description: "The Azure Speech API to use for avatars.",
-            getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_ENDPOINT"));
+            getDefaultValue: () => Uri.TryCreate(Environment.GetEnvironmentVariable("SPEECH_ENDPOINT"), UriKind.Absolute, out var uri) ? uri : null!)
+        {
+            IsRequired = true,
+        };
 
-        public static readonly Option<string?> SpeechKeyOption = new(
+        public static readonly Option<string> SpeechKeyOption = new(
             name: "--speechKey",
             description: "The Azure Speech API key.",
-            getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY"));
+            getDefaultValue: () => Environment.GetEnvironmentVariable("SPEECH_KEY")!)
+        {
+            IsRequired = true,
+        };
 
-        public required string? SpeechEndpoint { get; set; }
+        public required Uri SpeechEndpoint { get; set; }
 
-        public required string? SpeechKey { get; set; }
+        public required string SpeechKey { get; set; }
 
         public static void Attach(Command command)
         {
@@ -33,8 +39,8 @@ namespace RenderLoop.Demo.MGS.Conversation.Voices
         {
             var options = new VoiceOptions
             {
-                SpeechEndpoint = context.ParseResult.GetValueForOption(SpeechEndpointOption),
-                SpeechKey = context.ParseResult.GetValueForOption(SpeechKeyOption),
+                SpeechEndpoint = context.ParseResult.GetValueForOption(SpeechEndpointOption)!,
+                SpeechKey = context.ParseResult.GetValueForOption(SpeechKeyOption)!,
             };
 
             services.AddSingleton(options);

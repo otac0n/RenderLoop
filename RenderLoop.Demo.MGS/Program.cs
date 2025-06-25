@@ -44,7 +44,7 @@ namespace RenderLoop.Demo.MGS
 
             var codecCommand = new Command("codec", "Display Codec (MGS1)");
             Conversation.LanguageModelOptions.Attach(codecCommand);
-            Conversation.Voices.VoiceOptions.Attach(codecCommand);
+            Conversation.VoiceOptions.Attach(codecCommand);
             mgs1.Add(codecCommand);
 
             var textureCommand2 = new Command("texture", "Display Textures (MGS2)");
@@ -53,7 +53,7 @@ namespace RenderLoop.Demo.MGS
 
             var otaconCommand = new Command("otacon", "Display Otacon Assistant (MGS2)");
             Conversation.LanguageModelOptions.Attach(otaconCommand);
-            Conversation.Voices.VoiceOptions.Attach(otaconCommand);
+            Conversation.VoiceOptions.Attach(otaconCommand);
             mgs2.Add(otaconCommand);
 
             static void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
@@ -117,7 +117,8 @@ namespace RenderLoop.Demo.MGS
                         InstallSharedConfiguration(context, services);
                         MGS1.ArchiveOptions.Bind(context, services);
                         Conversation.LanguageModelOptions.Bind(context, services);
-                        Conversation.Voices.VoiceOptions.Bind(context, services);
+                        Conversation.VoiceOptions.Bind(context, services);
+                        Conversation.ServiceRegistration.Register(services);
                     });
 
                     using var host = builder.Build();
@@ -147,7 +148,8 @@ namespace RenderLoop.Demo.MGS
                     {
                         InstallSharedConfiguration(context, services);
                         Conversation.LanguageModelOptions.Bind(context, services);
-                        Conversation.Voices.VoiceOptions.Bind(context, services);
+                        Conversation.VoiceOptions.Bind(context, services);
+                        Conversation.ServiceRegistration.Register(services);
                     });
 
                     using var host = builder.Build();

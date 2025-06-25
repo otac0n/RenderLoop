@@ -13,9 +13,10 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
+    using ConversationModel;
+    using ConversationModel.Voices;
     using Microsoft.Extensions.DependencyInjection;
-    using RenderLoop.Demo.MGS.Conversation;
-    using RenderLoop.Demo.MGS.Conversation.Voices;
+    using Microsoft.Extensions.Logging;
 
     internal partial class OtaconDisplay : Form
     {
@@ -26,7 +27,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private bool lastFlip;
         private DateTime LastMinute;
         private readonly Voice voice;
-        private ConversationModel conversationModel;
+        private Model conversationModel;
         private Task activeTask;
         private SpeechBubble speechForm;
         private static readonly string ConversationPrompt =
@@ -110,7 +111,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
              group v by name into g
              select g).ToDictionary(g => g.Key, g => g.Distinct().Single());
 
-        public OtaconDisplay(IServiceProvider serviceProvider)
+        public OtaconDisplay(IServiceProvider serviceProvider, IBackend backend)
         {
             this.InitializeComponent();
             this.EnableDrag();
@@ -124,9 +125,9 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                 }
             }
 
-            this.voice = Voice.GetVoice(serviceProvider, "Hal Emmerich");
-            this.conversationModel = new ConversationModel(
-                serviceProvider,
+            this.voice = serviceProvider.GetRequiredKeyedService<Voice>("Hal Emmerich");
+            this.conversationModel = new Model(
+                backend,
                 ConversationPrompt,
                 async (response, cancel) =>
                 {
@@ -160,7 +161,8 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
 
                     return response;
                 },
-                (response) => Task.FromResult("System: Code execution is disabled."));
+                (response, cancel) => Task.FromResult("System: Code execution is disabled."),
+                serviceProvider.GetService<ILogger<Model>>());
         }
 
         protected override bool ShowWithoutActivation => true;

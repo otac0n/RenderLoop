@@ -9,24 +9,33 @@ namespace RenderLoop.Demo.MGS.Conversation
 
     internal class LanguageModelOptions
     {
-        public static readonly Option<string?> LMEndpointOption = new(
+        public static readonly Option<Uri> LMEndpointOption = new(
             name: "--lmEndpoint",
             description: "The LM Studio API to use for conversation.",
-            getDefaultValue: () => "http://localhost:5000");
+            getDefaultValue: () => new Uri("http://localhost:5000"))
+        {
+            IsRequired = true,
+        };
 
-        public static readonly Option<string?> LanguageModelOption = new(
+        public static readonly Option<string> LanguageModelOption = new(
             name: "--languageModel",
             description: "The language model to request for conversation.",
-            getDefaultValue: () => "mradermacher/QwQ-LCoT-14B-Conversational-i1-GGUF");
+            getDefaultValue: () => "mradermacher/QwQ-LCoT-14B-Conversational-i1-GGUF")
+        {
+            IsRequired = true,
+        };
 
         public static readonly Option<TimeSpan> LMCooldownOption = new(
             name: "--lmCooldown",
             description: "The time to allow the LM to cooldown between requests.",
-            getDefaultValue: () => TimeSpan.FromSeconds(5));
+            getDefaultValue: () => TimeSpan.FromSeconds(5))
+        {
+            IsRequired = true,
+        };
 
-        public required string? LMEndpoint { get; set; }
+        public required Uri LMEndpoint { get; set; }
 
-        public required string? LanguageModel { get; set; }
+        public required string LanguageModel { get; set; }
 
         public required TimeSpan LMCoolDown { get; set; }
 
@@ -41,9 +50,9 @@ namespace RenderLoop.Demo.MGS.Conversation
         {
             var options = new LanguageModelOptions
             {
-                LMEndpoint = context.ParseResult.GetValueForOption(LMEndpointOption),
-                LanguageModel = context.ParseResult.GetValueForOption(LanguageModelOption),
-                LMCoolDown = context.ParseResult.GetValueForOption(LMCooldownOption),
+                LMEndpoint = context.ParseResult.GetValueForOption(LMEndpointOption)!,
+                LanguageModel = context.ParseResult.GetValueForOption(LanguageModelOption)!,
+                LMCoolDown = context.ParseResult.GetValueForOption(LMCooldownOption)!,
             };
 
             services.AddSingleton(options);
