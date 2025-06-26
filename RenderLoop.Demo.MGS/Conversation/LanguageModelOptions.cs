@@ -47,7 +47,7 @@ namespace RenderLoop.Demo.MGS.Conversation
             {
                 LMEndpoint = context.ParseResult.GetValueForOption(LMEndpointOption),
                 LanguageModel = context.ParseResult.GetValueForOption(LanguageModelOption)!,
-                LMRepositoryPath = context.ParseResult.GetValueForOption(LanguageModelOption),
+                LMRepositoryPath = context.ParseResult.GetValueForOption(LMRepositoryPathOption),
             };
 
             services.AddSingleton(options);

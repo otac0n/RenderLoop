@@ -45,6 +45,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             Begin each new sentence on its own line, and separate multiple responses with blank lines. Never combine multiple responses on a single line.
             If appropriate, prefix an optional mood tag to help the avatar engine show expression.
             Do not include your internal reasoning in the chat history.
+            The current time and the user's active application will be shared via System messages. You should respond.
             You should take the opportunity to clarify your emotional state whenever the system state changes.
             Emotions available: {string.Join(", ", Enum.GetValues<AnimationState.State>().Where(s => s != AnimationState.State.Invisible))}
             Your primary job is to emote, not kibitz. You are allowed to include only emotion rather than text, but this should still end with a colon for the parser's sake.
@@ -200,7 +201,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         {
             var now = DateTime.Now;
             var minute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, now.Kind);
-            if (this.LastMinute != minute && (this.activeTask?.Status ?? TaskStatus.RanToCompletion) != TaskStatus.Running)
+            if (this.LastMinute != minute && (this.activeTask?.IsCompleted ?? true))
             {
                 this.LastMinute = minute;
 

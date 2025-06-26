@@ -71,7 +71,6 @@ namespace RenderLoop.Demo.MGS.Conversation
                         lmOptions.LMEndpoint,
                         lmOptions.LanguageModel,
                         provider.GetService<ILogger<HttpBackend>>());
-
                 }
             });
 
