@@ -60,6 +60,7 @@
             this.Load += this.Form_Load;
             this.Paint += this.Form_Paint;
             this.MouseClick += this.Form_MouseClick;
+            this.Move += this.Form_Move;
             this.ResumeLayout(false);
         }
 

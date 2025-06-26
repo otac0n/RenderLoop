@@ -30,6 +30,9 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private Model conversationModel;
         private Task activeTask;
         private SpeechBubble speechForm;
+        private Size dragSpeechFormOffset;
+        private bool dragging;
+        private DateTime hideSpeechFormTime;
         private static readonly string ConversationPrompt =
             $"""
             **LET THE WORLD BE**
@@ -115,7 +118,25 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         public OtaconDisplay(IServiceProvider serviceProvider, IBackend backend)
         {
             this.InitializeComponent();
-            this.EnableDrag();
+            this.EnableDrag(
+                onBegin: () =>
+                {
+                    this.dragging = true;
+                    var screen = Screen.FromControl(this);
+                    if (this.speechForm is Form speechForm)
+                    {
+                        this.dragSpeechFormOffset = new(
+                            speechForm.Left - this.Left,
+                            speechForm.Top - this.Top);
+                        speechForm.Visible = true;
+                    }
+                },
+                onEnd: () =>
+                {
+                    this.dragging = false;
+                    this.hideSpeechFormTime = DateTime.Now + TimeSpan.FromSeconds(2);
+                });
+
             this.options = serviceProvider.GetRequiredService<Program.Options>();
 
             foreach (var state in Enum.GetValues<AnimationState.State>())
@@ -155,7 +176,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                         response = response with { Text = await this.voice.SayAsync(response.Text, cancel).ConfigureAwait(false) };
                         this.Invoke(() =>
                         {
-                            this.speechForm.Visible = false;
+                            this.hideSpeechFormTime = DateTime.Now;
                             this.speechForm.Text = "";
                         });
                     }
@@ -200,6 +221,22 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
         private void UpdateTimer_Tick(object sender, EventArgs e)
         {
             var now = DateTime.Now;
+
+            if (!this.dragging &&
+                this.speechForm is Form speechForm &&
+                speechForm.Visible &&
+                string.IsNullOrEmpty(speechForm.Text))
+            {
+                if (speechForm.Bounds.Contains(Cursor.Position))
+                {
+                    this.hideSpeechFormTime = now + TimeSpan.FromSeconds(0.5);
+                }
+                else if (now > this.hideSpeechFormTime)
+                {
+                    speechForm.Visible = false;
+                }
+            }
+
             var minute = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, now.Kind);
             if (this.LastMinute != minute && (this.activeTask?.IsCompleted ?? true))
             {
@@ -262,6 +299,51 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
             form.Location = new Point(
                 screen.Right - form.Width,
                 screen.Bottom - form.Height);
+        }
+
+        private void Form_Move(object sender, EventArgs e)
+        {
+            if (this.speechForm != null)
+            {
+                var screenBounds = Screen.FromControl(this).Bounds;
+                var location = this.Location;
+                var bounds = new Rectangle(location, this.Size);
+                var target = location + this.dragSpeechFormOffset;
+                var targetBounds = new Rectangle(target, this.speechForm.Size).ClampToBounds(screenBounds);
+                if (bounds.IntersectsWith(targetBounds))
+                {
+                    var options = new[]
+                    {
+                        new Point(bounds.Left + (bounds.Width / 3), bounds.Top - this.speechForm.Height), // top, left
+                        new Point(bounds.Right + (2 * bounds.Width / 3) - this.speechForm.Width, bounds.Top - this.speechForm.Height), // top, right
+                        new Point(bounds.Left - this.speechForm.Width, bounds.Top), // left, top
+                        new Point(bounds.Left - this.speechForm.Width, bounds.Bottom - this.speechForm.Height), // left, bottom
+                        new Point(bounds.Right, bounds.Top), // right, top
+                        new Point(bounds.Right, bounds.Bottom - this.speechForm.Height), // right, bottom
+                        new Point(bounds.Left, bounds.Bottom), // bottom, left
+                        new Point(bounds.Right - this.speechForm.Width, bounds.Bottom), // bottom, right
+                    };
+
+                    // Avoid the character but minimize the difference from the original corner-to-corner vector (by angle).
+                    var priorityOrder = options.OrderByDescending(p =>
+                    {
+                        var v = Point.Subtract(location, (Size)p);
+                        return Math.Abs(Math.Atan2(v.X * this.dragSpeechFormOffset.Height - v.Y * this.dragSpeechFormOffset.Width, v.X * this.dragSpeechFormOffset.Width + v.Y * this.dragSpeechFormOffset.Height));
+                    });
+
+                    foreach (var shift in priorityOrder)
+                    {
+                        var optionRect = new Rectangle(shift, this.speechForm.Size);
+                        if (!bounds.IntersectsWith(optionRect) && screenBounds.Contains(optionRect))
+                        {
+                            targetBounds = optionRect;
+                            break;
+                        }
+                    }
+                }
+
+                this.speechForm.Location = targetBounds.Location;
+            }
         }
 
         private void Form_MouseClick(object sender, MouseEventArgs e)

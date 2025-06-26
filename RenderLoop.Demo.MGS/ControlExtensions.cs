@@ -8,7 +8,7 @@ namespace RenderLoop.Demo.MGS
 
     internal static class ControlExtensions
     {
-        public static void EnableDrag(this Form form)
+        public static void EnableDrag(this Form form, Action? onBegin = null)
         {
             ArgumentNullException.ThrowIfNull(form);
 
@@ -28,6 +28,7 @@ namespace RenderLoop.Demo.MGS
                     {
                         dragging = true;
                         mouseDownLocation = form.PointToClient(control.PointToScreen(e.Location));
+                        onBegin?.Invoke();
                     }
                 };
 
@@ -36,9 +37,11 @@ namespace RenderLoop.Demo.MGS
                     if (dragging && e.Button == MouseButtons.Left)
                     {
                         var newMousePosition = Control.MousePosition;
-                        form.Location = new Point(
+                        var newLocation = new Point(
                             newMousePosition.X - mouseDownLocation.X,
                             newMousePosition.Y - mouseDownLocation.Y);
+
+                        form.Location = newLocation;
                     }
                 };
 
@@ -57,6 +60,13 @@ namespace RenderLoop.Demo.MGS
             }
 
             form.Load += (_, _) => Attach(form);
+        }
+
+        public static Rectangle ClampToBounds(this Rectangle rect, Rectangle bounds)
+        {
+            rect.X = Math.Max(Math.Min(rect.Left, bounds.Right - rect.Width), bounds.Left);
+            rect.Y = Math.Max(Math.Min(rect.Top, bounds.Bottom - rect.Height), bounds.Top);
+            return rect;
         }
     }
 }
