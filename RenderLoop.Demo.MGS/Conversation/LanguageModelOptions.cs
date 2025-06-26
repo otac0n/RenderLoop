@@ -5,6 +5,7 @@ namespace RenderLoop.Demo.MGS.Conversation
     using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
+    using System.IO;
     using Microsoft.Extensions.DependencyInjection;
 
     internal class LanguageModelOptions
@@ -12,10 +13,7 @@ namespace RenderLoop.Demo.MGS.Conversation
         public static readonly Option<Uri> LMEndpointOption = new(
             name: "--lmEndpoint",
             description: "The LM Studio API to use for conversation.",
-            getDefaultValue: () => new Uri("http://localhost:5000"))
-        {
-            IsRequired = true,
-        };
+            getDefaultValue: () => new Uri("http://localhost:5000"));
 
         public static readonly Option<string> LanguageModelOption = new(
             name: "--languageModel",
@@ -25,34 +23,31 @@ namespace RenderLoop.Demo.MGS.Conversation
             IsRequired = true,
         };
 
-        public static readonly Option<TimeSpan> LMCooldownOption = new(
-            name: "--lmCooldown",
-            description: "The time to allow the LM to cooldown between requests.",
-            getDefaultValue: () => TimeSpan.FromSeconds(5))
-        {
-            IsRequired = true,
-        };
+        public static readonly Option<string> LMRepositoryPathOption = new(
+            name: "--lmRepository",
+            description: "The path that contains language models.",
+            getDefaultValue: static () => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), @".cache\lm-studio\models\"));
 
-        public required Uri LMEndpoint { get; set; }
+        public required Uri? LMEndpoint { get; set; }
 
         public required string LanguageModel { get; set; }
 
-        public required TimeSpan LMCoolDown { get; set; }
+        public required string? LMRepositoryPath { get; set; }
 
         public static void Attach(Command command)
         {
             command.AddOption(LMEndpointOption);
             command.AddOption(LanguageModelOption);
-            command.AddOption(LMCooldownOption);
+            command.AddOption(LMRepositoryPathOption);
         }
 
         public static void Bind(InvocationContext context, IServiceCollection services)
         {
             var options = new LanguageModelOptions
             {
-                LMEndpoint = context.ParseResult.GetValueForOption(LMEndpointOption)!,
+                LMEndpoint = context.ParseResult.GetValueForOption(LMEndpointOption),
                 LanguageModel = context.ParseResult.GetValueForOption(LanguageModelOption)!,
-                LMCoolDown = context.ParseResult.GetValueForOption(LMCooldownOption)!,
+                LMRepositoryPath = context.ParseResult.GetValueForOption(LanguageModelOption),
             };
 
             services.AddSingleton(options);

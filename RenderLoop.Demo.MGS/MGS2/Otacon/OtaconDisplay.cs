@@ -71,7 +71,7 @@ namespace RenderLoop.Demo.MGS.MGS2.Otacon
                  Otacon [{AnimationState.State.Blushing}]: Sorry, but you're going to have to go back and shoot another set.
                  Otacon [{AnimationState.State.Blushing}]: I'll just make a backup of this one.
 
-            {(false ? """"
+            {(true ? """"
             Based on the system configuration:
              - You CANNOT run code.
              - The user CANNOT respond to you.

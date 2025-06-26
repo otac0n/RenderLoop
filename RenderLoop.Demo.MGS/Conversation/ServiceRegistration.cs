@@ -6,11 +6,15 @@ namespace RenderLoop.Demo.MGS.Conversation
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Globalization;
+    using System.IO;
+    using System.Linq;
     using System.Net.Http;
     using System.Speech.Synthesis;
     using ConversationModel;
     using ConversationModel.Backends;
+    using ConversationModel.Backends.LLamaSharp;
     using ConversationModel.Voices;
+    using LLama.Common;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
 
@@ -47,15 +51,28 @@ namespace RenderLoop.Demo.MGS.Conversation
 
         internal static void Register(IServiceCollection services)
         {
-            services.AddHttpClient<IBackend, HttpBackend>();
-            services.AddTransient<IBackend, HttpBackend>(provider =>
+            services.AddHttpClient();
+            services.AddTransient<IBackend>(provider =>
             {
                 var lmOptions = provider.GetRequiredService<LanguageModelOptions>();
-                return new HttpBackend(
-                    provider.GetRequiredService<HttpClient>(),
-                    lmOptions.LMEndpoint,
-                    lmOptions.LanguageModel,
-                    provider.GetService<ILogger<HttpBackend>>());
+                var foundModel = Directory.Exists(lmOptions.LMRepositoryPath)
+                    ? Directory.EnumerateFiles(Path.Combine(lmOptions.LMRepositoryPath, lmOptions.LanguageModel), "*.gguf").FirstOrDefault()
+                    : null;
+
+                if (foundModel != null)
+                {
+                    return new LLamaBackend(
+                        new ModelParams(foundModel));
+                }
+                else
+                {
+                    return new HttpBackend(
+                        provider.GetRequiredService<HttpClient>(),
+                        lmOptions.LMEndpoint,
+                        lmOptions.LanguageModel,
+                        provider.GetService<ILogger<HttpBackend>>());
+
+                }
             });
 
             services.AddSingleton(
