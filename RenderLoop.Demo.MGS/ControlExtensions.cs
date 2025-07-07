@@ -8,7 +8,7 @@ namespace RenderLoop.Demo.MGS
 
     internal static class ControlExtensions
     {
-        public static void EnableDrag(this Form form, Action? onBegin = null)
+        public static void EnableDrag(this Form form, Action? onBegin = null, Action? onEnd = null)
         {
             ArgumentNullException.ThrowIfNull(form);
 
@@ -50,6 +50,7 @@ namespace RenderLoop.Demo.MGS
                     if (e.Button == MouseButtons.Left)
                     {
                         dragging = false;
+                        onEnd?.Invoke();
                     }
                 };
 
