@@ -17,7 +17,6 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    using AnimatedGif;
     using ConversationModel;
     using ConversationModel.Responses;
     using DiscUtils.Streams;
@@ -534,32 +533,6 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             {
                 g.DrawImageUnscaled(mouthComponent.Image, mouthComponent.X, mouthComponent.Y);
             }
-        }
-
-        private static Image RenderAnimation(ImageSet frames)
-        {
-            var gifStream = new MemoryStream();
-
-            var maxX = frames.Values.Max(v => v.X + v.Image.Width);
-            var maxY = frames.Values.Max(v => v.Y + v.Image.Height);
-            using var surface = new Bitmap(maxX, maxY);
-            using var g = Graphics.FromImage(surface);
-            using var gif = new AnimatedGifCreator(gifStream, delay: 100);
-            {
-                var shown = 0;
-                for (var f = 0; shown < frames.Count; f++)
-                {
-                    if (frames.TryGetValue($"frame{f}", out var frameImage))
-                    {
-                        g.DrawImageUnscaled(frameImage.Image, new Point(frameImage.X, frameImage.Y));
-                        gif.AddFrame(surface);
-                        shown++;
-                    }
-                }
-            }
-
-            gifStream.Seek(0, SeekOrigin.Begin);
-            return Image.FromStream(gifStream);
         }
 
         private void SpeechBox_KeyPress(object sender, KeyPressEventArgs e)

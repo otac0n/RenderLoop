@@ -20,7 +20,6 @@ OpenSource Info
 | | [System.IO.Abstractions](https://github.com/TestableIO/System.IO.Abstractions) | [MIT](https://github.com/TestableIO/System.IO.Abstractions/blob/main/LICENSE) | Nested filesystems |
 | | [DiscUtils](https://github.com/DiscUtils/DiscUtils) | [MIT](https://github.com/DiscUtils/DiscUtils/blob/develop/LICENSE.txt) | ISO format |
 | | [GMWare.M2](https://gitlab.com/modmyclassic/sega-mega-drive-mini/marchive-batch-tool) | [GPL 3.0](https://gitlab.com/modmyclassic/sega-mega-drive-mini/marchive-batch-tool/-/blob/master/COPYING) | M2 Archive format |
-| | [AnimatedGif](https://github.com/mrousavy/AnimatedGif) | [GPL 3.0](https://github.com/mrousavy/AnimatedGif/blob/master/LICENSE) | Animated GIF generation |
 | | [MGS1-TOOLS](https://github.com/MSylvia/MGS1-TOOLS) | | Reference only |
 | | [mgs_reversing](https://github.com/FoxdieTeam/mgs_reversing) | | Reference only |
 | | [CtxrTool](https://github.com/Jayveer/CtxrTool) | [MIT](https://github.com/Jayveer/CtxrTool/blob/master/README.md) | Reference only |

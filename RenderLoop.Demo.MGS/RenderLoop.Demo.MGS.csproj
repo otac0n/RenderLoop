@@ -9,7 +9,6 @@
     <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AnimatedGif" Version="1.0.5" />
     <PackageReference Include="ConversationModel" Version="1.0.1" />
     <PackageReference Include="ConversationModel.Backends.LLamaSharp" Version="1.0.1" />
     <PackageReference Include="ConversationModel.Voices" Version="1.0.1" />
