@@ -14,13 +14,13 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Threading.Tasks;
     using Microsoft.Win32.SafeHandles;
     using RenderLoop.Demo.MGS.MGS1.Archives;
+    using static PathExtensions;
     using DirEntry = (string name, long offset);
     using FileEntry = (string name, long offset, long size);
 
     public sealed class StageDirVirtualFileSystem : IFileSystem, IDisposable
     {
         private static readonly long SectorSize = 2048L;
-        private static readonly char[] separators = ['/', '\\'];
         private static readonly ImmutableDictionary<byte, string> extensions = new Dictionary<byte, string>
         {
             [0x61] = "azm",
@@ -253,11 +253,11 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private (long offset, long size)? GetStreamSpanRange(string path)
         {
-            var ix = path.AsSpan().IndexOfAny(separators);
+            var ix = path.AsSpan().IndexOfAny(Separators);
             if (ix >= 0)
             {
                 var name = path[(ix + 1)..];
-                var dir = path[..ix].TrimEnd(separators);
+                var dir = path[..ix].TrimEnd(Separators);
 
                 var files = this.GetFileIndex(dir);
                 ix = Array.FindIndex(files, e => e.name == name);
@@ -320,7 +320,33 @@ namespace RenderLoop.Demo.MGS.MGS1
                     }
                 }
 
-                var parts = path.Split(separators, 2, StringSplitOptions.RemoveEmptyEntries);
+                var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+                var root = parts[0];
+
+                var index = this.parent.GetFileIndex(root);
+                if (index.Length == 0)
+                {
+                    throw new DirectoryNotFoundException();
+                }
+
+                var indexDirs = index.Select(f => f.name[0..f.name.IndexOf('/')]).Distinct();
+                if (parts.Length == 1)
+                {
+                    if (searchOption == SearchOption.TopDirectoryOnly)
+                    {
+                        return indexDirs.Where(d => glob.IsMatch(d)).Select(d => $"{path}/{d}");
+                    }
+                }
+                else if (!indexDirs.Contains(parts[1]) || parts.Length > 2)
+                {
+                    throw new DirectoryNotFoundException();
+                }
+
+                var dir = string.Concat(parts.Skip(1).Select(p => p + "/"));
+                if (searchOption == SearchOption.TopDirectoryOnly)
+                {
+                    return [];
+                }
 
                 throw new NotImplementedException();
             }
@@ -351,7 +377,7 @@ namespace RenderLoop.Demo.MGS.MGS1
                 }
                 else
                 {
-                    var parts = path.Split(separators, StringSplitOptions.RemoveEmptyEntries);
+                    var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
                     var root = parts[0];
                     var dir = string.Concat(parts.Skip(1).Select(p => p + "/"));
                     if (searchOption == SearchOption.TopDirectoryOnly)
@@ -376,13 +402,13 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public IEnumerable<string> EnumerateFiles(string path, string searchPattern, EnumerationOptions enumerationOptions) => throw new NotImplementedException();
 
-            public IEnumerable<string> EnumerateFileSystemEntries(string path) => throw new NotImplementedException();
+            public IEnumerable<string> EnumerateFileSystemEntries(string path) => this.EnumerateFileSystemEntries(path, "*");
 
-            public IEnumerable<string> EnumerateFileSystemEntries(string path, string searchPattern) => throw new NotImplementedException();
+            public IEnumerable<string> EnumerateFileSystemEntries(string path, string searchPattern) => this.EnumerateFileSystemEntries(path, searchPattern, SearchOption.TopDirectoryOnly);
 
-            public IEnumerable<string> EnumerateFileSystemEntries(string path, string searchPattern, SearchOption searchOption) => throw new NotImplementedException();
+            public IEnumerable<string> EnumerateFileSystemEntries(string path, string searchPattern, SearchOption searchOption) => this.EnumerateDirectories(path, searchPattern, searchOption).Concat(this.EnumerateFiles(path, searchPattern, searchOption));
 
-            public IEnumerable<string> EnumerateFileSystemEntries(string path, string searchPattern, EnumerationOptions enumerationOptions) => throw new NotImplementedException();
+            public IEnumerable<string> EnumerateFileSystemEntries(string path, string searchPattern, EnumerationOptions enumerationOptions) => this.EnumerateDirectories(path, searchPattern, enumerationOptions).Concat(this.EnumerateFiles(path, searchPattern, enumerationOptions));
 
             public bool Exists([NotNullWhen(true)] string? path) => throw new NotImplementedException();
 
@@ -392,31 +418,31 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public string GetCurrentDirectory() => throw new NotImplementedException();
 
-            public string[] GetDirectories(string path) => throw new NotImplementedException();
+            public string[] GetDirectories(string path) => [.. this.EnumerateDirectories(path)];
 
-            public string[] GetDirectories(string path, string searchPattern) => throw new NotImplementedException();
+            public string[] GetDirectories(string path, string searchPattern) => [.. this.EnumerateDirectories(path, searchPattern)];
 
-            public string[] GetDirectories(string path, string searchPattern, SearchOption searchOption) => throw new NotImplementedException();
+            public string[] GetDirectories(string path, string searchPattern, SearchOption searchOption) => [.. this.EnumerateDirectories(path, searchPattern, searchOption)];
 
-            public string[] GetDirectories(string path, string searchPattern, EnumerationOptions enumerationOptions) => throw new NotImplementedException();
+            public string[] GetDirectories(string path, string searchPattern, EnumerationOptions enumerationOptions) => [.. this.EnumerateDirectories(path, searchPattern, enumerationOptions)];
 
             public string GetDirectoryRoot(string path) => throw new NotImplementedException();
 
-            public string[] GetFiles(string path) => throw new NotImplementedException();
+            public string[] GetFiles(string path) => [.. this.EnumerateFiles(path)];
 
-            public string[] GetFiles(string path, string searchPattern) => throw new NotImplementedException();
+            public string[] GetFiles(string path, string searchPattern) => [.. this.EnumerateFiles(path, searchPattern)];
 
-            public string[] GetFiles(string path, string searchPattern, SearchOption searchOption) => throw new NotImplementedException();
+            public string[] GetFiles(string path, string searchPattern, SearchOption searchOption) => [.. this.EnumerateFiles(path, searchPattern, searchOption)];
 
-            public string[] GetFiles(string path, string searchPattern, EnumerationOptions enumerationOptions) => throw new NotImplementedException();
+            public string[] GetFiles(string path, string searchPattern, EnumerationOptions enumerationOptions) => [.. this.EnumerateFiles(path, searchPattern, enumerationOptions)];
 
-            public string[] GetFileSystemEntries(string path) => throw new NotImplementedException();
+            public string[] GetFileSystemEntries(string path) => [.. this.EnumerateFileSystemEntries(path)];
 
-            public string[] GetFileSystemEntries(string path, string searchPattern) => throw new NotImplementedException();
+            public string[] GetFileSystemEntries(string path, string searchPattern) => [.. this.EnumerateFileSystemEntries(path, searchPattern)];
 
-            public string[] GetFileSystemEntries(string path, string searchPattern, SearchOption searchOption) => throw new NotImplementedException();
+            public string[] GetFileSystemEntries(string path, string searchPattern, SearchOption searchOption) => [.. this.EnumerateFileSystemEntries(path, searchPattern, searchOption)];
 
-            public string[] GetFileSystemEntries(string path, string searchPattern, EnumerationOptions enumerationOptions) => throw new NotImplementedException();
+            public string[] GetFileSystemEntries(string path, string searchPattern, EnumerationOptions enumerationOptions) => [.. this.EnumerateFileSystemEntries(path, searchPattern, enumerationOptions)];
 
             public DateTime GetLastAccessTime(string path) => throw new NotImplementedException();
 

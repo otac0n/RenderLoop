@@ -10,6 +10,7 @@ namespace RenderLoop.Demo.MGS
         {
             RenderLoop.ServiceRegistration.Register(services);
 
+            services.AddTransient<MGS1.Browser>();
             services.AddTransient<MGS1.TextureDisplay>();
             services.AddTransient<MGS1.ModelDisplay>();
             services.AddTransient<MGS1.VehicleDisplay>();

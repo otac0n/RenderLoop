@@ -30,6 +30,10 @@ namespace RenderLoop.Demo.MGS
             var mgs2 = new Command("mgs2", "MGS1 Related Featuers");
             rootCommand.AddCommand(mgs2);
 
+            var browseCommand1 = new Command("browse", "Browse Archive Files (MGS1)");
+            browseCommand1.AddAlias("browser");
+            mgs1.Add(browseCommand1);
+
             var textureCommand1 = new Command("texture", "Display Textures (MGS1)");
             textureCommand1.AddAlias("textures");
             mgs1.Add(textureCommand1);
@@ -62,6 +66,21 @@ namespace RenderLoop.Demo.MGS
                 Options.Bind(context, services);
                 ServiceRegistration.Register(services);
             }
+
+            browseCommand1.SetHandler(
+                async context =>
+                {
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        InstallSharedConfiguration(context, services);
+                        MGS1.ArchiveOptions.Bind(context, services);
+                    });
+
+                    using var host = builder.Build();
+                    await Task.Yield();
+                    Application.Run(host.Services.GetService<MGS1.Browser>()!);
+                });
 
             textureCommand1.SetHandler(
                 async context =>
