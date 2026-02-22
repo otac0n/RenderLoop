@@ -7,10 +7,12 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Drawing;
     using System.Globalization;
     using System.IO;
+    using System.IO.Abstractions;
     using System.Linq;
     using System.Numerics;
     using DevDecoder.HIDDevices.Usages;
     using Microsoft.Extensions.DependencyInjection;
+    using RenderLoop.Demo.MGS.MGS1.Archives;
     using RenderLoop.Input;
     using RenderLoop.SilkRenderer.GL;
     using Silk.NET.OpenGL;
@@ -364,7 +366,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         private float size;
         private int activeModel;
         private readonly ControlChangeTracker controlChangeTracker;
-        private readonly StageDirVirtualFileSystem stageDir;
+        private readonly IFileSystem stageDir;
 
         private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
@@ -376,7 +378,8 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.display = display;
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
-            this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
+            var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
+            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath, out this.stageDir, out _, out var _);
 
             this.models = new();
 

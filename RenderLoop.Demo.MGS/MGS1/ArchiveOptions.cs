@@ -2,13 +2,13 @@
 
 namespace RenderLoop.Demo.MGS.MGS1
 {
+    using System;
     using System.CommandLine;
     using System.CommandLine.Invocation;
     using System.IO;
     using System.IO.Abstractions;
     using DiscUtils.Complete;
     using DiscUtils.Iso9660;
-    using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.MGS1.Archives;
 
@@ -41,19 +41,36 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             var file = WellKnownPaths.AllDataBin;
             services.AddKeyedSingleton(file, (s, key) => new MArchiveV1VirtualFileSystem(Path.Combine(s.GetRequiredService<Program.Options>().SteamApps, key), s.GetRequiredService<ArchiveOptions>().Key));
+            services.AddKeyedSingleton(file, (s, key) => new NestedFileSystemManager(s.GetRequiredKeyedService<MArchiveV1VirtualFileSystem>(key),
+                (file, fs, fsPath) =>
+                {
+                    if (fs is MArchiveV1VirtualFileSystem &&
+                    string.Equals(Path.GetExtension(file), ".bin", StringComparison.OrdinalIgnoreCase) &&
+                    Path.GetFileName(Path.GetDirectoryName(file)) == "roms")
+                    {
+                        return static (IFileSystem fs, string subPath) =>
+                        {
+                            var file = fs.File.OpenRead(subPath);
+                            var cdSector = new CDSectorStream(file, CDSectorStream.XAForm1);
+                            var cdReader = new CDReader(cdSector, joliet: false);
+                            var subFs = new CDReaderVFSAdapter(cdReader);
+                            return subFs;
+                        };
+                    }
+                    else if (fs is CDReaderVFSAdapter &&
+                        string.Equals(Path.GetExtension(file), ".dir", StringComparison.OrdinalIgnoreCase) &&
+                        Path.GetFileName(Path.GetDirectoryName(file)) == "MGS")
+                    {
+                        return static (IFileSystem fs, string subPath) =>
+                        {
+                            var file = fs.File.OpenRead(subPath);
+                            var subFs = new StageDirVirtualFileSystem(file);
+                            return subFs;
+                        };
+                    }
 
-            void RegisterCD(string cdPath)
-            {
-                services.AddKeyedSingleton((path: file, cdPath), (s, key) => s.GetRequiredKeyedService<MArchiveV1VirtualFileSystem>(key.path)!.File.OpenRead(key.cdPath));
-                services.AddKeyedSingleton((path: file, cdPath), (s, key) => new CDSectorStream(s.GetRequiredKeyedService<FileSystemStream>(key)!, CDSectorStream.XAForm1));
-                services.AddKeyedSingleton((path: file, cdPath), (s, key) => new CDReader(s.GetRequiredKeyedService<CDSectorStream>(key), joliet: false));
-                services.AddKeyedSingleton((path: file, cdPath, gamePath: WellKnownPaths.FaceDatPath), (s, key) => s.GetRequiredKeyedService<CDReader>((key.path, key.cdPath))!.OpenFile(key.gamePath, FileMode.Open));
-                services.AddKeyedSingleton((path: file, cdPath, gamePath: WellKnownPaths.StageDirPath), (s, key) => s.GetRequiredKeyedService<CDReader>((key.path, key.cdPath))!.OpenFile(key.gamePath, FileMode.Open));
-                services.AddKeyedSingleton((path: file, cdPath, gamePath: WellKnownPaths.StageDirPath), (s, key) => new StageDirVirtualFileSystem(s.GetRequiredKeyedService<SparseStream>(key)!));
-            }
-
-            RegisterCD(WellKnownPaths.CD1Path);
-            RegisterCD(WellKnownPaths.CD2Path);
+                    return null;
+                }));
         }
     }
 }

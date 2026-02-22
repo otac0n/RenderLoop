@@ -19,10 +19,10 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
     using System.Windows.Forms;
     using ConversationModel;
     using ConversationModel.Responses;
-    using DiscUtils.Streams;
     using Microsoft.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using RenderLoop.Demo.MGS.Conversation;
+    using RenderLoop.Demo.MGS.MGS1.Archives;
     using static RenderLoop.Demo.MGS.MGS1.Codec.CharacterMetadata;
     using ImageSet = System.Collections.Immutable.ImmutableDictionary<string, (int X, int Y, System.Drawing.Bitmap Image)>;
 
@@ -144,7 +144,9 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
 
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var lmOptions = serviceProvider.GetRequiredService<LanguageModelOptions>();
-            var facesStream = serviceProvider.GetRequiredKeyedService<SparseStream>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.FaceDatPath));
+            var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
+            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.FaceDatPath, out var fs, out _, out var facePath);
+            var facesStream = fs.File.OpenRead(facePath);
             var source = ImageLoader.LoadImages(facesStream);
 
             var maxX = source.Values.SelectMany(x => x.Values.Select(v => v.X + v.Image.Width)).Max();

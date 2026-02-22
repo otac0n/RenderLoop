@@ -3,14 +3,10 @@
 namespace RenderLoop.Demo.MGS.MGS1
 {
     using System;
-    using System.Collections.Generic;
     using System.Drawing;
     using System.IO;
-    using System.IO.Abstractions;
     using System.Linq;
-    using System.Runtime.Serialization;
     using System.Windows.Forms;
-    using DiscUtils.Iso9660;
     using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.MGS1.Archives;
@@ -22,43 +18,12 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         public Browser(IServiceProvider serviceProvider)
         {
-            var options = serviceProvider.GetRequiredService<Program.Options>();
-            var fs = serviceProvider.GetRequiredKeyedService<MArchiveV1VirtualFileSystem>(WellKnownPaths.AllDataBin);
+            this.fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
 
             this.InitializeComponent();
             this.saveSelectedDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveSelectedDialog.InitialDirectory);
             this.saveToFolderDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveToFolderDialog.InitialDirectory);
 
-            this.fsm = new NestedFileSystemManager(fs,
-                (file, fs, fsPath, subPath) =>
-                {
-                    if (fs is MArchiveV1VirtualFileSystem &&
-                    string.Equals(Path.GetExtension(file), ".bin", StringComparison.OrdinalIgnoreCase) &&
-                    Path.GetFileName(subPath) == "roms")
-                    {
-                        return static (IFileSystem fs, string subPath) =>
-                        {
-                            var file = fs.File.OpenRead(subPath);
-                            var cdSector = new CDSectorStream(file, CDSectorStream.XAForm1);
-                            var cdReader = new CDReader(cdSector, joliet: false);
-                            var subFs = new CDReaderVFSAdapter(cdReader);
-                            return subFs;
-                        };
-                    }
-                    else if (fs is CDReaderVFSAdapter &&
-                        string.Equals(Path.GetExtension(file), ".dir", StringComparison.OrdinalIgnoreCase) &&
-                        Path.GetFileName(subPath) == "MGS")
-                    {
-                        return static (IFileSystem fs, string subPath) =>
-                        {
-                            var file = fs.File.OpenRead(subPath);
-                            var subFs = new StageDirVirtualFileSystem(file);
-                            return subFs;
-                        };
-                    }
-
-                    return null;
-                });
             this.fileTree.Nodes.Add(new TreeNode("Root", 0, 0, [this.CreateExpanderDummy()]) { Tag = this.fsm.RootEntry });
             this.Navigate(this.fsm.RootEntry);
         }
@@ -76,7 +41,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.pathBox.Text = entry.Path;
             if (this.fsm.TryFindParentFileSystem(entry.Path, out var fs, out var _, out var subPath))
             {
-                var entries = this.fsm.EnumerateEntries(entry)
+                var entries = this.fsm.EnumerateEntries(entry.Path)
                     .Select(e => new ListViewItem(Path.GetFileName(e.Path), DetectFileType(e)) { Tag = e })
                     .ToArray();
                 this.entryList.Items.Clear();
@@ -92,7 +57,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             if (e.Node?.Tag is Entry entry && e.Node.Nodes is [TreeNode onlyChild] && onlyChild.Text == "...")
             {
                 e.Node.Nodes.Clear();
-                var entries = this.fsm.EnumerateEntries(entry).Where(IsFolderLike);
+                var entries = this.fsm.EnumerateEntries(entry.Path).Where(IsFolderLike);
                 e.Node.Nodes.AddRange([.. entries.Select(e => new TreeNode(Path.GetFileName(e.Path), 0, 0, [this.CreateExpanderDummy()]) { Tag = e })]);
             }
         }

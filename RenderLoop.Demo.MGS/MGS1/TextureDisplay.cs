@@ -10,6 +10,7 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Windows.Forms;
     using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
+    using RenderLoop.Demo.MGS.MGS1.Archives;
 
     internal partial class TextureDisplay : Form
     {
@@ -19,7 +20,8 @@ namespace RenderLoop.Demo.MGS.MGS1
         public TextureDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
-            var stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
+            var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
+            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath, out var stageDir, out _, out var _);
 
             this.InitializeComponent();
             this.textureDisplay = new VirtualImageList<string>(

@@ -6,11 +6,10 @@
     using System.IO;
     using System.IO.Abstractions;
     using System.Linq;
-    using DiscUtils.Iso9660;
 
     internal class NestedFileSystemManager
     {
-        public delegate Func<IFileSystem, string, IFileSystem>? Handler(string file, IFileSystem fileSystem, string? fileSystemPath, string nestedPath);
+        public delegate Func<IFileSystem, string, IFileSystem>? Handler(string file, IFileSystem fileSystem, string fileSystemPath);
 
         private readonly Dictionary<string, Func<IFileSystem, string, IFileSystem>?> nestedFactories = new();
         private readonly Dictionary<string, IFileSystem> fileSystems = new();
@@ -37,6 +36,14 @@
             if (PathExtensions.GetDirectoryName(path) is string parent && this.TryFindParentFileSystem(parent, out fs, out fsPath, out var rest))
             {
                 subPath = Path.Combine(rest, parent == string.Empty ? path : Path.GetRelativePath(parent, path));
+                if (this.GetOrAddFactory(path, fs, fsPath, out var factory))
+                {
+                    fs = factory(fs, subPath);
+                    this.fileSystems.Add(path, fs);
+                    this.nestedFactories.Remove(path);
+                    fsPath = path;
+                    subPath = string.Empty;
+                }
 
                 return true;
             }
@@ -47,24 +54,10 @@
             return false;
         }
 
-        public IEnumerable<Entry> EnumerateEntries(Entry entry)
+        public IEnumerable<Entry> EnumerateEntries(string path)
         {
-            if (this.TryFindParentFileSystem(entry.Path, out var fs, out var fsPath, out var subPath))
+            if (this.TryFindParentFileSystem(path, out var fs, out var fsPath, out var subPath))
             {
-                if (entry.IsNestedFileSystem && subPath != string.Empty)
-                {
-                    if (!this.nestedFactories.TryGetValue(entry.Path, out var factory) || factory is null)
-                    {
-                        throw new InvalidOperationException($"No factory registered for nested file system at path '{entry.Path}'.");
-                    }
-
-                    fs = factory(fs, subPath);
-                    this.fileSystems.Add(entry.Path, fs);
-                    this.nestedFactories.Remove(entry.Path);
-                    fsPath = entry.Path;
-                    subPath = string.Empty;
-                }
-
                 foreach (var d in fs.Directory.EnumerateDirectories(subPath))
                 {
                     yield return new(PathExtensions.CombineIgnoringAbsolute(fsPath, d), false, false);
@@ -72,29 +65,34 @@
 
                 foreach (var f in fs.Directory.EnumerateFiles(subPath))
                 {
-                    var path = PathExtensions.CombineIgnoringAbsolute(fsPath, f);
-                    yield return new(path, true, this.IsNestedFileSystem(path, fs, fsPath, subPath));
+                    var p = PathExtensions.CombineIgnoringAbsolute(fsPath, f);
+                    yield return new(p, true, this.IsNestedFileSystem(p, fs, fsPath));
                 }
             }
         }
 
-        private bool IsNestedFileSystem(string file, IFileSystem fs, string? fsPath, string subPath)
+        private bool IsNestedFileSystem(string file, IFileSystem fs, string fsPath)
         {
             if (this.fileSystems.ContainsKey(file))
             {
                 return true;
             }
 
-            if (!this.nestedFactories.TryGetValue(file, out var factory))
+            return this.GetOrAddFactory(file, fs, fsPath, out _);
+        }
+
+        private bool GetOrAddFactory(string file, IFileSystem fs, string fsPath, [NotNullWhen(true)] out Func<IFileSystem, string, IFileSystem>? factory)
+        {
+            if (!this.nestedFactories.TryGetValue(file, out factory))
             {
-                this.nestedFactories[file] = factory = this.GetNestedFactory(file, fs, fsPath, subPath);
+                this.nestedFactories[file] = factory = this.GetNestedFactory(file, fs, fsPath);
             }
 
             return factory is not null;
         }
 
-        private Func<IFileSystem, string, IFileSystem>? GetNestedFactory(string file, IFileSystem fs, string? fsPath, string subPath) =>
-            this.handlers.Select(h => h(file, fs, fsPath, subPath)).FirstOrDefault(f => f is not null);
+        private Func<IFileSystem, string, IFileSystem>? GetNestedFactory(string file, IFileSystem fs, string fsPath) =>
+            this.handlers.Select(h => h(file, fs, fsPath)).FirstOrDefault(f => f is not null);
 
         public record Entry(string Path, bool IsFile, bool IsNestedFileSystem);
     }

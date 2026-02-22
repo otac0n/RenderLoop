@@ -7,11 +7,13 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Drawing;
     using System.Globalization;
     using System.IO;
+    using System.IO.Abstractions;
     using System.Linq;
     using System.Numerics;
     using DevDecoder.HIDDevices.Usages;
     using ImGuiNET;
     using Microsoft.Extensions.DependencyInjection;
+    using RenderLoop.Demo.MGS.MGS1.Archives;
     using RenderLoop.Input;
     using RenderLoop.SilkRenderer.GL;
     using Silk.NET.Input;
@@ -35,7 +37,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         private Vector3 center;
         private float size;
         private readonly ControlChangeTracker controlChangeTracker;
-        private readonly StageDirVirtualFileSystem stageDir;
+        private readonly IFileSystem stageDir;
 
         private readonly IList<(string[] path, Model model)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
@@ -48,7 +50,8 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
             var options = serviceProvider.GetRequiredService<MGS.Program.Options>();
-            this.stageDir = serviceProvider.GetRequiredKeyedService<StageDirVirtualFileSystem>((WellKnownPaths.AllDataBin, WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath));
+            var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
+            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath, out this.stageDir, out _, out var _);
             this.models = Model.UnpackModels(this.stageDir).Select(m => (paths: new[] { Path.Combine(options.SteamApps, WellKnownPaths.AllDataBin), WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).OrderBy(m => m.paths[3]).ToList();
             this.activeModel = Random.Shared.Next(this.models.Count);
 
