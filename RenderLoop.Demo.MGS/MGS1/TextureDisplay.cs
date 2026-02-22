@@ -11,24 +11,24 @@ namespace RenderLoop.Demo.MGS.MGS1
     using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.MGS1.Archives;
+    using Entry = Archives.NestedFileSystemManager.Entry;
 
     internal partial class TextureDisplay : Form
     {
-        private readonly VirtualImageList<string> textureDisplay;
+        private readonly VirtualImageList<Entry> textureDisplay;
         private MouseMoveFilter? filter;
 
         public TextureDisplay(IServiceProvider serviceProvider)
         {
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
-            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath, out var stageDir, out _, out var _);
 
             this.InitializeComponent();
-            this.textureDisplay = new VirtualImageList<string>(
-                stageDir.Directory.EnumerateFiles("", "*.pcx", SearchOption.AllDirectories),
-                file =>
+            this.textureDisplay = new VirtualImageList<Entry>(
+                fsm.EnumerateFiles(Path.GetDirectoryName(WellKnownPaths.CD1Path), "*.pcx", recursive: true),
+                entry =>
                 {
-                    using var textureFile = stageDir.File.OpenRead(file);
+                    using var textureFile = fsm.OpenRead(entry.Path);
                     return Task.FromResult(new MagickImage(textureFile).ToBitmap());
                 },
                 InterpolationMode.NearestNeighbor)
@@ -71,11 +71,11 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private class MouseMoveFilter(
             Control parent,
-            VirtualImageList<string> textureDisplay,
+            VirtualImageList<Entry> textureDisplay,
             ToolTip toolTip) : IMessageFilter
         {
             private readonly Control parent = parent;
-            private readonly VirtualImageList<string> textureDisplay = textureDisplay;
+            private readonly VirtualImageList<Entry> textureDisplay = textureDisplay;
             private readonly ToolTip toolTip = toolTip;
 
             const int WM_MOUSEMOVE = 0x0200;
@@ -90,7 +90,7 @@ namespace RenderLoop.Demo.MGS.MGS1
                     if (this.textureDisplay.ClientRectangle.Contains(client) &&
                         this.textureDisplay.HitTest(client, out var hit))
                     {
-                        caption = hit;
+                        caption = hit.Path;
                     }
 
                     this.toolTip.SetToolTip(this.textureDisplay, caption);

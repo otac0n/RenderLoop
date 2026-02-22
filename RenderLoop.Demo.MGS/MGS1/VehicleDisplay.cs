@@ -366,7 +366,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         private float size;
         private int activeModel;
         private readonly ControlChangeTracker controlChangeTracker;
-        private readonly IFileSystem stageDir;
+        private readonly NestedFileSystemManager fsm;
 
         private readonly List<(Dictionary<string, (string[] versions, (string attachTo, int atIndex)? attach, (int index, Vector3 min, Vector3 max)[] freedoms)> source, Dictionary<string, Model[]> parts)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
@@ -378,9 +378,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.display = display;
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
-            var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
-            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath, out this.stageDir, out _, out var _);
-
+            this.fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
             this.models = new();
 
             this.Camera.Up = new Vector3(0, 1, 0);
@@ -443,9 +441,9 @@ namespace RenderLoop.Demo.MGS.MGS1
         {
             if (!this.textures.TryGetValue(file, out var texture))
             {
-                if (this.stageDir.File.Exists(file))
+                if (this.fsm.FileExists(file))
                 {
-                    using var textureFile = this.stageDir.File.OpenRead(file);
+                    using var textureFile = this.fsm.OpenRead(file);
                     texture.id = ushort.Parse(Path.GetFileNameWithoutExtension(file), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
                     texture.texture = Model.ReadMgsPcx(textureFile);
                 }
@@ -476,15 +474,15 @@ namespace RenderLoop.Demo.MGS.MGS1
 
                     for (var f = 0; f < info.versions.Length; f++)
                     {
-                        var file = info.versions[f];
-                        using var stream = this.stageDir.File.OpenRead(file);
+                        var file = WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath + "/" + info.versions[f];
+                        using var stream = this.fsm.OpenRead(file);
                         var model = Model.FromStream(stream);
                         versions[f] = model;
 
-                        var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
-                        foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
+                        var folder = Path.GetDirectoryName(Path.GetDirectoryName(file)) + "/texture";
+                        foreach (var tx in this.fsm.EnumerateFiles(folder, "*.pcx"))
                         {
-                            var (id, texture) = this.EnsureTexture(tx);
+                            var (id, texture) = this.EnsureTexture(tx.Path);
                             if (texture != null)
                             {
                                 this.textureLookup[id] = new TextureHandle(this.gl, texture!);

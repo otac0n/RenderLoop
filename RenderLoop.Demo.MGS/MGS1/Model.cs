@@ -7,7 +7,6 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Drawing;
     using System.Drawing.Imaging;
     using System.IO;
-    using System.IO.Abstractions;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.InteropServices;
@@ -23,11 +22,11 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         public Mesh[] Meshes { get; }
 
-        public static IEnumerable<(string file, Model model)> UnpackModels(IFileSystem stage)
+        public static IEnumerable<(string File, Model Model)> UnpackModels(IEnumerable<string> paths, Func<string, Stream> openRead)
         {
-            foreach (var file in stage.Directory.EnumerateFiles("", "*.kmd", SearchOption.AllDirectories).Where(file => file.Contains("/model/")))
+            foreach (var file in paths)
             {
-                using var stream = stage.File.OpenRead(file);
+                using var stream = openRead(file);
                 yield return (file, FromStream(stream));
             }
         }

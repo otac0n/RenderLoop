@@ -7,7 +7,6 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Drawing;
     using System.Globalization;
     using System.IO;
-    using System.IO.Abstractions;
     using System.Linq;
     using System.Numerics;
     using DevDecoder.HIDDevices.Usages;
@@ -37,9 +36,8 @@ namespace RenderLoop.Demo.MGS.MGS1
         private Vector3 center;
         private float size;
         private readonly ControlChangeTracker controlChangeTracker;
-        private readonly IFileSystem stageDir;
-
-        private readonly IList<(string[] path, Model model)> models;
+        private readonly NestedFileSystemManager fsm;
+        private readonly IList<(string File, Model Model)> models;
         private readonly Dictionary<string, (ushort id, Bitmap? texture)> textures = [];
         private readonly Dictionary<ushort, TextureHandle> textureLookup = [];
 
@@ -50,9 +48,11 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.controlChangeTracker = serviceProvider.GetRequiredService<ControlChangeTracker>();
 
             var options = serviceProvider.GetRequiredService<MGS.Program.Options>();
-            var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
-            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.StageDirPath, out this.stageDir, out _, out var _);
-            this.models = Model.UnpackModels(this.stageDir).Select(m => (paths: new[] { Path.Combine(options.SteamApps, WellKnownPaths.AllDataBin), WellKnownPaths.CD1Path, WellKnownPaths.StageDirPath, m.file }, m.model)).OrderBy(m => m.paths[3]).ToList();
+            this.fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
+            this.models = Model
+                .UnpackModels(this.fsm.EnumerateFiles(WellKnownPaths.CDsPath, "*.kmd", recursive: true).Select(e => e.Path).Where(file => file.Contains("/model/")), this.fsm.OpenRead)
+                .OrderBy(m => m.File)
+                .ToList();
             this.activeModel = Random.Shared.Next(this.models.Count);
 
             this.Camera.Up = new Vector3(0, 1, 0);
@@ -67,13 +67,12 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.activeModel = (this.activeModel + this.models.Count) % this.models.Count;
             this.flying = false;
 
-            var (path, model) = this.models[this.activeModel];
+            var (file, model) = this.models[this.activeModel];
 
-            var file = path[^1];
-            var folder = file[..(file.IndexOf('/') + 1)] + $"texture";
-            foreach (var tx in this.stageDir.Directory.EnumerateFiles(folder, "*.pcx"))
+            var folder = Path.GetDirectoryName(Path.GetDirectoryName(file)) + "/texture";
+            foreach (var tx in this.fsm.EnumerateFiles(folder, "*.pcx"))
             {
-                var (id, texture) = this.EnsureTexture(tx);
+                var (id, texture) = this.EnsureTexture(tx.Path);
                 if (texture != null)
                 {
                     this.textureLookup[id] = new TextureHandle(this.gl, texture!);
@@ -102,9 +101,9 @@ namespace RenderLoop.Demo.MGS.MGS1
         {
             if (!this.textures.TryGetValue(file, out var texture))
             {
-                if (this.stageDir.File.Exists(file))
+                if (this.fsm.FileExists(file))
                 {
-                    using var textureFile = this.stageDir.File.OpenRead(file);
+                    using var textureFile = this.fsm.OpenRead(file);
                     texture.id = ushort.Parse(Path.GetFileNameWithoutExtension(file), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
                     texture.texture = Model.ReadMgsPcx(textureFile);
                 }
@@ -231,15 +230,14 @@ namespace RenderLoop.Demo.MGS.MGS1
                 this.Camera.Width = this.display.FramebufferSize.X;
                 this.Camera.Height = this.display.FramebufferSize.Y;
                 TextureHandle? GetTexture(ushort id) => this.textureLookup.TryGetValue(id, out var handle) ? handle : null;
-                Rendering.RenderMeshes(this.gl, this.Camera, this.shader, GetTexture, this.models[this.activeModel].model.Meshes);
+                Rendering.RenderMeshes(this.gl, this.Camera, this.shader, GetTexture, this.models[this.activeModel].Model.Meshes);
             });
 
-            var paths = string.Join(Environment.NewLine, this.models[this.activeModel].path.Select((p, i) => new string(' ', i * 2) + p));
             ImGui.SetNextWindowPos(Vector2.Zero);
             ImGui.SetNextWindowSize(new Vector2(this.display.FramebufferSize.X, this.display.FramebufferSize.Y));
             ImGui.Begin("Path", ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoInputs | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.DockNodeHost);
             ImGui.BeginChild("PathsMultilineLabel", Vector2.Zero);
-            ImGui.TextUnformatted(paths);
+            ImGui.TextUnformatted(this.models[this.activeModel].File);
             ImGui.EndChild();
             ImGui.End();
             this.controller.Render();

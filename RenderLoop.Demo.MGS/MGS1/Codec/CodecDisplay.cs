@@ -145,8 +145,7 @@ namespace RenderLoop.Demo.MGS.MGS1.Codec
             var options = serviceProvider.GetRequiredService<Program.Options>();
             var lmOptions = serviceProvider.GetRequiredService<LanguageModelOptions>();
             var fsm = serviceProvider.GetRequiredKeyedService<NestedFileSystemManager>(WellKnownPaths.AllDataBin);
-            fsm.TryFindParentFileSystem(WellKnownPaths.CD1Path + "/" + WellKnownPaths.FaceDatPath, out var fs, out _, out var facePath);
-            var facesStream = fs.File.OpenRead(facePath);
+            var facesStream = fsm.OpenRead(WellKnownPaths.CD1Path + "/" + WellKnownPaths.FaceDatPath);
             var source = ImageLoader.LoadImages(facesStream);
 
             var maxX = source.Values.SelectMany(x => x.Values.Select(v => v.X + v.Image.Width)).Max();
