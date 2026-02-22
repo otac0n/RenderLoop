@@ -29,11 +29,11 @@ namespace RenderLoop.Demo.MGS
             this.DoubleBuffered = true;
         }
 
-        public bool HitTest(MouseEventArgs e, [NotNullWhen(true)] out T? hit)
+        public bool HitTest(Point p, [NotNullWhen(true)] out T? hit)
         {
             var columns = Math.Max(1, this.ClientSize.Width / ImageSize);
-            var col = e.X / ImageSize;
-            var row = e.Y / ImageSize;
+            var col = p.X / ImageSize;
+            var row = p.Y / ImageSize;
             var index = row * columns + col;
             if (index >= 0 && index < this.items.Count)
             {
@@ -78,6 +78,7 @@ namespace RenderLoop.Demo.MGS
             if (this.ClientSize != size)
             {
                 this.ClientSize = size;
+                this.Invalidate();
             }
         }
 
