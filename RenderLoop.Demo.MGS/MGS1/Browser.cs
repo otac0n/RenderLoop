@@ -14,11 +14,11 @@ namespace RenderLoop.Demo.MGS.MGS1
     using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.MGS1.Archives;
-    using Entry = (string Path, bool IsFile, bool IsNestedFileSystem);
+    using Entry = Archives.NestedFileSystemManager.Entry;
 
     internal partial class Browser : Form
     {
-        private readonly Dictionary<string, IFileSystem> fileSystems = new();
+        private readonly NestedFileSystemManager fsm;
 
         public Browser(IServiceProvider serviceProvider)
         {
@@ -29,38 +29,41 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.saveSelectedDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveSelectedDialog.InitialDirectory);
             this.saveToFolderDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveToFolderDialog.InitialDirectory);
 
-            Entry entry = (string.Empty, false, false);
-            this.fileSystems.Add(entry.Path, fs);
-            this.fileTree.Nodes.Add(new TreeNode(entry.Path == string.Empty ? "Root" : Path.GetFileName(entry.Path), 0, 0, [this.CreateExpanderDummy(entry)]) { Tag = entry });
-            this.Navigate(entry);
+            this.fsm = new NestedFileSystemManager(fs,
+                (file, fs, fsPath, subPath) =>
+                {
+                    if (fs is MArchiveV1VirtualFileSystem &&
+                    string.Equals(Path.GetExtension(file), ".bin", StringComparison.OrdinalIgnoreCase) &&
+                    Path.GetFileName(subPath) == "roms")
+                    {
+                        return static (IFileSystem fs, string subPath) =>
+                        {
+                            var file = fs.File.OpenRead(subPath);
+                            var cdSector = new CDSectorStream(file, CDSectorStream.XAForm1);
+                            var cdReader = new CDReader(cdSector, joliet: false);
+                            var subFs = new CDReaderVFSAdapter(cdReader);
+                            return subFs;
+                        };
+                    }
+                    else if (fs is CDReaderVFSAdapter &&
+                        string.Equals(Path.GetExtension(file), ".dir", StringComparison.OrdinalIgnoreCase) &&
+                        Path.GetFileName(subPath) == "MGS")
+                    {
+                        return static (IFileSystem fs, string subPath) =>
+                        {
+                            var file = fs.File.OpenRead(subPath);
+                            var subFs = new StageDirVirtualFileSystem(file);
+                            return subFs;
+                        };
+                    }
+
+                    return null;
+                });
+            this.fileTree.Nodes.Add(new TreeNode("Root", 0, 0, [this.CreateExpanderDummy()]) { Tag = this.fsm.RootEntry });
+            this.Navigate(this.fsm.RootEntry);
         }
 
-        private TreeNode CreateExpanderDummy(Entry entry) => new("...");
-
-        private IEnumerable<Entry> EnumerateEntries(Entry entry)
-        {
-            var fs = this.FindParentFileSystem(entry.Path, out var fsPath, out var subPath);
-            if (fs != null)
-            {
-                if (entry.IsNestedFileSystem && subPath != string.Empty)
-                {
-                    fs = CreateNestedFileSystem(fs, subPath);
-                    this.fileSystems.Add(entry.Path, fs);
-                    fsPath = entry.Path;
-                    subPath = string.Empty;
-                }
-
-                foreach (var d in fs.Directory.EnumerateDirectories(subPath))
-                {
-                    yield return (PathExtensions.CombineIgnoringAbsolute(fsPath, d), false, false);
-                }
-
-                foreach (var f in fs.Directory.EnumerateFiles(subPath))
-                {
-                    yield return (PathExtensions.CombineIgnoringAbsolute(fsPath, f), true, DetectNestedFileSystem(f, fs, fsPath, subPath));
-                }
-            }
-        }
+        private TreeNode CreateExpanderDummy() => new("...");
 
         private static int DetectFileType(Entry entry) =>
             !entry.IsFile ? 0 :
@@ -68,83 +71,18 @@ namespace RenderLoop.Demo.MGS.MGS1
             string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase) ? 3 :
             1;
 
-        private bool DetectNestedFileSystem(string file, IFileSystem fs, string? fsPath, string subPath)
-        {
-            if (fs is MArchiveV1VirtualFileSystem &&
-                string.Equals(Path.GetExtension(file), ".bin", StringComparison.OrdinalIgnoreCase) &&
-                Path.GetFileName(subPath) == "roms")
-            {
-                return true;
-            }
-            else if (fs is CDReaderVFSAdapter &&
-                string.Equals(Path.GetExtension(file), ".DIR", StringComparison.OrdinalIgnoreCase) &&
-                Path.GetFileName(subPath) == "MGS")
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private IFileSystem CreateNestedFileSystem(IFileSystem fs, string subPath)
-        {
-            if (fs is MArchiveV1VirtualFileSystem &&
-                string.Equals(Path.GetExtension(subPath), ".bin", StringComparison.OrdinalIgnoreCase) &&
-                Path.GetFileName(Path.GetDirectoryName(subPath)) == "roms")
-            {
-                var file = fs.File.OpenRead(subPath);
-                var cdSector = new CDSectorStream(file, CDSectorStream.XAForm1);
-                var cdReader = new CDReader(cdSector, joliet: false);
-                var subFs = new CDReaderVFSAdapter(cdReader);
-                return subFs;
-            }
-            else if (fs is CDReaderVFSAdapter &&
-                string.Equals(Path.GetExtension(subPath), ".DIR", StringComparison.OrdinalIgnoreCase) &&
-                Path.GetFileName(Path.GetDirectoryName(subPath)) == "MGS")
-            {
-                var file = fs.File.OpenRead(subPath);
-                var subFs = new StageDirVirtualFileSystem(file);
-                return subFs;
-            }
-
-            throw new InvalidOperationException($"Don't know how to create a nested file system for {subPath} in a {fs.GetType().Name}.");
-        }
-
         private void Navigate(Entry entry)
         {
             this.pathBox.Text = entry.Path;
-            var fs = this.FindParentFileSystem(entry.Path, out var _, out var subPath);
-            if (fs != null)
+            if (this.fsm.TryFindParentFileSystem(entry.Path, out var fs, out var _, out var subPath))
             {
-                var entries = EnumerateEntries(entry)
+                var entries = this.fsm.EnumerateEntries(entry)
                     .Select(e => new ListViewItem(Path.GetFileName(e.Path), DetectFileType(e)) { Tag = e })
                     .ToArray();
                 this.entryList.Items.Clear();
                 this.EntryList_SelectedIndexChanged(this.entryList, EventArgs.Empty);
                 this.entryList.Items.AddRange(entries);
             }
-        }
-
-        private IFileSystem? FindParentFileSystem(string path, out string? fsPath, out string subPath)
-        {
-            if (this.fileSystems.TryGetValue(path, out var fs))
-            {
-                fsPath = path;
-                subPath = string.Empty;
-                return fs;
-            }
-
-            var parent = PathExtensions.GetDirectoryName(path);
-            if (parent == null)
-            {
-                fsPath = null;
-                subPath = path;
-                return null;
-            }
-
-            fs = this.FindParentFileSystem(parent, out fsPath, out var rest);
-            subPath = Path.Combine(rest, parent == string.Empty ? path : Path.GetRelativePath(parent, path));
-            return fs;
         }
 
         private static bool IsFolderLike(Entry entry) => !entry.IsFile || entry.IsNestedFileSystem;
@@ -154,8 +92,8 @@ namespace RenderLoop.Demo.MGS.MGS1
             if (e.Node?.Tag is Entry entry && e.Node.Nodes is [TreeNode onlyChild] && onlyChild.Text == "...")
             {
                 e.Node.Nodes.Clear();
-                var entries = this.EnumerateEntries(entry).Where(IsFolderLike);
-                e.Node.Nodes.AddRange([.. entries.Select(e => new TreeNode(Path.GetFileName(e.Path), 0, 0, [this.CreateExpanderDummy(e)]) { Tag = e })]);
+                var entries = this.fsm.EnumerateEntries(entry).Where(IsFolderLike);
+                e.Node.Nodes.AddRange([.. entries.Select(e => new TreeNode(Path.GetFileName(e.Path), 0, 0, [this.CreateExpanderDummy()]) { Tag = e })]);
             }
         }
 
@@ -181,16 +119,19 @@ namespace RenderLoop.Demo.MGS.MGS1
                     // TODO: Integrate with DetectFileType.
                     if (string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase))
                     {
-                        var file = this.FindParentFileSystem(entry.Path, out var _, out var subPath)!.File.OpenRead(subPath);
-                        var childForm = new Form();
-                        childForm.Controls.Add(new PictureBox
+                        if (this.fsm.TryFindParentFileSystem(entry.Path, out var fs, out var _, out var subPath))
                         {
-                            Dock = DockStyle.Fill,
-                            SizeMode = PictureBoxSizeMode.Zoom,
-                            Image = new MagickImage(file).ToBitmap(),
-                            BackColor = Color.Black,
-                        });
-                        childForm.Show(this);
+                            var file = fs.File.OpenRead(subPath);
+                            var childForm = new Form();
+                            childForm.Controls.Add(new PictureBox
+                            {
+                                Dock = DockStyle.Fill,
+                                SizeMode = PictureBoxSizeMode.Zoom,
+                                Image = new MagickImage(file).ToBitmap(),
+                                BackColor = Color.Black,
+                            });
+                            childForm.Show(this);
+                        }
                     }
                 }
             }
@@ -215,8 +156,12 @@ namespace RenderLoop.Demo.MGS.MGS1
         {
             if (this.entryList.SelectedItems.Count == 1)
             {
-                var entry = (Entry)this.entryList.SelectedItems[0]?.Tag;
-                var fs = this.FindParentFileSystem(entry.Path, out var _, out var subPath);
+                var entry = (Entry)this.entryList.SelectedItems[0]?.Tag!;
+                if (!this.fsm.TryFindParentFileSystem(entry.Path, out var fs, out var _, out var subPath))
+                {
+                    return;
+                }
+
                 using var input = fs.File.OpenRead(subPath);
 
                 MagickImageInfo? fileInfo = null;
@@ -224,7 +169,7 @@ namespace RenderLoop.Demo.MGS.MGS1
                 {
                     fileInfo = new MagickImageInfo(input);
                 }
-                catch
+                catch (MagickMissingDelegateErrorException)
                 {
                 }
                 finally
@@ -282,8 +227,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
                 foreach (var (source, target) in targetFiles)
                 {
-                    var fs = this.FindParentFileSystem(source, out var _, out var subPath);
-                    if (fs != null)
+                    if (this.fsm.TryFindParentFileSystem(source, out var fs, out var _, out var subPath))
                     {
                         using var input = fs.File.OpenRead(subPath);
                         using var output = File.Create(target);
