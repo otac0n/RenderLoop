@@ -62,7 +62,6 @@ namespace RenderLoop.Demo.MGS
 
             static void InstallSharedConfiguration(InvocationContext context, IServiceCollection services)
             {
-                ApplicationConfiguration.Initialize();
                 Options.Bind(context, services);
                 ServiceRegistration.Register(services);
             }
@@ -78,8 +77,11 @@ namespace RenderLoop.Demo.MGS
                     });
 
                     using var host = builder.Build();
-                    await Task.Yield();
-                    Application.Run(host.Services.GetService<MGS1.Browser>()!);
+                    await StaThreadRunner.RunAsync(() =>
+                    {
+                        ApplicationConfiguration.Initialize();
+                        Application.Run(host.Services.GetRequiredService<MGS1.Browser>());
+                    }).ConfigureAwait(false);
                 });
 
             textureCommand1.SetHandler(
@@ -93,8 +95,11 @@ namespace RenderLoop.Demo.MGS
                     });
 
                     using var host = builder.Build();
-                    await Task.Yield();
-                    Application.Run(host.Services.GetService<MGS1.TextureDisplay>()!);
+                    await StaThreadRunner.RunAsync(() =>
+                    {
+                        ApplicationConfiguration.Initialize();
+                        Application.Run(host.Services.GetService<MGS1.TextureDisplay>()!);
+                    }).ConfigureAwait(false);
                 });
 
             modelCommand.SetHandler(
@@ -141,8 +146,11 @@ namespace RenderLoop.Demo.MGS
                     });
 
                     using var host = builder.Build();
-                    await Task.Yield();
-                    Application.Run(host.Services.GetService<MGS1.Codec.CodecDisplay>()!);
+                    await StaThreadRunner.RunAsync(() =>
+                    {
+                        ApplicationConfiguration.Initialize();
+                        Application.Run(host.Services.GetService<MGS1.Codec.CodecDisplay>()!);
+                    }).ConfigureAwait(false);
                 });
 
             textureCommand2.SetHandler(
@@ -155,8 +163,11 @@ namespace RenderLoop.Demo.MGS
                     });
 
                     using var host = builder.Build();
-                    await Task.Yield();
-                    Application.Run(host.Services.GetService<MGS2.TextureDisplay>()!);
+                    await StaThreadRunner.RunAsync(() =>
+                    {
+                        ApplicationConfiguration.Initialize();
+                        Application.Run(host.Services.GetService<MGS2.TextureDisplay>()!);
+                    }).ConfigureAwait(false);
                 });
 
             otaconCommand.SetHandler(
@@ -172,8 +183,11 @@ namespace RenderLoop.Demo.MGS
                     });
 
                     using var host = builder.Build();
-                    await Task.Yield();
-                    Application.Run(host.Services.GetService<MGS2.Otacon.OtaconDisplay>()!);
+                    await StaThreadRunner.RunAsync(() =>
+                    {
+                        ApplicationConfiguration.Initialize();
+                        Application.Run(host.Services.GetService<MGS2.Otacon.OtaconDisplay>()!);
+                    }).ConfigureAwait(false);
                 });
 
             return await rootCommand.InvokeAsync(args).ConfigureAwait(true);
