@@ -32,9 +32,14 @@
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.SuspendLayout();
             // 
+            // toolTip
+            // 
+            this.toolTip.ShowAlways = true;
+            // 
             // TextureDisplay
             // 
             this.AutoScroll = true;
+            this.BackColor = System.Drawing.Color.Black;
             this.ClientSize = new System.Drawing.Size(687, 493);
             this.Name = "TextureDisplay";
             this.ResumeLayout(false);
