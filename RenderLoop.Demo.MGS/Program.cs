@@ -38,9 +38,9 @@ namespace RenderLoop.Demo.MGS
             textureCommand1.AddAlias("textures");
             mgs1.Add(textureCommand1);
 
-            var modelCommand = new Command("model", "Display Models (MGS1)");
-            modelCommand.AddAlias("models");
-            mgs1.Add(modelCommand);
+            var modelCommand1 = new Command("model", "Display Models (MGS1)");
+            modelCommand1.AddAlias("models");
+            mgs1.Add(modelCommand1);
 
             var vehicleCommand = new Command("vehicle", "Display Vehicles (MGS1)");
             vehicleCommand.AddAlias("vehicles");
@@ -102,7 +102,7 @@ namespace RenderLoop.Demo.MGS
                     }).ConfigureAwait(false);
                 });
 
-            modelCommand.SetHandler(
+            modelCommand1.SetHandler(
                 async context =>
                 {
                     var builder = Host.CreateDefaultBuilder(args);
