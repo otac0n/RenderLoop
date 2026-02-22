@@ -15,7 +15,6 @@ namespace RenderLoop.Demo.MGS.MGS1.Archives
     using System.Threading;
     using Microsoft.Win32.SafeHandles;
     using System.Linq;
-    using System.Windows.Controls;
     using static PathExtensions;
 
     public sealed class MArchiveV1VirtualFileSystem : IFileSystem, IDisposable
