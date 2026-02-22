@@ -31,8 +31,8 @@ namespace RenderLoop.Demo.MGS.MGS1
         private TreeNode CreateExpanderDummy() => new("...");
 
         private static int DetectFileType(Entry entry) =>
-            !entry.IsFile ? 0 :
-            entry.IsNestedFileSystem ? 2 :
+            entry.CanEnumerateEntries && !entry.CanOpen ? 0 :
+            entry.CanEnumerateEntries ? 2 :
             string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase) ? 3 :
             1;
 
@@ -50,14 +50,12 @@ namespace RenderLoop.Demo.MGS.MGS1
             }
         }
 
-        private static bool IsFolderLike(Entry entry) => !entry.IsFile || entry.IsNestedFileSystem;
-
         private void FileTree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
         {
             if (e.Node?.Tag is Entry entry && e.Node.Nodes is [TreeNode onlyChild] && onlyChild.Text == "...")
             {
                 e.Node.Nodes.Clear();
-                var entries = this.fsm.EnumerateEntries(entry.Path).Where(IsFolderLike);
+                var entries = this.fsm.EnumerateEntries(entry.Path).Where(e => e.CanEnumerateEntries);
                 e.Node.Nodes.AddRange([.. entries.Select(e => new TreeNode(Path.GetFileName(e.Path), 0, 0, [this.CreateExpanderDummy()]) { Tag = e })]);
             }
         }
@@ -75,7 +73,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             var item = this.entryList.SelectedItems.OfType<ListViewItem>().FirstOrDefault();
             if (item?.Tag is Entry entry)
             {
-                if (IsFolderLike(entry))
+                if (entry.CanEnumerateEntries)
                 {
                     this.Navigate(entry);
                 }
@@ -114,7 +112,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private void EntryList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            this.saveButton.Enabled = this.entryList.SelectedItems.Count >= 1 && this.entryList.SelectedItems.Cast<ListViewItem>().All(i => i.Tag is Entry entry && entry.IsFile);
+            this.saveButton.Enabled = this.entryList.SelectedItems.Count >= 1 && this.entryList.SelectedItems.Cast<ListViewItem>().All(i => i.Tag is Entry entry && entry.CanOpen);
         }
 
         private void SaveButton_Click(object sender, EventArgs e)

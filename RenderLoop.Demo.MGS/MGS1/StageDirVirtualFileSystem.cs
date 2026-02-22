@@ -680,7 +680,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public char AltDirectorySeparatorChar => throw new NotImplementedException();
 
-            public char DirectorySeparatorChar => throw new NotImplementedException();
+            public char DirectorySeparatorChar => '/';
 
             public char PathSeparator => throw new NotImplementedException();
 
@@ -691,7 +691,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             [return: NotNullIfNotNull("path")]
             public string? ChangeExtension(string? path, string? extension) => throw new NotImplementedException();
 
-            public string Combine(string path1, string path2) => throw new NotImplementedException();
+            public string Combine(string path1, string path2) => this.CombineWithSeparator(this.DirectorySeparatorChar, path1, path2);
 
             public string Combine(string path1, string path2, string path3) => throw new NotImplementedException();
 
@@ -738,7 +738,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public string GetRandomFileName() => throw new NotImplementedException();
 
-            public string GetRelativePath(string relativeTo, string path) => throw new NotImplementedException();
+            public string GetRelativePath(string relativeTo, string path) => this.GetRelativePath(this.DirectorySeparatorChar, relativeTo, path);
 
             public string GetTempFileName() => throw new NotImplementedException();
 
@@ -752,9 +752,9 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public bool IsPathFullyQualified(string path) => throw new NotImplementedException();
 
-            public bool IsPathRooted(ReadOnlySpan<char> path) => throw new NotImplementedException();
+            public bool IsPathRooted(ReadOnlySpan<char> path) => System.IO.Path.IsPathRooted(path);
 
-            public bool IsPathRooted([NotNullWhen(true)] string? path) => throw new NotImplementedException();
+            public bool IsPathRooted([NotNullWhen(true)] string? path) => System.IO.Path.IsPathRooted(path);
 
             public string Join(ReadOnlySpan<char> path1, ReadOnlySpan<char> path2) => throw new NotImplementedException();
 

@@ -7,7 +7,7 @@
     using System.IO.Abstractions;
     using System.Linq;
 
-    internal class NestedFileSystemManager
+    public class NestedFileSystemManager
     {
         public delegate Func<IFileSystem, string, IFileSystem>? Handler(string file, IFileSystem fileSystem, string fileSystemPath);
 
@@ -35,7 +35,7 @@
 
             if (PathExtensions.GetDirectoryName(path) is string parent && this.TryFindParentFileSystem(parent, out fs, out fsPath, out var rest))
             {
-                subPath = Path.Combine(rest, parent == string.Empty ? path : Path.GetRelativePath(parent, path));
+                subPath = fs.Path.Combine(rest, parent == string.Empty ? path : fs.Path.GetRelativePath(parent, path));
                 if (this.GetOrAddFactory(path, fs, fsPath, out var factory))
                 {
                     fs = factory(fs, subPath);
@@ -54,18 +54,71 @@
             return false;
         }
 
-        public IEnumerable<Entry> EnumerateEntries(string path)
+        public IEnumerable<Entry> EnumerateEntries(string path, bool recursive = false)
+        {
+            var stack = new Stack<string>();
+            stack.Push(path);
+
+            while (stack.Count > 0)
+            {
+                foreach (var entry in this.EnumerateEntries(stack.Pop()))
+                {
+                    yield return entry;
+
+                    if (recursive && entry.CanEnumerateEntries)
+                    {
+                        stack.Push(entry.Path);
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<Entry> EnumerateFiles(string path, string searchPattern, bool recursive = false)
+        {
+            var glob = PathExtensions.GlobToRegex(searchPattern);
+            foreach (var entry in this.EnumerateEntries(path, recursive))
+            {
+                if (!entry.CanOpen || !glob.IsMatch(Path.GetFileName(entry.Path)))
+                {
+                    continue;
+                }
+
+                yield return entry;
+            }
+        }
+
+        public bool FileExists(string path)
+        {
+            if (!this.TryFindParentFileSystem(path, out var fs, out _, out var subPath))
+            {
+                throw new FileNotFoundException(path);
+            }
+
+            return fs.File.Exists(subPath);
+        }
+
+        public Stream OpenRead(string path)
+        {
+            if (!this.TryFindParentFileSystem(path, out var fs, out _, out var subPath))
+            {
+                throw new FileNotFoundException(path);
+            }
+
+            return fs.File.OpenRead(subPath);
+        }
+
+        private IEnumerable<Entry> EnumerateEntries(string path)
         {
             if (this.TryFindParentFileSystem(path, out var fs, out var fsPath, out var subPath))
             {
                 foreach (var d in fs.Directory.EnumerateDirectories(subPath))
                 {
-                    yield return new(PathExtensions.CombineIgnoringAbsolute(fsPath, d), false, false);
+                    yield return new(fs.Path.CombineIgnoringAbsolute(fsPath, d), false, true);
                 }
 
                 foreach (var f in fs.Directory.EnumerateFiles(subPath))
                 {
-                    var p = PathExtensions.CombineIgnoringAbsolute(fsPath, f);
+                    var p = fs.Path.CombineIgnoringAbsolute(fsPath, f);
                     yield return new(p, true, this.IsNestedFileSystem(p, fs, fsPath));
                 }
             }
@@ -94,6 +147,6 @@
         private Func<IFileSystem, string, IFileSystem>? GetNestedFactory(string file, IFileSystem fs, string fsPath) =>
             this.handlers.Select(h => h(file, fs, fsPath)).FirstOrDefault(f => f is not null);
 
-        public record Entry(string Path, bool IsFile, bool IsNestedFileSystem);
+        public record Entry(string Path, bool CanOpen, bool CanEnumerateEntries);
     }
 }
