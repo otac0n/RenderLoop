@@ -273,6 +273,8 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private Stream GetStreamSpan(string path)
         {
+            path = string.Join("/", path.Split(Separators, StringSplitOptions.RemoveEmptyEntries));
+
             if (this.GetStreamSpanRange(path) is (long offset, long size))
             {
                 return new OffsetStreamSpan(this.sourceStream, offset, size);

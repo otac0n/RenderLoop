@@ -35,16 +35,19 @@
             this.fileTree = new System.Windows.Forms.TreeView();
             this.entryList = new System.Windows.Forms.ListView();
             this.fileTypes = new System.Windows.Forms.ImageList(this.components);
-            this.toolStrip1 = new System.Windows.Forms.ToolStrip();
-            this.toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
+            this.topToolStrip = new System.Windows.Forms.ToolStrip();
+            this.saveButton = new System.Windows.Forms.ToolStripButton();
+            this.viewDrowDown = new System.Windows.Forms.ToolStripDropDownButton();
             this.listToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.smallIconsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.statusStrip1 = new System.Windows.Forms.StatusStrip();
+            this.lowerStatusStrip = new System.Windows.Forms.StatusStrip();
+            this.saveSelectedDialog = new System.Windows.Forms.SaveFileDialog();
+            this.saveToFolderDialog = new System.Windows.Forms.FolderBrowserDialog();
             ((System.ComponentModel.ISupportInitialize)this.splitContainer2).BeginInit();
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
             this.splitContainer2.SuspendLayout();
-            this.toolStrip1.SuspendLayout();
+            this.topToolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // pathBox
@@ -94,6 +97,7 @@
             this.entryList.UseCompatibleStateImageBehavior = false;
             this.entryList.View = System.Windows.Forms.View.List;
             this.entryList.ItemActivate += this.EntryList_ItemActivate;
+            this.entryList.SelectedIndexChanged += this.EntryList_SelectedIndexChanged;
             // 
             // fileTypes
             // 
@@ -103,65 +107,88 @@
             this.fileTypes.Images.SetKeyName(0, "folder");
             this.fileTypes.Images.SetKeyName(1, "file");
             this.fileTypes.Images.SetKeyName(2, "streamline-icon-common-file-stack@20x20.png");
+            this.fileTypes.Images.SetKeyName(3, "streamline-icon-image-file-camera@20x20.png");
+            this.fileTypes.Images.SetKeyName(4, "streamline-icon-video-file-camera@20x20.png");
+            this.fileTypes.Images.SetKeyName(5, "streamline-icon-audio-file-volume@20x20.png");
             // 
-            // toolStrip1
+            // topToolStrip
             // 
-            this.toolStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
-            this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { this.toolStripDropDownButton1 });
-            this.toolStrip1.Location = new System.Drawing.Point(0, 0);
-            this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(1203, 33);
-            this.toolStrip1.TabIndex = 2;
-            this.toolStrip1.Text = "toolStrip1";
+            this.topToolStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.topToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { this.saveButton, this.viewDrowDown });
+            this.topToolStrip.Location = new System.Drawing.Point(0, 0);
+            this.topToolStrip.Name = "topToolStrip";
+            this.topToolStrip.Size = new System.Drawing.Size(1203, 33);
+            this.topToolStrip.TabIndex = 2;
+            this.topToolStrip.Text = "toolStrip1";
             // 
-            // toolStripDropDownButton1
+            // saveButton
             // 
-            this.toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { this.listToolStripMenuItem, this.smallIconsToolStripMenuItem });
-            this.toolStripDropDownButton1.Image = (System.Drawing.Image)resources.GetObject("toolStripDropDownButton1.Image");
-            this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
-            this.toolStripDropDownButton1.Size = new System.Drawing.Size(42, 28);
-            this.toolStripDropDownButton1.Text = "toolStripDropDownButton1";
+            this.saveButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.saveButton.Enabled = false;
+            this.saveButton.Image = Properties.Resources.streamline_icon_floppy_disk_20x20;
+            this.saveButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.saveButton.Name = "saveButton";
+            this.saveButton.Size = new System.Drawing.Size(34, 28);
+            this.saveButton.Text = "&Save";
+            this.saveButton.Click += this.SaveButton_Click;
+            // 
+            // viewDrowDown
+            // 
+            this.viewDrowDown.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.viewDrowDown.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { this.listToolStripMenuItem, this.smallIconsToolStripMenuItem });
+            this.viewDrowDown.Image = Properties.Resources.streamline_icon_cog_20x20;
+            this.viewDrowDown.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.viewDrowDown.Name = "viewDrowDown";
+            this.viewDrowDown.Size = new System.Drawing.Size(42, 28);
+            this.viewDrowDown.Text = "View";
             // 
             // listToolStripMenuItem
             // 
             this.listToolStripMenuItem.Name = "listToolStripMenuItem";
-            this.listToolStripMenuItem.Size = new System.Drawing.Size(204, 34);
+            this.listToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.listToolStripMenuItem.Text = "List";
             this.listToolStripMenuItem.Click += this.ListToolStripMenuItem_Click;
             // 
             // smallIconsToolStripMenuItem
             // 
             this.smallIconsToolStripMenuItem.Name = "smallIconsToolStripMenuItem";
-            this.smallIconsToolStripMenuItem.Size = new System.Drawing.Size(204, 34);
+            this.smallIconsToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.smallIconsToolStripMenuItem.Text = "Small Icons";
             this.smallIconsToolStripMenuItem.Click += this.SmallIconsToolStripMenuItem_Click;
             // 
-            // statusStrip1
+            // lowerStatusStrip
             // 
-            this.statusStrip1.ImageScalingSize = new System.Drawing.Size(24, 24);
-            this.statusStrip1.Location = new System.Drawing.Point(0, 766);
-            this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(1203, 22);
-            this.statusStrip1.TabIndex = 3;
-            this.statusStrip1.Text = "statusStrip1";
+            this.lowerStatusStrip.ImageScalingSize = new System.Drawing.Size(24, 24);
+            this.lowerStatusStrip.Location = new System.Drawing.Point(0, 766);
+            this.lowerStatusStrip.Name = "lowerStatusStrip";
+            this.lowerStatusStrip.Size = new System.Drawing.Size(1203, 22);
+            this.lowerStatusStrip.TabIndex = 3;
+            this.lowerStatusStrip.Text = "statusStrip1";
+            // 
+            // saveSelectedDialog
+            // 
+            this.saveSelectedDialog.InitialDirectory = "%USERPROFILE%\\Downloads";
+            // 
+            // saveToFolderDialog
+            // 
+            this.saveToFolderDialog.InitialDirectory = "%USERPROFILE%\\Downloads";
+            this.saveToFolderDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // Browser
             // 
             this.AutoScroll = true;
             this.ClientSize = new System.Drawing.Size(1203, 788);
             this.Controls.Add(this.splitContainer2);
-            this.Controls.Add(this.statusStrip1);
+            this.Controls.Add(this.lowerStatusStrip);
             this.Controls.Add(this.pathBox);
-            this.Controls.Add(this.toolStrip1);
+            this.Controls.Add(this.topToolStrip);
             this.Name = "Browser";
             this.splitContainer2.Panel1.ResumeLayout(false);
             this.splitContainer2.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)this.splitContainer2).EndInit();
             this.splitContainer2.ResumeLayout(false);
-            this.toolStrip1.ResumeLayout(false);
-            this.toolStrip1.PerformLayout();
+            this.topToolStrip.ResumeLayout(false);
+            this.topToolStrip.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
         }
@@ -172,10 +199,13 @@
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.ImageList fileTypes;
         private System.Windows.Forms.TreeView fileTree;
-        private System.Windows.Forms.ToolStrip toolStrip1;
-        private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
+        private System.Windows.Forms.ToolStrip topToolStrip;
+        private System.Windows.Forms.ToolStripDropDownButton viewDrowDown;
         private System.Windows.Forms.ToolStripMenuItem listToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem smallIconsToolStripMenuItem;
-        private System.Windows.Forms.StatusStrip statusStrip1;
+        private System.Windows.Forms.StatusStrip lowerStatusStrip;
+        private System.Windows.Forms.ToolStripButton saveButton;
+        private System.Windows.Forms.SaveFileDialog saveSelectedDialog;
+        private System.Windows.Forms.FolderBrowserDialog saveToFolderDialog;
     }
 }

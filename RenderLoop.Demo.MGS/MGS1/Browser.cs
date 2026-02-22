@@ -4,11 +4,14 @@ namespace RenderLoop.Demo.MGS.MGS1
 {
     using System;
     using System.Collections.Generic;
+    using System.Drawing;
     using System.IO;
     using System.IO.Abstractions;
     using System.Linq;
+    using System.Runtime.Serialization;
     using System.Windows.Forms;
     using DiscUtils.Iso9660;
+    using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
     using RenderLoop.Demo.MGS.MGS1.Archives;
     using Entry = (string Path, bool IsFile, bool IsNestedFileSystem);
@@ -23,16 +26,13 @@ namespace RenderLoop.Demo.MGS.MGS1
             var fs = serviceProvider.GetRequiredKeyedService<MArchiveV1VirtualFileSystem>(WellKnownPaths.AllDataBin);
 
             this.InitializeComponent();
+            this.saveSelectedDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveSelectedDialog.InitialDirectory);
+            this.saveToFolderDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveToFolderDialog.InitialDirectory);
 
-            var entry = (string.Empty, false, false);
-            this.AddFileSystem(entry, fs);
-            this.Navigate(entry);
-        }
-
-        private void AddFileSystem(Entry entry, IFileSystem fileSystem)
-        {
-            this.fileSystems.Add(entry.Path, fileSystem);
+            Entry entry = (string.Empty, false, false);
+            this.fileSystems.Add(entry.Path, fs);
             this.fileTree.Nodes.Add(new TreeNode(entry.Path == string.Empty ? "Root" : Path.GetFileName(entry.Path), 0, 0, [this.CreateExpanderDummy(entry)]) { Tag = entry });
+            this.Navigate(entry);
         }
 
         private TreeNode CreateExpanderDummy(Entry entry) => new("...");
@@ -45,7 +45,7 @@ namespace RenderLoop.Demo.MGS.MGS1
                 if (entry.IsNestedFileSystem && subPath != string.Empty)
                 {
                     fs = CreateNestedFileSystem(fs, subPath);
-                    AddFileSystem(entry, fs);
+                    this.fileSystems.Add(entry.Path, fs);
                     fsPath = entry.Path;
                     subPath = string.Empty;
                 }
@@ -61,6 +61,12 @@ namespace RenderLoop.Demo.MGS.MGS1
                 }
             }
         }
+
+        private static int DetectFileType(Entry entry) =>
+            !entry.IsFile ? 0 :
+            entry.IsNestedFileSystem ? 2 :
+            string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase) ? 3 :
+            1;
 
         private bool DetectNestedFileSystem(string file, IFileSystem fs, string? fsPath, string subPath)
         {
@@ -111,9 +117,10 @@ namespace RenderLoop.Demo.MGS.MGS1
             if (fs != null)
             {
                 var entries = EnumerateEntries(entry)
-                    .Select(e => new ListViewItem(Path.GetFileName(e.Path), e.IsFile ? e.IsNestedFileSystem ? 2 : 1 : 0) { Tag = e })
+                    .Select(e => new ListViewItem(Path.GetFileName(e.Path), DetectFileType(e)) { Tag = e })
                     .ToArray();
                 this.entryList.Items.Clear();
+                this.EntryList_SelectedIndexChanged(this.entryList, EventArgs.Empty);
                 this.entryList.Items.AddRange(entries);
             }
         }
@@ -163,9 +170,29 @@ namespace RenderLoop.Demo.MGS.MGS1
         private void EntryList_ItemActivate(object sender, EventArgs e)
         {
             var item = this.entryList.SelectedItems.OfType<ListViewItem>().FirstOrDefault();
-            if (item?.Tag is Entry entry && IsFolderLike(entry))
+            if (item?.Tag is Entry entry)
             {
-                this.Navigate(entry);
+                if (IsFolderLike(entry))
+                {
+                    this.Navigate(entry);
+                }
+                else
+                {
+                    // TODO: Integrate with DetectFileType.
+                    if (string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var file = this.FindParentFileSystem(entry.Path, out var _, out var subPath)!.File.OpenRead(subPath);
+                        var childForm = new Form();
+                        childForm.Controls.Add(new PictureBox
+                        {
+                            Dock = DockStyle.Fill,
+                            SizeMode = PictureBoxSizeMode.Zoom,
+                            Image = new MagickImage(file).ToBitmap(),
+                            BackColor = Color.Black,
+                        });
+                        childForm.Show(this);
+                    }
+                }
             }
         }
 
@@ -177,6 +204,93 @@ namespace RenderLoop.Demo.MGS.MGS1
         private void SmallIconsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.entryList.View = View.SmallIcon;
+        }
+
+        private void EntryList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            this.saveButton.Enabled = this.entryList.SelectedItems.Count >= 1 && this.entryList.SelectedItems.Cast<ListViewItem>().All(i => i.Tag is Entry entry && entry.IsFile);
+        }
+
+        private void SaveButton_Click(object sender, EventArgs e)
+        {
+            if (this.entryList.SelectedItems.Count == 1)
+            {
+                var entry = (Entry)this.entryList.SelectedItems[0]?.Tag;
+                var fs = this.FindParentFileSystem(entry.Path, out var _, out var subPath);
+                using var input = fs.File.OpenRead(subPath);
+
+                MagickImageInfo? fileInfo = null;
+                try
+                {
+                    fileInfo = new MagickImageInfo(input);
+                }
+                catch
+                {
+                }
+                finally
+                {
+                    input.Seek(0, SeekOrigin.Begin);
+                }
+
+                this.saveSelectedDialog.Filter = fileInfo != null
+                    ? "Image Files|*.bmp;*.gif;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.pcx|All Files|*.*"
+                    : "All Files|*.*";
+
+                this.saveSelectedDialog.FileName = Path.GetFileName(entry.Path);
+                var result = this.saveSelectedDialog.ShowDialog();
+                if (result != DialogResult.OK)
+                {
+                    return;
+                }
+
+                if (fs != null)
+                {
+                    var path = this.saveSelectedDialog.FileName;
+                    if (Path.GetExtension(path) != Path.GetExtension(subPath))
+                    {
+                        using var image = new MagickImage(input);
+                        image.Write(path);
+                    }
+                    else
+                    {
+                        using var output = File.Create(path);
+                        input.CopyTo(output);
+                    }
+                }
+            }
+            else if (this.entryList.SelectedItems.Count >= 0)
+            {
+                var entries = this.entryList.SelectedItems.Cast<ListViewItem>().Select(i => (Entry)i.Tag).ToList();
+
+                this.saveToFolderDialog.SelectedPath = string.Empty;
+                var result = this.saveToFolderDialog.ShowDialog();
+                if (result != DialogResult.OK)
+                {
+                    return;
+                }
+
+                var path = this.saveToFolderDialog.SelectedPath;
+                var targetFiles = entries.Select(e => (Source: e.Path, Target: Path.Combine(path, Path.GetFileName(e.Path)))).ToList();
+                if (targetFiles.Any(t => File.Exists(t.Target)))
+                {
+                    var overwriteResult = MessageBox.Show($"The destination path \"{path}\" already contians files with the same name. Do you want to overwrite?", "Confirm Overwrite", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    if (overwriteResult != DialogResult.Yes)
+                    {
+                        return;
+                    }
+                }
+
+                foreach (var (source, target) in targetFiles)
+                {
+                    var fs = this.FindParentFileSystem(source, out var _, out var subPath);
+                    if (fs != null)
+                    {
+                        using var input = fs.File.OpenRead(subPath);
+                        using var output = File.Create(target);
+                        input.CopyTo(output);
+                    }
+                }
+            }
         }
     }
 }

@@ -25,5 +25,6 @@ OpenSource Info
 | | [CtxrTool](https://github.com/Jayveer/CtxrTool) | [MIT](https://github.com/Jayveer/CtxrTool/blob/master/README.md) | Reference only |
 | | [Metal Gear Master Collection](https://store.steampowered.com/app/2131630/METAL_GEAR_SOLID__Master_Collection_Version/) | Non-transferrable | You need your own license to this software, and your license may not cover this usage. |
 | | [Digital-7 Font](http://style7.website/font.php?font=digital-7) | Freeware for home use | Frequency display |
+| | [Streamline Icons Pack](https://www.streamlineicons.com/) | [License](https://www.notion.so/Free-Pack-License-bec2619f40394856b6eeb6cdbe7d6b7d) | Used for UI icons |
 | **Middle Earth Demo**              ||||
 | | [Map of Middle-earth, Textures](https://www.moddb.com/addons/map-of-middle-earth-textures) | Author allows usage with credit. | by Enpremi |
