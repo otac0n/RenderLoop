@@ -12,5 +12,6 @@ namespace RenderLoop.Demo.MGS
         public static readonly string FaceDatPath = @"MGS\FACE.DAT";
         public static readonly string AllDataBin = @"common\MGS1\windata\alldata.bin";
         public static readonly string MGS2Texture = @"common\MGS2\textures\";
+        public static readonly string MGS2Assets = @"common\MGS2\assets\";
     }
 }

@@ -24,6 +24,10 @@
       "commandName": "Project",
       "commandLineArgs": "mgs2 texture"
     },
+    "MGS2 Models": {
+      "commandName": "Project",
+      "commandLineArgs": "mgs2 model"
+    },
     "MGS2 Otacon": {
       "commandName": "Project",
       "commandLineArgs": "mgs2 otacon"

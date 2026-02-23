@@ -55,6 +55,10 @@ namespace RenderLoop.Demo.MGS
             textureCommand2.AddAlias("textures");
             mgs2.Add(textureCommand2);
 
+            var modelCommand2 = new Command("model", "Display Models (MGS2)");
+            modelCommand2.AddAlias("models");
+            mgs2.Add(modelCommand2);
+
             var otaconCommand = new Command("otacon", "Display Otacon Assistant (MGS2)");
             Conversation.LanguageModelOptions.Attach(otaconCommand);
             Conversation.VoiceOptions.Attach(otaconCommand);
@@ -168,6 +172,20 @@ namespace RenderLoop.Demo.MGS
                         ApplicationConfiguration.Initialize();
                         Application.Run(host.Services.GetService<MGS2.TextureDisplay>()!);
                     }).ConfigureAwait(false);
+                });
+
+            modelCommand2.SetHandler(
+                async context =>
+                {
+                    var builder = Host.CreateDefaultBuilder(args);
+                    builder.ConfigureServices(services =>
+                    {
+                        InstallSharedConfiguration(context, services);
+                        services.AddHostedService<GameLoopApplication<MGS2.ModelDisplay>>();
+                    });
+
+                    using var host = builder.Build();
+                    await host.RunAsync().ConfigureAwait(true);
                 });
 
             otaconCommand.SetHandler(

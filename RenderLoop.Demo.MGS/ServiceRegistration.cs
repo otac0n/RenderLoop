@@ -16,6 +16,7 @@ namespace RenderLoop.Demo.MGS
             services.AddTransient<MGS1.VehicleDisplay>();
             services.AddTransient<MGS1.Codec.CodecDisplay>();
             services.AddTransient<MGS2.TextureDisplay>();
+            services.AddTransient<MGS2.ModelDisplay>();
             services.AddTransient<MGS2.Otacon.OtaconDisplay>();
         }
     }
