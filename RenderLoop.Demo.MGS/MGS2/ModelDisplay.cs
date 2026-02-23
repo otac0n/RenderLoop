@@ -4,6 +4,7 @@ namespace RenderLoop.Demo.MGS.MGS2
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Drawing;
     using System.IO;
     using System.Linq;
@@ -37,6 +38,7 @@ namespace RenderLoop.Demo.MGS.MGS2
         private float size;
         private readonly ControlChangeTracker controlChangeTracker;
         private readonly IList<string> models;
+        private readonly Task<Dictionary<ulong, string>> imageIdLookup;
         private readonly Dictionary<string, Task<Model>> modelLookup = [];
         private readonly Dictionary<ulong, Task<Bitmap>> bitmapLookup = [];
         private readonly Dictionary<ulong, TextureHandle> textureLookup = [];
@@ -49,6 +51,21 @@ namespace RenderLoop.Demo.MGS.MGS2
             this.options = serviceProvider.GetRequiredService<MGS.Program.Options>();
             var basePath = Path.Combine(this.options.SteamApps, WellKnownPaths.MGS2Assets);
             this.models = Directory.EnumerateFiles(basePath, "*.kms", SearchOption.AllDirectories).ToList();
+            this.imageIdLookup = Task.Run(() =>
+            {
+                var result = new Dictionary<ulong, string>();
+
+                foreach (var file in Directory.EnumerateFiles(basePath, "*.tri", SearchOption.AllDirectories))
+                {
+                    foreach (var id in TriFile.List(file))
+                    {
+                        result[id] = file;
+                    }
+                }
+
+                return result;
+            });
+
             this.activeModel = Random.Shared.Next(this.models.Count);
 
             this.Camera.Up = new Vector3(0, 1, 0);
@@ -89,7 +106,18 @@ namespace RenderLoop.Demo.MGS.MGS2
             {
                 if (!this.bitmapLookup.TryGetValue(id, out var task))
                 {
-                    this.bitmapLookup[id] = task = Task.FromResult<Bitmap>(null);
+                    this.bitmapLookup[id] = task = this.imageIdLookup.ContinueWith(lookup =>
+                    {
+                        try
+                        {
+                            using var stream = File.OpenRead(lookup.Result[id]);
+                            return TriFile.Load(stream, (uint)id);
+                        }
+                        catch
+                        {
+                            throw;
+                        }
+                    });
                 }
 
                 if (task.Status == TaskStatus.RanToCompletion && task.Result is Bitmap bitmap)

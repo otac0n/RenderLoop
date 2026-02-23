@@ -25,11 +25,13 @@ namespace RenderLoop.Demo.MGS.MGS2
             this.InitializeComponent();
 
             this.textureDisplay = new VirtualImageList<Entry>(
-                Directory.GetFiles(texturePath, "*.ctxr", SearchOption.AllDirectories).Select(f => (f, default(uint?))),
+                Enumerable.Concat(
+                    Directory.GetFiles(texturePath, "*.ctxr", SearchOption.AllDirectories).Select(f => (f, default(uint?))),
+                    Directory.GetFiles(assetsPath, "*.tri", SearchOption.AllDirectories).SelectMany(f => TriFile.List(f).Select(id => (f, (uint?)id)))),
                 async pair =>
                 {
                     var (file, id) = pair;
-                    return await CtxrFile.LoadAsync(file).ConfigureAwait(true);
+                    return await (id == null ? CtxrFile.LoadAsync(file) : TriFile.LoadAsync(file, id.Value)).ConfigureAwait(true);
                 })
             {
                 AutoSize = true,
@@ -89,7 +91,7 @@ namespace RenderLoop.Demo.MGS.MGS2
                     if (this.textureDisplay.ClientRectangle.Contains(client) &&
                         this.textureDisplay.HitTest(client, out var hit))
                     {
-                        caption = Path.GetRelativePath(this.parent.options.SteamApps, hit.File + (hit.TextureId is uint id ? $" ({id})" : string.Empty));
+                        caption = Path.GetRelativePath(this.parent.options.SteamApps, hit.File + (hit.TextureId is uint id ? $" ({id:x8})" : string.Empty));
                     }
 
                     this.toolTip.SetToolTip(this.textureDisplay, caption);
