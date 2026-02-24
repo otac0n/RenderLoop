@@ -169,6 +169,10 @@ namespace RenderLoop.Demo.MGS.MGS2
                         color = uniform_textureAvailable > 0.5
                             ? texture(uniform_texture, fragment_textureCoords)
                             : vec4(fragment_textureCoords.x, fragment_textureCoords.y, 0.0, 1.0);
+                        if (color.a == 0)
+                        {
+                            discard;
+                        }
                     }
                 """);
 
