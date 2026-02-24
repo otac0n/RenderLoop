@@ -6,6 +6,7 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Drawing;
     using System.Drawing.Drawing2D;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using ImageMagick;
@@ -25,7 +26,7 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             this.InitializeComponent();
             this.textureDisplay = new VirtualImageList<Entry>(
-                fsm.EnumerateFiles(Path.GetDirectoryName(WellKnownPaths.CD1Path), "*.pcx", recursive: true),
+                fsm.EnumerateFiles(Path.GetDirectoryName(WellKnownPaths.CD1Path), "*.pcx", recursive: true).OrderBy(f => f.Path),
                 entry =>
                 {
                     using var textureFile = fsm.OpenRead(entry.Path);

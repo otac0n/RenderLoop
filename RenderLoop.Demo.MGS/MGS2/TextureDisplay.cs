@@ -8,7 +8,7 @@ namespace RenderLoop.Demo.MGS.MGS2
     using System.Linq;
     using System.Windows.Forms;
     using Microsoft.Extensions.DependencyInjection;
-    using Entry = (string File, uint? TextureId);
+    using Entry = (string Path, uint? TextureId);
 
     internal partial class TextureDisplay : Form
     {
@@ -27,11 +27,11 @@ namespace RenderLoop.Demo.MGS.MGS2
             this.textureDisplay = new VirtualImageList<Entry>(
                 Enumerable.Concat(
                     Directory.GetFiles(texturePath, "*.ctxr", SearchOption.AllDirectories).Select(f => (f, default(uint?))),
-                    Directory.GetFiles(assetsPath, "*.tri", SearchOption.AllDirectories).SelectMany(f => TriFile.List(f).Select(id => (f, (uint?)id)))),
+                    Directory.GetFiles(assetsPath, "*.tri", SearchOption.AllDirectories).SelectMany(f => TriFile.List(f).Select(id => (Entry)(f, id))).OrderBy(e => e.Path)),
                 async pair =>
                 {
-                    var (file, id) = pair;
-                    return await (id == null ? CtxrFile.LoadAsync(file) : TriFile.LoadAsync(file, id.Value)).ConfigureAwait(true);
+                    var (path, id) = pair;
+                    return await (id == null ? CtxrFile.LoadAsync(path) : TriFile.LoadAsync(path, id.Value)).ConfigureAwait(true);
                 })
             {
                 AutoSize = true,
@@ -91,7 +91,7 @@ namespace RenderLoop.Demo.MGS.MGS2
                     if (this.textureDisplay.ClientRectangle.Contains(client) &&
                         this.textureDisplay.HitTest(client, out var hit))
                     {
-                        caption = Path.GetRelativePath(this.parent.options.SteamApps, hit.File + (hit.TextureId is uint id ? $" ({id:x8})" : string.Empty));
+                        caption = Path.GetRelativePath(this.parent.options.SteamApps, hit.Path + (hit.TextureId is uint id ? $" ({id:x8})" : string.Empty));
                     }
 
                     this.toolTip.SetToolTip(this.textureDisplay, caption);
