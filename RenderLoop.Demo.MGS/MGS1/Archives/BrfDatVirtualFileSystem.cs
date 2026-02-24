@@ -1,11 +1,9 @@
-﻿// Copyright © John Gietzen. All Rights Reserved. This source is subject to the GPL license. Please see license.md for more information.
-
-namespace RenderLoop.Demo.MGS.MGS1
+﻿namespace RenderLoop.Demo.MGS.MGS1.Archives
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.IO;
     using System.IO.Abstractions;
     using System.Linq;
@@ -13,55 +11,147 @@ namespace RenderLoop.Demo.MGS.MGS1
     using System.Threading;
     using System.Threading.Tasks;
     using Microsoft.Win32.SafeHandles;
-    using RenderLoop.Demo.MGS.MGS1.Archives;
     using static PathExtensions;
-    using DirEntry = (string name, long offset);
-    using FileEntry = (string name, long offset, long size);
+    using Entry = (string FolderName, string FileName, long Offset, long Length);
 
-    public sealed class StageDirVirtualFileSystem : IFileSystem, IDisposable
+    internal class BrfDatVirtualFileSystem : IFileSystem, IDisposable
     {
-        private static readonly long SectorSize = 2048L;
-        private static readonly ImmutableDictionary<byte, string> extensions = new Dictionary<byte, string>
-        {
-            [0x61] = "azm",
-            [0x62] = "bin",
-            [0x63] = "con",
-            [0x64] = "dar",
-            [0x65] = "efx",
-            [0x67] = "gcx",
-            [0x68] = "hzm",
-            [0x69] = "img",
-            [0x6b] = "kmd",
-            [0x6c] = "lit",
-            [0x6d] = "mdx",
-            [0x6f] = "oar",
-            [0x70] = "pcx",
-            [0x72] = "res",
-            [0x73] = "sgt",
-            [0x77] = "wvx",
-            [0x7a] = "zmd",
-        }.ToImmutableDictionary();
-
-        private static readonly ImmutableDictionary<byte, string> groups = new Dictionary<byte, string>
-        {
-            [0x63] = "model",
-            [0x6e] = "texture",
-            [0x73] = "sound",
-        }.ToImmutableDictionary();
-
-        private bool disposed;
-        private readonly DirEntry[] index;
-        private readonly Dictionary<string, FileEntry[]> fileEntries = [];
+        private readonly Entry[] index;
         private Stream sourceStream;
+        private bool disposed;
 
-        public StageDirVirtualFileSystem(Stream sourceStream)
+        public BrfDatVirtualFileSystem(Stream sourceStream)
         {
-            this.index = ReadIndex(sourceStream);
+            this.index = [.. ReadIndex(sourceStream)];
             this.sourceStream = sourceStream;
 
             this.Directory = new DirectoryProvider(this);
             this.File = new FileProvider(this);
             this.Path = new PathProvider(this);
+        }
+
+        private static void Align(Stream stream, long alignment)
+        {
+            var offset = (alignment - (stream.Position % alignment)) % alignment;
+            if (offset > 0)
+            {
+                stream.Seek(offset, SeekOrigin.Current);
+            }
+        }
+
+        private static bool TryAlign(Stream stream, long alignment)
+        {
+            var offset = (alignment - (stream.Position % alignment)) % alignment;
+            if (offset + stream.Position > stream.Length)
+            {
+                return false;
+            }
+
+            if (offset > 0)
+            {
+                stream.Seek(offset, SeekOrigin.Current);
+            }
+
+            return true;
+        }
+
+        private static List<Entry> ReadIndex(Stream stream)
+        {
+            var result = new List<Entry>();
+            using var reader = new BinaryReader(stream);
+            while (true)
+            {
+                var fileCount = reader.ReadUInt32();
+                if (fileCount == 0 || IsPcx(fileCount))
+                {
+                    break;
+                }
+
+                foreach (var entry in IndexFolder(fileCount, reader))
+                {
+                    result.Add(entry);
+                }
+
+                Align(stream, 0x800);
+            }
+
+            stream.Seek(-4, SeekOrigin.Current);
+            foreach (var entry in IndexPcx(reader))
+            {
+                result.Add(entry);
+            }
+
+            stream.Seek(0, SeekOrigin.Begin);
+            return result;
+        }
+
+        private static bool IsPcx(uint signature) => (signature & 0xFFFFFF) == 0x01050a;
+
+        private static IEnumerable<Entry> IndexPcx(BinaryReader reader)
+        {
+            var stream = reader.BaseStream;
+            var end = false;
+            while (!end)
+            {
+                var pcxId = (uint)stream.Position;
+                var signature = reader.ReadUInt32();
+                if (IsPcx(signature))
+                {
+                    while (true)
+                    {
+                        if (!TryAlign(stream, 0x800))
+                        {
+                            end = true;
+                            stream.Seek(0, SeekOrigin.End);
+                            break;
+                        }
+                        else if (stream.Position >= stream.Length)
+                        {
+                            end = true;
+                            break;
+                        }
+                        else if (IsPcx(reader.ReadUInt32()))
+                        {
+                            stream.Seek(-4, SeekOrigin.Current);
+                            break;
+                        }
+                    }
+
+                    yield return new("pcx", pcxId.ToString("x8", CultureInfo.InvariantCulture) + ".pcx", pcxId, stream.Position - pcxId);
+                }
+
+            }
+        }
+
+        private static IEnumerable<Entry> IndexFolder(uint fileCount, BinaryReader reader)
+        {
+            var stream = reader.BaseStream;
+            var folderId = (uint)stream.Position;
+            for (var i = 0; i < fileCount; i++)
+            {
+                var fileName = ReadString(stream);
+                Align(stream, 0x004);
+                var fileSize = reader.ReadUInt32();
+                yield return new(folderId.ToString("x8", CultureInfo.InvariantCulture), fileName, stream.Position, fileSize);
+                stream.Seek(fileSize + 1, SeekOrigin.Current);
+            }
+        }
+
+        private static string ReadString(Stream stream)
+        {
+            var value = new StringBuilder();
+            int c;
+            while ((c = stream.ReadByte()) != -1)
+            {
+                if (c == 0)
+                {
+                    break;
+                }
+
+                value.Append((char)c);
+            }
+
+            return value.ToString();
         }
 
         public IDirectory Directory { get; }
@@ -79,140 +169,6 @@ namespace RenderLoop.Demo.MGS.MGS1
         public IFileSystemWatcherFactory FileSystemWatcher => throw new NotImplementedException();
 
         public IPath Path { get; }
-
-        private static string GetExtension(byte id) =>
-            extensions.TryGetValue(id, out var extension) ? extension : $"x{id:x2}";
-
-        private static string GetGroup(byte id) =>
-            groups.TryGetValue(id, out var group) ? group : $"x{id:x2}";
-
-        private static DirEntry[] ReadIndex(Stream source)
-        {
-            var buffer = new byte[12];
-            source.ReadExactly(buffer, 4);
-
-            var dataOffset = BitConverter.ToUInt32(buffer, 0);
-            var entries = new DirEntry[dataOffset / 12];
-            for (var i = 0; i < entries.Length; i++)
-            {
-                source.ReadExactly(buffer, 12);
-
-                var name = Encoding.ASCII.GetString(buffer, 0, 8).TrimEnd('\0');
-                var offset = BitConverter.ToUInt32(buffer, 8) * SectorSize;
-
-                entries[i] = (name, offset);
-            }
-
-            return entries;
-        }
-
-        private static FileEntry[] ReadDar(Stream source, string group, long offset, long length)
-        {
-            var buffer = new byte[8];
-
-            var entries = new List<FileEntry>();
-            var relative = 0u;
-            while (relative < length - 7)
-            {
-                source.Seek(offset + relative, SeekOrigin.Begin);
-                source.ReadExactly(buffer, 8);
-
-                var id = string.Concat(buffer[..2].Reverse().Select(b => b.ToString("x2")));
-                var ext = GetExtension(buffer[2]);
-                var size = BitConverter.ToUInt32(buffer, 4);
-
-                var key = $"{group}/{id}.{ext}";
-
-                entries.Add((key, offset + relative + 8, size));
-
-                relative += 8 + size;
-            }
-
-            return entries.ToArray();
-        }
-
-        private static FileEntry[] ReadList(Stream source, long offset)
-        {
-            source.Seek(offset, SeekOrigin.Begin);
-
-            var buffer = new byte[8];
-            source.ReadExactly(buffer, 4);
-            var totalSize = BitConverter.ToUInt16(buffer, 2) * SectorSize;
-
-            var rawEntries = new List<(ushort id, byte group, byte ext, uint size, bool packed)>();
-            while (true)
-            {
-                source.ReadExactly(buffer, 8);
-                if (BitConverter.ToUInt32(buffer, 0) == 0)
-                {
-                    break;
-                }
-
-                var id = BitConverter.ToUInt16(buffer, 0);
-                var group = buffer[2];
-                var ext = buffer[3];
-                var size = BitConverter.ToUInt32(buffer, 4);
-
-                if (ext == byte.MaxValue)
-                {
-                    var notLast = false;
-                    for (var i = rawEntries.Count - 1; i >= 0; i--)
-                    {
-                        var prev = rawEntries[i];
-                        if (prev.group != group)
-                        {
-                            break;
-                        }
-
-                        var nextSize = prev.size;
-                        rawEntries[i] = prev with { packed = notLast, size = size - prev.size };
-                        size = nextSize;
-                        notLast = true;
-                    }
-                }
-                else
-                {
-                    rawEntries.Add((id, group, ext, size, false));
-                }
-            }
-
-            var entries = new List<FileEntry>();
-            var counts = new Dictionary<string, int>();
-            var relative = SectorSize;
-            foreach (var entry in rawEntries)
-            {
-                var group = GetGroup(entry.group);
-
-                if (entry.ext == 0x64)
-                {
-                    entries.AddRange(ReadDar(source, group, offset + relative, entry.size));
-                }
-                else
-                {
-                    var id = entry.id.ToString("x4");
-                    var ext = GetExtension(entry.ext);
-
-                    var key = $"{group}/{id}.{ext}";
-                    counts.TryGetValue(key, out var ix);
-                    counts[key] = ix + 1;
-
-                    if (ix > 0)
-                    {
-                        key = $"{group}/{id}.{ix}.{ext}";
-                    }
-
-                    entries.Add((key, offset + relative, entry.size));
-                }
-
-                relative += entry.size;
-                if (!entry.packed && relative % SectorSize != 0)
-                {
-                    relative += SectorSize - relative % SectorSize;
-                }
-            }
-
-            return entries.OrderBy(e => e.name).ToArray();
-        }
 
         public void Dispose()
         {
@@ -234,37 +190,15 @@ namespace RenderLoop.Demo.MGS.MGS1
             }
         }
 
-        private FileEntry[] GetFileIndex(string path)
+        private (long Offset, long Length)? GetStreamSpanRange(string path)
         {
-            var ix = Array.FindIndex(this.index, e => e.name == path);
-            if (ix < 0)
+            var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 2)
             {
-                throw new DirectoryNotFoundException();
-            }
-
-            if (!this.fileEntries.TryGetValue(path, out var files))
-            {
-                var entry = this.index[ix];
-                this.fileEntries[path] = files = ReadList(this.sourceStream, entry.offset);
-            }
-
-            return files;
-        }
-
-        private (long offset, long size)? GetStreamSpanRange(string path)
-        {
-            var ix = path.AsSpan().IndexOfAny(Separators);
-            if (ix >= 0)
-            {
-                var name = path[(ix + 1)..];
-                var dir = path[..ix].TrimEnd(Separators);
-
-                var files = this.GetFileIndex(dir);
-                ix = Array.FindIndex(files, e => e.name == name);
-                if (ix >= 0)
+                var entry = this.index.FirstOrDefault(e => e.FolderName == parts[0] && e.FileName == parts[1]);
+                if (entry != default)
                 {
-                    var file = files[ix];
-                    return (file.offset, file.size);
+                    return (entry.Offset, entry.Length);
                 }
             }
 
@@ -273,22 +207,19 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private Stream GetStreamSpan(string path)
         {
-            path = string.Join("/", path.Split(Separators, StringSplitOptions.RemoveEmptyEntries));
-
             if (this.GetStreamSpanRange(path) is (long offset, long size))
             {
                 return new OffsetStreamSpan(this.sourceStream, offset, size);
             }
 
-            var ex = new FileNotFoundException();
-            throw new FileNotFoundException(ex.Message, path);
+            throw new FileNotFoundException(new FileNotFoundException().Message, path);
         }
 
         private class DirectoryProvider : IDirectory
         {
-            private StageDirVirtualFileSystem parent;
+            private BrfDatVirtualFileSystem parent;
 
-            public DirectoryProvider(StageDirVirtualFileSystem parent)
+            public DirectoryProvider(BrfDatVirtualFileSystem parent)
             {
                 this.parent = parent;
             }
@@ -313,44 +244,25 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, SearchOption searchOption)
             {
-                var glob = PathExtensions.GlobToRegex(searchPattern);
-                if (path == string.Empty)
-                {
-                    if (searchOption == SearchOption.TopDirectoryOnly)
-                    {
-                        return this.parent.index.Select(i => i.name).Where(f => glob.IsMatch(f));
-                    }
-                }
-
                 var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
-                var root = parts[0];
-
-                var index = this.parent.GetFileIndex(root);
-                if (index.Length == 0)
+                if (parts.Length > 1)
                 {
-                    throw new DirectoryNotFoundException();
+                    throw new DirectoryNotFoundException(path);
                 }
 
-                var indexDirs = index.Select(f => f.name[0..f.name.IndexOf('/')]).Distinct();
-                if (parts.Length == 1)
+                if (parts.Length == 0)
                 {
-                    if (searchOption == SearchOption.TopDirectoryOnly)
+                    return this.parent.index.Select(e => e.FolderName).Distinct();
+                }
+                else
+                {
+                    if (!this.parent.index.Any(e => e.FolderName == path))
                     {
-                        return indexDirs.Where(d => glob.IsMatch(d)).Select(d => $"{path}/{d}");
+                        throw new DirectoryNotFoundException(path);
                     }
-                }
-                else if (!indexDirs.Contains(parts[1]) || parts.Length > 2)
-                {
-                    throw new DirectoryNotFoundException();
-                }
 
-                var dir = string.Concat(parts.Skip(1).Select(p => p + "/"));
-                if (searchOption == SearchOption.TopDirectoryOnly)
-                {
                     return [];
                 }
-
-                throw new NotImplementedException();
             }
 
             public IEnumerable<string> EnumerateDirectories(string path, string searchPattern, EnumerationOptions enumerationOptions) => throw new NotImplementedException();
@@ -361,44 +273,25 @@ namespace RenderLoop.Demo.MGS.MGS1
 
             public IEnumerable<string> EnumerateFiles(string path, string searchPattern, SearchOption searchOption)
             {
-                var glob = PathExtensions.GlobToRegex(searchPattern);
-                if (path == string.Empty)
+                var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 1)
                 {
-                    if (searchOption == SearchOption.TopDirectoryOnly)
-                    {
-                        return Enumerable.Empty<string>();
-                    }
-                    else
-                    {
-                        return this.parent.index.SelectMany(i =>
-                            this.parent.GetFileIndex(i.name)
-                                .Where(f =>
-                                    glob.IsMatch(System.IO.Path.GetFileName(f.name)))
-                                .Select(f => $"{i.name}/{f.name}"));
-                    }
+                    throw new DirectoryNotFoundException(path);
+                }
+
+                if (parts.Length == 0)
+                {
+                    return [];
                 }
                 else
                 {
-                    var parts = path.Split(Separators, StringSplitOptions.RemoveEmptyEntries);
-                    var root = parts[0];
-                    var dir = string.Concat(parts.Skip(1).Select(p => p + "/"));
-                    if (searchOption == SearchOption.TopDirectoryOnly)
+                    var files = this.parent.index.Where(e => e.FolderName == path);
+                    if (!files.Any())
                     {
-                        return this.parent.GetFileIndex(root)
-                            .Where(f =>
-                                f.name.StartsWith(dir) &&
-                                f.name.IndexOf('/', dir.Length) == -1 &&
-                                glob.IsMatch(System.IO.Path.GetFileName(f.name)))
-                            .Select(f => $"{root}/{f.name}");
+                        throw new DirectoryNotFoundException(path);
                     }
-                    else
-                    {
-                        return this.parent.GetFileIndex(root)
-                            .Where(f =>
-                                f.name.StartsWith(dir) &&
-                                glob.IsMatch(System.IO.Path.GetFileName(f.name)))
-                            .Select(f => $"{root}/{f.name}");
-                    }
+
+                    return files.Select(e => e.FolderName + "/" + e.FileName);
                 }
             }
 
@@ -479,9 +372,9 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private class FileProvider : IFile
         {
-            private StageDirVirtualFileSystem parent;
+            private BrfDatVirtualFileSystem parent;
 
-            public FileProvider(StageDirVirtualFileSystem parent)
+            public FileProvider(BrfDatVirtualFileSystem parent)
             {
                 this.parent = parent;
             }
@@ -671,9 +564,9 @@ namespace RenderLoop.Demo.MGS.MGS1
 
         private class PathProvider : IPath
         {
-            private StageDirVirtualFileSystem parent;
+            private BrfDatVirtualFileSystem parent;
 
-            public PathProvider(StageDirVirtualFileSystem parent)
+            public PathProvider(BrfDatVirtualFileSystem parent)
             {
                 this.parent = parent;
             }

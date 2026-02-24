@@ -45,8 +45,8 @@ namespace RenderLoop.Demo.MGS.MGS1
                 (file, fs, fsPath) =>
                 {
                     if (fs is MArchiveV1VirtualFileSystem &&
-                    string.Equals(Path.GetExtension(file), ".bin", StringComparison.OrdinalIgnoreCase) &&
-                    Path.GetFileName(Path.GetDirectoryName(file)) == "roms")
+                        string.Equals(Path.GetExtension(file), ".bin", StringComparison.OrdinalIgnoreCase) &&
+                        Path.GetFileName(Path.GetDirectoryName(file)) == "roms")
                     {
                         return static (IFileSystem fs, string subPath) =>
                         {
@@ -54,6 +54,17 @@ namespace RenderLoop.Demo.MGS.MGS1
                             var cdSector = new CDSectorStream(file, CDSectorStream.XAForm1);
                             var cdReader = new CDReader(cdSector, joliet: false);
                             var subFs = new CDReaderVFSAdapter(cdReader);
+                            return subFs;
+                        };
+                    }
+                    else if (fs is CDReaderVFSAdapter &&
+                        string.Equals(Path.GetFileName(file), "brf.dat", StringComparison.OrdinalIgnoreCase) &&
+                        Path.GetFileName(Path.GetDirectoryName(file)) == "MGS")
+                    {
+                        return static (IFileSystem fs, string subPath) =>
+                        {
+                            var file = fs.File.OpenRead(subPath);
+                            var subFs = new BrfDatVirtualFileSystem(file);
                             return subFs;
                         };
                     }
