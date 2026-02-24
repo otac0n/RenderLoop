@@ -24,7 +24,7 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.saveSelectedDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveSelectedDialog.InitialDirectory);
             this.saveToFolderDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveToFolderDialog.InitialDirectory);
 
-            this.fileTree.Nodes.Add(new TreeNode("Root", 0, 0, [this.CreateExpanderDummy()]) { Tag = this.fsm.RootEntry });
+            this.fileTree.Nodes.Add(new TreeNode(WellKnownPaths.AllDataBin, 0, 0, [this.CreateExpanderDummy()]) { Tag = this.fsm.RootEntry });
             this.Navigate(this.fsm.RootEntry);
         }
 
