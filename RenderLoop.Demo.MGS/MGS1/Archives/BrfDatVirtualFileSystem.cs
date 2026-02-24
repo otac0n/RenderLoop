@@ -94,32 +94,100 @@
             while (!end)
             {
                 var pcxId = (uint)stream.Position;
-                var signature = reader.ReadUInt32();
-                if (IsPcx(signature))
+                if (stream.Position < stream.Length && IsPcx(reader.ReadUInt32()))
                 {
-                    while (true)
-                    {
-                        if (!TryAlign(stream, 0x800))
-                        {
-                            end = true;
-                            stream.Seek(0, SeekOrigin.End);
-                            break;
-                        }
-                        else if (stream.Position >= stream.Length)
-                        {
-                            end = true;
-                            break;
-                        }
-                        else if (IsPcx(reader.ReadUInt32()))
-                        {
-                            stream.Seek(-4, SeekOrigin.Current);
-                            break;
-                        }
-                    }
-
+                    stream.Seek(-4, SeekOrigin.Current);
+                    SeekPastPCX(reader);
                     yield return new("pcx", pcxId.ToString("x8", CultureInfo.InvariantCulture) + ".pcx", pcxId, stream.Position - pcxId);
+                    if (!TryAlign(stream, 0x800))
+                    {
+                        end = true;
+                    }
+                }
+                else
+                {
+                    end = true;
+                }
+            }
+        }
+
+        public static void SeekPastPCX(BinaryReader br)
+        {
+            var s = br.BaseStream;
+
+            var start = s.Position;
+
+            var manufacturer = br.ReadByte(); // must be 0x0A
+            var version = br.ReadByte();
+            var encoding = br.ReadByte(); // must be 1 (RLE)
+            var bitsPerPixel = br.ReadByte();
+
+            if (manufacturer != 0x0A)
+            {
+                throw new InvalidDataException("Not a PCX file.");
+            }
+
+            if (encoding != 1)
+            {
+                throw new InvalidDataException("Unsupported PCX encoding.");
+            }
+
+            var xmin = br.ReadUInt16();
+            var ymin = br.ReadUInt16();
+            var xmax = br.ReadUInt16();
+            var ymax = br.ReadUInt16();
+            var width = xmax - xmin + 1;
+            var height = ymax - ymin + 1;
+
+            s.Seek(start + 0x041, SeekOrigin.Begin);
+            var colorPlanes = br.ReadByte();
+
+            s.Seek(start + 0x042, SeekOrigin.Begin);
+            var bytesPerLine = br.ReadUInt16();
+
+            var decodedBytesRequired =
+                (long)height * colorPlanes * bytesPerLine;
+
+            var bitmapPos = start + 0x80;
+            s.Seek(bitmapPos, SeekOrigin.Begin);
+
+            long decoded = 0;
+            while (decoded < decodedBytesRequired)
+            {
+                var b = s.ReadByte();
+                if (b < 0)
+                {
+                    throw new EndOfStreamException();
                 }
 
+                if ((b & 0xC0) == 0xC0)
+                {
+                    var runLength = b & 0x3F;
+                    if (s.ReadByte() < 0)
+                    {
+                        throw new EndOfStreamException();
+                    }
+
+                    decoded += runLength;
+                }
+                else
+                {
+                    decoded += 1;
+                }
+            }
+
+            if (bitsPerPixel == 8 && colorPlanes == 1)
+            {
+                var marker = s.ReadByte();
+
+                if (marker == 0x0C)
+                {
+                    s.Seek(0x300, SeekOrigin.Current);
+                }
+                else
+                {
+                    s.Seek(-1, SeekOrigin.Current);
+                }
             }
         }
 
