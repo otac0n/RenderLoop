@@ -31,7 +31,7 @@
             this.components = new System.ComponentModel.Container();
             var resources = new System.ComponentModel.ComponentResourceManager(typeof(Browser));
             this.pathBox = new System.Windows.Forms.TextBox();
-            this.splitContainer2 = new System.Windows.Forms.SplitContainer();
+            this.splitContainer = new System.Windows.Forms.SplitContainer();
             this.fileTree = new System.Windows.Forms.TreeView();
             this.entryList = new System.Windows.Forms.ListView();
             this.fileTypes = new System.Windows.Forms.ImageList(this.components);
@@ -40,13 +40,14 @@
             this.viewDrowDown = new System.Windows.Forms.ToolStripDropDownButton();
             this.listToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.smallIconsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.imagePreviewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.lowerStatusStrip = new System.Windows.Forms.StatusStrip();
             this.saveSelectedDialog = new System.Windows.Forms.SaveFileDialog();
             this.saveToFolderDialog = new System.Windows.Forms.FolderBrowserDialog();
-            ((System.ComponentModel.ISupportInitialize)this.splitContainer2).BeginInit();
-            this.splitContainer2.Panel1.SuspendLayout();
-            this.splitContainer2.Panel2.SuspendLayout();
-            this.splitContainer2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)this.splitContainer).BeginInit();
+            this.splitContainer.Panel1.SuspendLayout();
+            this.splitContainer.Panel2.SuspendLayout();
+            this.splitContainer.SuspendLayout();
             this.topToolStrip.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -58,22 +59,22 @@
             this.pathBox.Size = new System.Drawing.Size(1203, 31);
             this.pathBox.TabIndex = 0;
             // 
-            // splitContainer2
+            // splitContainer
             // 
-            this.splitContainer2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.splitContainer2.Location = new System.Drawing.Point(0, 64);
-            this.splitContainer2.Name = "splitContainer2";
+            this.splitContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainer.Location = new System.Drawing.Point(0, 64);
+            this.splitContainer.Name = "splitContainer";
             // 
-            // splitContainer2.Panel1
+            // splitContainer.Panel1
             // 
-            this.splitContainer2.Panel1.Controls.Add(this.fileTree);
+            this.splitContainer.Panel1.Controls.Add(this.fileTree);
             // 
-            // splitContainer2.Panel2
+            // splitContainer.Panel2
             // 
-            this.splitContainer2.Panel2.Controls.Add(this.entryList);
-            this.splitContainer2.Size = new System.Drawing.Size(1203, 702);
-            this.splitContainer2.SplitterDistance = 401;
-            this.splitContainer2.TabIndex = 1;
+            this.splitContainer.Panel2.Controls.Add(this.entryList);
+            this.splitContainer.Size = new System.Drawing.Size(1203, 702);
+            this.splitContainer.SplitterDistance = 401;
+            this.splitContainer.TabIndex = 1;
             // 
             // fileTree
             // 
@@ -135,7 +136,7 @@
             // viewDrowDown
             // 
             this.viewDrowDown.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.viewDrowDown.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { this.listToolStripMenuItem, this.smallIconsToolStripMenuItem });
+            this.viewDrowDown.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { this.listToolStripMenuItem, this.smallIconsToolStripMenuItem, this.imagePreviewToolStripMenuItem });
             this.viewDrowDown.Image = Properties.Resources.streamline_icon_cog_20x20;
             this.viewDrowDown.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.viewDrowDown.Name = "viewDrowDown";
@@ -147,16 +148,23 @@
             this.listToolStripMenuItem.Checked = true;
             this.listToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.listToolStripMenuItem.Name = "listToolStripMenuItem";
-            this.listToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.listToolStripMenuItem.Size = new System.Drawing.Size(229, 34);
             this.listToolStripMenuItem.Text = "List";
             this.listToolStripMenuItem.Click += this.ListToolStripMenuItem_Click;
             // 
             // smallIconsToolStripMenuItem
             // 
             this.smallIconsToolStripMenuItem.Name = "smallIconsToolStripMenuItem";
-            this.smallIconsToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.smallIconsToolStripMenuItem.Size = new System.Drawing.Size(229, 34);
             this.smallIconsToolStripMenuItem.Text = "Small Icons";
             this.smallIconsToolStripMenuItem.Click += this.SmallIconsToolStripMenuItem_Click;
+            // 
+            // imagePreviewToolStripMenuItem
+            // 
+            this.imagePreviewToolStripMenuItem.Name = "imagePreviewToolStripMenuItem";
+            this.imagePreviewToolStripMenuItem.Size = new System.Drawing.Size(229, 34);
+            this.imagePreviewToolStripMenuItem.Text = "Image Preview";
+            this.imagePreviewToolStripMenuItem.Click += this.ImagePreviewToolStripMenuItem_Click;
             // 
             // lowerStatusStrip
             // 
@@ -180,15 +188,15 @@
             // 
             this.AutoScroll = true;
             this.ClientSize = new System.Drawing.Size(1203, 788);
-            this.Controls.Add(this.splitContainer2);
+            this.Controls.Add(this.splitContainer);
             this.Controls.Add(this.lowerStatusStrip);
             this.Controls.Add(this.pathBox);
             this.Controls.Add(this.topToolStrip);
             this.Name = "Browser";
-            this.splitContainer2.Panel1.ResumeLayout(false);
-            this.splitContainer2.Panel2.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)this.splitContainer2).EndInit();
-            this.splitContainer2.ResumeLayout(false);
+            this.splitContainer.Panel1.ResumeLayout(false);
+            this.splitContainer.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)this.splitContainer).EndInit();
+            this.splitContainer.ResumeLayout(false);
             this.topToolStrip.ResumeLayout(false);
             this.topToolStrip.PerformLayout();
             this.ResumeLayout(false);
@@ -198,7 +206,7 @@
         #endregion
         private System.Windows.Forms.TextBox pathBox;
         private System.Windows.Forms.ListView entryList;
-        private System.Windows.Forms.SplitContainer splitContainer2;
+        private System.Windows.Forms.SplitContainer splitContainer;
         private System.Windows.Forms.ImageList fileTypes;
         private System.Windows.Forms.TreeView fileTree;
         private System.Windows.Forms.ToolStrip topToolStrip;
@@ -209,5 +217,6 @@
         private System.Windows.Forms.ToolStripButton saveButton;
         private System.Windows.Forms.SaveFileDialog saveSelectedDialog;
         private System.Windows.Forms.FolderBrowserDialog saveToFolderDialog;
+        private System.Windows.Forms.ToolStripMenuItem imagePreviewToolStripMenuItem;
     }
 }

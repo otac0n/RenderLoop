@@ -4,8 +4,10 @@ namespace RenderLoop.Demo.MGS.MGS1
 {
     using System;
     using System.Drawing;
+    using System.Drawing.Drawing2D;
     using System.IO;
     using System.Linq;
+    using System.Threading.Tasks;
     using System.Windows.Forms;
     using ImageMagick;
     using Microsoft.Extensions.DependencyInjection;
@@ -15,6 +17,7 @@ namespace RenderLoop.Demo.MGS.MGS1
     internal partial class Browser : Form
     {
         private readonly NestedFileSystemManager fsm;
+        private readonly VirtualImageList<Entry> textureDisplay;
 
         public Browser(IServiceProvider serviceProvider)
         {
@@ -23,6 +26,18 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.InitializeComponent();
             this.saveSelectedDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveSelectedDialog.InitialDirectory);
             this.saveToFolderDialog.InitialDirectory = Environment.ExpandEnvironmentVariables(this.saveToFolderDialog.InitialDirectory);
+            this.textureDisplay = new VirtualImageList<Entry>(
+                entry =>
+                {
+                    using var textureFile = this.fsm.OpenRead(entry.Path);
+                    return Task.FromResult(new MagickImage(textureFile).ToBitmap());
+                },
+                InterpolationMode.NearestNeighbor)
+            {
+                Dock = DockStyle.Fill,
+                Visible = false,
+            };
+            this.splitContainer.Panel2.Controls.Add(this.textureDisplay);
 
             this.fileTree.Nodes.Add(new TreeNode(WellKnownPaths.AllDataBin, 0, 0, [this.CreateExpanderDummy()]) { Tag = this.fsm.RootEntry });
             this.Navigate(this.fsm.RootEntry);
@@ -33,7 +48,7 @@ namespace RenderLoop.Demo.MGS.MGS1
         private static int DetectFileType(Entry entry) =>
             entry.CanEnumerateEntries && !entry.CanOpen ? 0 :
             entry.CanEnumerateEntries ? 2 :
-            string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase) ? 3 :
+            string.Equals(Path.GetExtension(entry.Path), ".pcx", StringComparison.OrdinalIgnoreCase) ? 3 : // TODO: Integrate with DetectFileType.
             1;
 
         private void Navigate(Entry entry)
@@ -41,12 +56,15 @@ namespace RenderLoop.Demo.MGS.MGS1
             this.pathBox.Text = entry.Path;
             if (this.fsm.TryFindParentFileSystem(entry.Path, out var fs, out var _, out var subPath))
             {
-                var entries = this.fsm.EnumerateEntries(entry.Path)
+                var entries = this.fsm.EnumerateEntries(entry.Path);
+                var items = entries
                     .Select(e => new ListViewItem(Path.GetFileName(e.Path), DetectFileType(e)) { Tag = e })
                     .ToArray();
                 this.entryList.Items.Clear();
                 this.EntryList_SelectedIndexChanged(this.entryList, EventArgs.Empty);
-                this.entryList.Items.AddRange(entries);
+                this.entryList.Items.AddRange(items);
+
+                this.textureDisplay.Items = entries.Where(e => string.Equals(Path.GetExtension(e.Path), ".pcx", StringComparison.OrdinalIgnoreCase)); // TODO: Integrate with DetectFileType.
             }
         }
 
@@ -103,15 +121,30 @@ namespace RenderLoop.Demo.MGS.MGS1
         private void ListToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.entryList.View = View.List;
+            this.entryList.Visible = true;
+            this.textureDisplay.Visible = false;
             this.listToolStripMenuItem.Checked = true;
             this.smallIconsToolStripMenuItem.Checked = false;
+            this.imagePreviewToolStripMenuItem.Checked = false;
         }
 
         private void SmallIconsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.entryList.View = View.SmallIcon;
+            this.entryList.Visible = true;
+            this.textureDisplay.Visible = false;
             this.listToolStripMenuItem.Checked = false;
             this.smallIconsToolStripMenuItem.Checked = true;
+            this.imagePreviewToolStripMenuItem.Checked = false;
+        }
+
+        private void ImagePreviewToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.entryList.Visible = false;
+            this.textureDisplay.Visible = true;
+            this.listToolStripMenuItem.Checked = false;
+            this.smallIconsToolStripMenuItem.Checked = false;
+            this.imagePreviewToolStripMenuItem.Checked = true;
         }
 
         private void EntryList_SelectedIndexChanged(object sender, EventArgs e)

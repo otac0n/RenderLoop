@@ -15,18 +15,35 @@ namespace RenderLoop.Demo.MGS
         where T : notnull
     {
         private const int ImageSize = 128;
-        private readonly List<T> items;
         private readonly Func<T, Task<Bitmap>> getImage;
         private readonly InterpolationMode interpolation;
         private readonly Dictionary<T, Task<Bitmap>> images = [];
         private readonly SemaphoreSlim semaphore = new(5);
+        private List<T> items;
 
         public VirtualImageList(IEnumerable<T> items, Func<T, Task<Bitmap>> getImage, InterpolationMode interpolation = InterpolationMode.Default)
+            : this(getImage, interpolation)
         {
             this.items = [.. items];
+        }
+
+        public VirtualImageList(Func<T, Task<Bitmap>> getImage, InterpolationMode interpolation = InterpolationMode.Default)
+        {
             this.getImage = getImage;
             this.interpolation = interpolation;
             this.DoubleBuffered = true;
+            this.ResizeRedraw = true;
+        }
+
+        public IEnumerable<T> Items
+        {
+            set
+            {
+                this.items = [.. value];
+                this.images.Clear(); // TODO: Keep images for items that are still present and Dispose images for items that are no longer present.
+                this.Resize();
+                this.Invalidate();
+            }
         }
 
         public bool HitTest(Point p, [NotNullWhen(true)] out T? hit)
@@ -54,12 +71,6 @@ namespace RenderLoop.Demo.MGS
         protected override void OnResize(EventArgs e)
         {
             base.OnResize(e);
-            this.Resize();
-        }
-
-        protected override void OnSizeChanged(EventArgs e)
-        {
-            base.OnSizeChanged(e);
             this.Resize();
         }
 
