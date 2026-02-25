@@ -45,6 +45,15 @@ namespace RenderLoop.SilkRenderer.GL
             }
         }
 
+        public void SetUniform(string name, Vector2 value) =>
+            this.gl.Uniform1(this.GetUniformLocation(name), new[] { value.X, value.Y }.AsSpan());
+
+        public void SetUniform(string name, Vector3 value) =>
+            this.gl.Uniform1(this.GetUniformLocation(name), new[] { value.X, value.Y, value.Z }.AsSpan());
+
+        public void SetUniform(string name, Vector4 value) =>
+            this.gl.Uniform1(this.GetUniformLocation(name), new[] { value.X, value.Y, value.Z, value.W }.AsSpan());
+
         public void SetUniform(string name, int value) =>
             this.gl.Uniform1(this.GetUniformLocation(name), value);
 
