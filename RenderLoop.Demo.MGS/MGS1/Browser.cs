@@ -103,11 +103,15 @@ namespace RenderLoop.Demo.MGS.MGS1
         private void ListToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.entryList.View = View.List;
+            this.listToolStripMenuItem.Checked = true;
+            this.smallIconsToolStripMenuItem.Checked = false;
         }
 
         private void SmallIconsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             this.entryList.View = View.SmallIcon;
+            this.listToolStripMenuItem.Checked = false;
+            this.smallIconsToolStripMenuItem.Checked = true;
         }
 
         private void EntryList_SelectedIndexChanged(object sender, EventArgs e)

@@ -144,6 +144,8 @@
             // 
             // listToolStripMenuItem
             // 
+            this.listToolStripMenuItem.Checked = true;
+            this.listToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.listToolStripMenuItem.Name = "listToolStripMenuItem";
             this.listToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.listToolStripMenuItem.Text = "List";
