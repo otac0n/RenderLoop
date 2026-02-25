@@ -3,7 +3,6 @@
 namespace RenderLoop.Demo.MGS.MGS2
 {
     using System;
-    using System.Drawing;
     using System.IO;
     using System.Linq;
     using System.Windows.Forms;
@@ -14,7 +13,6 @@ namespace RenderLoop.Demo.MGS.MGS2
     {
         private readonly Program.Options options;
         private readonly VirtualImageList<Entry> textureDisplay;
-        private MouseMoveFilter? filter;
 
         public TextureDisplay(IServiceProvider serviceProvider)
         {
@@ -34,71 +32,21 @@ namespace RenderLoop.Demo.MGS.MGS2
                     return await (id == null ? CtxrFile.LoadAsync(path) : TriFile.LoadAsync(path, id.Value)).ConfigureAwait(true);
                 })
             {
-                AutoSize = true,
-                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
-                Location = Point.Empty,
-                Width = this.ClientSize.Width,
+                Dock = DockStyle.Fill,
             };
+            this.textureDisplay.MouseMove += this.TextureDisplay_MouseMove;
             this.Controls.Add(this.textureDisplay);
         }
 
-        protected override void OnLoad(EventArgs e)
+        private void TextureDisplay_MouseMove(object? sender, MouseEventArgs e)
         {
-            base.OnLoad(e);
-
-            this.filter = new MouseMoveFilter(
-                this,
-                this.textureDisplay,
-                this.toolTip);
-
-            Application.AddMessageFilter(this.filter);
-        }
-
-        protected override void OnFormClosed(FormClosedEventArgs e)
-        {
-            if (this.filter != null)
+            var caption = string.Empty;
+            if (this.textureDisplay.HitTest(e.Location, out var hit))
             {
-                Application.RemoveMessageFilter(this.filter);
-                this.filter = null;
+                caption = Path.GetRelativePath(this.options.SteamApps, hit.Path + (hit.TextureId is uint id ? $" ({id:x8})" : string.Empty));
             }
 
-            base.OnFormClosed(e);
-        }
-
-        protected override Point ScrollToControl(Control activeControl)
-        {
-            return this.DisplayRectangle.Location;
-        }
-
-        private class MouseMoveFilter(
-            TextureDisplay parent,
-            VirtualImageList<Entry> textureDisplay,
-            ToolTip toolTip) : IMessageFilter
-        {
-            private readonly TextureDisplay parent = parent;
-            private readonly VirtualImageList<Entry> textureDisplay = textureDisplay;
-            private readonly ToolTip toolTip = toolTip;
-
-            const int WM_MOUSEMOVE = 0x0200;
-
-            public bool PreFilterMessage(ref Message m)
-            {
-                if (m.Msg == WM_MOUSEMOVE)
-                {
-                    var client = this.textureDisplay.PointToClient(Cursor.Position);
-
-                    var caption = string.Empty;
-                    if (this.textureDisplay.ClientRectangle.Contains(client) &&
-                        this.textureDisplay.HitTest(client, out var hit))
-                    {
-                        caption = Path.GetRelativePath(this.parent.options.SteamApps, hit.Path + (hit.TextureId is uint id ? $" ({id:x8})" : string.Empty));
-                    }
-
-                    this.toolTip.SetToolTip(this.textureDisplay, caption);
-                }
-
-                return false;
-            }
+            this.toolTip.SetToolTip(this.textureDisplay, caption);
         }
     }
 }

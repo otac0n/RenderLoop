@@ -19,6 +19,7 @@ namespace RenderLoop.Demo.MGS
         private readonly InterpolationMode interpolation;
         private readonly Dictionary<T, Task<Bitmap>> images = [];
         private readonly SemaphoreSlim semaphore = new(5);
+        private readonly ScrollBar scrollBar;
         private List<T> items;
 
         public VirtualImageList(IEnumerable<T> items, Func<T, Task<Bitmap>> getImage, InterpolationMode interpolation = InterpolationMode.Default)
@@ -33,6 +34,14 @@ namespace RenderLoop.Demo.MGS
             this.interpolation = interpolation;
             this.DoubleBuffered = true;
             this.ResizeRedraw = true;
+            this.scrollBar = new VScrollBar
+            {
+                Minimum = 0,
+                Dock = DockStyle.Right,
+            };
+            this.scrollBar.SmallChange = ImageSize;
+            this.scrollBar.ValueChanged += this.ScrollBar_ValueChanged;
+            this.Controls.Add(this.scrollBar);
         }
 
         public IEnumerable<T> Items
@@ -41,6 +50,7 @@ namespace RenderLoop.Demo.MGS
             {
                 this.items = [.. value];
                 this.images.Clear(); // TODO: Keep images for items that are still present and Dispose images for items that are no longer present.
+                this.scrollBar.Value = 0;
                 this.Resize();
                 this.Invalidate();
             }
@@ -48,9 +58,9 @@ namespace RenderLoop.Demo.MGS
 
         public bool HitTest(Point p, [NotNullWhen(true)] out T? hit)
         {
-            var columns = Math.Max(1, this.ClientSize.Width / ImageSize);
+            var columns = Math.Max(1, (this.ClientSize.Width - this.scrollBar.Width) / ImageSize);
             var col = p.X / ImageSize;
-            var row = p.Y / ImageSize;
+            var row = (p.Y + this.scrollBar.Value) / ImageSize;
             var index = row * columns + col;
             if (index >= 0 && index < this.items.Count)
             {
@@ -74,31 +84,35 @@ namespace RenderLoop.Demo.MGS
             this.Resize();
         }
 
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            this.scrollBar.Value = Math.Clamp(this.scrollBar.Value - e.Delta, this.scrollBar.Minimum, this.scrollBar.Maximum);
+        }
+
+        private void ScrollBar_ValueChanged(object? sender, EventArgs e)
+        {
+            this.Invalidate();
+        }
+
         private void Resize()
         {
-            if (!this.AutoSize)
-            {
-                return;
-            }
-
-            var width = Math.Max(this.ClientSize.Width, ImageSize);
+            var width = Math.Max(this.ClientSize.Width - this.scrollBar.Width, ImageSize);
             var columns = Math.Max(1, width / ImageSize);
             var rows = (this.items.Count + columns - 1) / columns;
             var height = rows * ImageSize;
-            var size = new Size(width, height);
-            if (this.ClientSize != size)
-            {
-                this.ClientSize = size;
-                this.Invalidate();
-            }
+            this.scrollBar.Maximum = Math.Max(0, height - this.ClientSize.Height);
+            this.scrollBar.LargeChange = this.ClientSize.Height / ImageSize;
         }
 
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e);
 
+            var width = this.ClientSize.Width - this.scrollBar.Width;
+            var yOffset = Math.Clamp(this.scrollBar.Value, this.scrollBar.Minimum, this.scrollBar.Maximum);
             var clip = e.ClipRectangle;
-            var width = this.ClientSize.Width;
+            clip.Offset(0, yOffset);
             var columns = Math.Max(1, width / ImageSize);
 
             var rowStart = clip.Top / ImageSize;
@@ -135,7 +149,7 @@ namespace RenderLoop.Demo.MGS
                         continue;
                     }
 
-                    var destRect = new Rectangle(col * ImageSize, row * ImageSize, ImageSize, ImageSize);
+                    var destRect = new Rectangle(col * ImageSize, row * ImageSize - yOffset, ImageSize, ImageSize);
 
                     ZoomImage(bmp, destRect);
                 }
@@ -156,7 +170,7 @@ namespace RenderLoop.Demo.MGS
                         try
                         {
                             var bmp = await this.getImage(item).ConfigureAwait(true);
-                            var columns = Math.Max(1, this.ClientSize.Width / ImageSize);
+                            var columns = Math.Max(1, (this.ClientSize.Width - this.scrollBar.Width) / ImageSize);
                             var row = index / columns;
                             var col = index % columns;
                             this.Invalidate(new Rectangle(col * ImageSize, row * ImageSize, ImageSize, ImageSize));
