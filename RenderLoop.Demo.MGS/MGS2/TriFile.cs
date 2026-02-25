@@ -445,6 +445,14 @@ namespace RenderLoop.Demo.MGS.MGS2
                 PageSize: new(128, 128));
         }
 
+        private enum TextureFunction : uint
+        {
+            Modulate = 0,
+            Decal = 1,
+            Hilight = 2,
+            Hilight2 = 3,
+        }
+
         private enum PixelStorageMode : uint
         {
             /// <summary>
@@ -493,22 +501,22 @@ namespace RenderLoop.Demo.MGS.MGS2
             PSMT4HH = 44,
 
             /// <summary>
-            /// 32-bit Grayscale.
+            /// 32-bit Z-buffer (Grayscale).
             /// </summary>
             PZM32 = 48,
 
             /// <summary>
-            /// 24-bit Grayscale, Unused 8-bits.
+            /// 24-bit Z-buffer (Grayscale, unused 8-bits).
             /// </summary>
             PZM24 = 49,
 
             /// <summary>
-            /// 16-bit Grayscale.
+            /// 16-bit Z-buffer (Grayscale).
             /// </summary>
             PZM16 = 50,
 
             /// <summary>
-            /// 16-bit Grayscale (signed).
+            /// 16-bit Z-buffer (Grayscale, signed).
             /// </summary>
             PZM16S = 58,
         }
@@ -678,10 +686,10 @@ namespace RenderLoop.Demo.MGS.MGS2
             /// <summary>
             /// Texture function.
             /// </summary>
-            public uint TFX
+            public TextureFunction TFX
             {
-                readonly get => (uint)((this.Bitfield >> TFXShift) & TFXMask);
-                set => this.Bitfield = (this.Bitfield & ~(TFXMask << TFXShift)) | ((value & TFXMask) << TFXShift);
+                readonly get => (TextureFunction)((this.Bitfield >> TFXShift) & TFXMask);
+                set => this.Bitfield = (this.Bitfield & ~(TFXMask << TFXShift)) | (((uint)value & TFXMask) << TFXShift);
             }
 
             /// <summary>
