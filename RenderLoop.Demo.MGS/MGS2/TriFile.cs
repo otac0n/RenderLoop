@@ -353,8 +353,15 @@ namespace RenderLoop.Demo.MGS.MGS2
 
                 var u = (int)(info.UOffset * imageWidth);
                 var v = (int)(info.VOffset * imageHeight);
-                var width = (int)(info.UScale * imageWidth) + 1;
-                var height = (int)(info.VScale * imageHeight) + 1;
+                var rawW = info.UScale * imageWidth;
+                var rawH = info.VScale * imageHeight;
+
+                var texelU = info.UOffset * imageWidth;
+                var texelV = info.VOffset * imageHeight;
+                var centerAddressed = (texelU - MathF.Floor(texelU) > 0.25f) || (texelV - MathF.Floor(texelV) > 0.25f);
+
+                var width = (int)rawW + (centerAddressed ? 1 : 0);
+                var height = (int)rawH + (centerAddressed ? 1 : 0);
 
                 var bmp = new Bitmap(width, height, targetFormat);
 
@@ -373,9 +380,9 @@ namespace RenderLoop.Demo.MGS.MGS2
                     };
 
                     var clutBuffer = new byte[1024 * 1024 * 4];
-                    readTexPSMCT32(info.RegisterInfo2.CBP, 1, (int)(info.RegisterInfo2.CSA * 8), 0, w, h, clutBuffer.AsSpan(), gsmemPalette);
+                    readTexPSMCT32(info.RegisterInfo2.CBP, 1, (int)(info.RegisterInfo2.CSAX * 8), (int)(info.RegisterInfo2.CSAY * 2), w, h, clutBuffer.AsSpan(), gsmemPalette);
                     var paletteData = MemoryMarshal.Cast<byte, int>(clutBuffer);
-                    if (info.RegisterInfo2.PSM == PixelStorageMode.PSMT8)
+                    if (info.RegisterInfo2.PSM == PixelStorageMode.PSMT8 && !info.RegisterInfo2.CSM)
                     {
                         unswizzleClut(clutBuffer);
                     }
@@ -620,8 +627,11 @@ namespace RenderLoop.Demo.MGS.MGS2
             private const int CSMShift = 55;
             private const ulong CSMMask = 0x1UL;     // bit  55
 
-            private const int CSAShift = 56;
-            private const ulong CSAMask = 0x1FUL;    // bits 56–60
+            private const int CSAXShift = 56;
+            private const ulong CSAXMask = 0x1UL;    // bit 56
+
+            private const int CSAYShift = 57;
+            private const ulong CSAYMask = 0xFUL;    // bits 57–60
 
             private const int CLDShift = 61;
             private const ulong CLDMask = 0x7UL;     // bits 61–63
@@ -725,10 +735,19 @@ namespace RenderLoop.Demo.MGS.MGS2
             /// <summary>
             /// CLUT entry offset.
             /// </summary>
-            public uint CSA
+            public uint CSAX
             {
-                readonly get => (uint)((this.Bitfield >> CSAShift) & CSAMask);
-                set => this.Bitfield = (this.Bitfield & ~(CSAMask << CSAShift)) | ((value & CSAMask) << CSAShift);
+                readonly get => (uint)((this.Bitfield >> CSAXShift) & CSAXMask);
+                set => this.Bitfield = (this.Bitfield & ~(CSAXMask << CSAXShift)) | ((value & CSAXMask) << CSAXShift);
+            }
+
+            /// <summary>
+            /// CLUT entry offset.
+            /// </summary>
+            public uint CSAY
+            {
+                readonly get => (uint)((this.Bitfield >> CSAYShift) & CSAYMask);
+                set => this.Bitfield = (this.Bitfield & ~(CSAYMask << CSAYShift)) | ((value & CSAYMask) << CSAYShift);
             }
 
             /// <summary>
